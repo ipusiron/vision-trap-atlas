@@ -1,0 +1,9 @@
+{
+  "name": "vision-trap-atlas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An atlas of visual traps: pop-out, grouping, figure and ground, search time and misleading charts. Day128.",
+  "scripts": { "test": "node --test \"test/**/*.test.js\"" },
+  "engines": { "node": ">=22" },
+  "license": "MIT"
+}
