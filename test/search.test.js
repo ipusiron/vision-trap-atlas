@@ -375,10 +375,11 @@ test('D: resultCases: negative slopes, missing slopes, a stop, mixed input', () 
   assert.deepEqual(missing.filter((c) => c.key === 'resNoSlope').map((c) => c.values.row), ['feature.absent', 'conjunction.present', 'conjunction.absent']);
 });
 
-test('D: resultCases: wrong answers at 10.0%, 10.1% and 10.9% of the answered tries (compared after rounding to a whole percent)', () => {
+test('D: resultCases: wrong answers at 10.0%, 10.1% and 10.9% of the answered tries (compared before rounding; {p} is a whole percent)', () => {
   const errs = (errors, answered) => C.resultCases({ feature: block({ a: 3, b: 20, errors, answered }) }).find((c) => c.key === 'resErrors');
   assert.equal(errs(6, 60), undefined, '10.0%');
-  assert.equal(errs(101, 1000), undefined, '10.1% is shown as 10%');
+  assert.equal(errs(100, 1000), undefined, '10.0% of 1000');
+  assert.deepEqual(errs(101, 1000), { key: 'resErrors', values: { search: 'feature', n: 101, p: 10 } }, '10.1% is over 10%, shown as 10');
   assert.deepEqual(errs(109, 1000), { key: 'resErrors', values: { search: 'feature', n: 109, p: 11 } });
   assert.deepEqual(errs(7, 64), { key: 'resErrors', values: { search: 'feature', n: 7, p: 11 } });
 });

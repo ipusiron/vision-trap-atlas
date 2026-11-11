@@ -10,8 +10,8 @@ const listed = (dir, pattern) => fs.readdirSync(path.join(root, dir)).filter((f)
 
 test('F: line length limits (JS, CSS and tests 160 characters, index.html 250) and UTF-8 without BOM', () => {
   const files = [...listed('.', /\.(js|css|html|json)$/), ...listed('test', /\.js$/), ...listed('test/fixtures', /\.js$/)].map((f) => f.replace(/^\.\//, ''));
-  for (const required of ['package.json', 'atlas-core.js', 'atlas-data.js', 'atlas-view.js', 'atlas-search.js', 'messages.js', 'test/core.test.js',
-    'test/fixtures/illusion-data.js']) {
+  for (const required of ['package.json', 'index.html', 'style.css', 'theme-init.js', 'app.js', 'atlas-core.js', 'atlas-data.js', 'atlas-view.js',
+    'atlas-search.js', 'messages.js', 'test/core.test.js', 'test/structure.test.js', 'test/fixtures/illusion-data.js']) {
     assert.ok(files.includes(required), required);
   }
   for (const file of files) {
@@ -24,7 +24,8 @@ test('F: line length limits (JS, CSS and tests 160 characters, index.html 250) a
 });
 
 test('F: main files keep a readable number of lines', () => {
-  const minimum = [['atlas-core.js', 300], ['atlas-data.js', 350], ['atlas-view.js', 550], ['atlas-search.js', 200], ['messages.js', 900]];
+  const minimum = [['atlas-core.js', 300], ['atlas-data.js', 350], ['atlas-view.js', 550], ['atlas-search.js', 200], ['messages.js', 900],
+    ['app.js', 500], ['style.css', 300], ['index.html', 150], ['theme-init.js', 10]];
   for (const [file, lines] of minimum) {
     assert.ok(fs.readFileSync(path.join(root, file), 'utf8').split('\n').length >= lines, file);
   }

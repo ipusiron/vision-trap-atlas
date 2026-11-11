@@ -788,10 +788,44 @@
   }
   const messageText = (M, lang, msg) => fill(dictionary(M, lang)[msg.key], msg.values || {});
 
+  // ===== 図の説明（SVG の <desc>。いまの設定を文で表す） =====
+  // side＝main（上の図）・show・hide。戻り値＝{ key, values, refs }。refs は「辞書のキーを引いて差し込む値」。
+  // 説明の文がまだない項目は null（画面は <title> だけを付ける）
+  function descCase(entry, values, side) {
+    const id = entry.id;
+    if (id === 'popout-feature') {
+      const steps = { diff: `ctl.${id}.diff.${values.diff}`, variety: `ctl.${id}.variety.${values.variety}`, kind: `kindInline.${values.kind}` };
+      if (side === 'main') {
+        const n = { n: String(values.count) };
+        if (values.kind === 'shape') return { key: `desc.${id}.main.shape`, values: n, refs: { shape: `ctl.${id}.shape.${values.shape}` } };
+        if (values.diff === 'same') return { key: `desc.${id}.main.same`, values: n, refs: { kind: steps.kind, variety: steps.variety } };
+        return { key: `desc.${id}.main`, values: n, refs: steps };
+      }
+      const use = entry.uses.find((u) => u.side === side);
+      if (!use) return null;
+      if (!useSettings(use, values).linked.length) return { key: `desc.${id}.${side}.fixed`, values: {}, refs: {} };
+      return { key: `desc.${id}.${side}`, values: {}, refs: steps };
+    }
+    if (id === 'popout-asymmetry') {
+      const withLine = values.target !== 'noLine';
+      if (side === 'main') return { key: `desc.${id}.main`, values: { n: String(values.count) }, refs: { target: `ctl.${id}.target.${values.target}` } };
+      if (side === 'show') return { key: `desc.${id}.show.${withLine ? 'add' : 'omit'}`, values: {}, refs: {} };
+      if (side === 'hide') return { key: `desc.${id}.hide.${withLine ? 'line' : 'plain'}`, values: {}, refs: {} };
+    }
+    return null;
+  }
+  function descText(M, lang, entry, values, side) {
+    const c = descCase(entry, values, side);
+    if (!c) return null;
+    const D = dictionary(M, lang), v = { ...c.values };
+    for (const [name, key] of Object.entries(c.refs)) v[name] = D[key];
+    return fill(D[c.key], v);
+  }
+
   return Object.freeze({
     fill, dictionary, partNames, renderPart, renderMain, renderUse, compose, popoutLayout, asymLayout, findLayout, markShapes, fixationShapes,
     sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, useSettings, linkedLine, linkedText, buildViewModel, readCases,
-    numbersCase, readKeysAll, texts, resultTexts, experimentTitle, messageText,
+    numbersCase, readKeysAll, texts, resultTexts, experimentTitle, messageText, descCase, descText,
     SIZES: Object.freeze({ square: SQ, cell: CELL, card: [W, H], small: [SW, SH], aspect: [AW, AH] }),
     DIFF, VARIETY, ANGLES, SCALES, JIT_ANGLE, JIT_SCALE,
   });

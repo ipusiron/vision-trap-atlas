@@ -197,8 +197,9 @@
     if (all.some((b) => b.mixedInput)) out.push({ key: 'resMixed', values: {} });
     for (const [search, b] of [['feature', f], ['conjunction', c]]) {
       if (!b || !b.answered) continue;
-      const p = Math.round(b.errors * 100 / b.answered);
-      if (p > ERROR_PERCENT) out.push({ key: 'resErrors', values: { search, n: b.errors, p } });
+      // 割合は丸める前の値で比べる（10.1%は文を出す）。文に出す{p}だけ整数に丸める
+      const rate = b.errors * 100 / b.answered;
+      if (rate > ERROR_PERCENT) out.push({ key: 'resErrors', values: { search, n: b.errors, p: Math.round(rate) } });
     }
     const grains = all.map((b) => b.granularity).filter((g) => typeof g === 'number' && Number.isFinite(g));
     if (grains.length) {

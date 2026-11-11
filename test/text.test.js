@@ -161,3 +161,35 @@ test('E: the named steps, the next-tab line and the help label are filled in', (
   assert.equal(V.fill(M.en.termHelpLabel, { term: 'slope' }), 'About slope');
   assert.throws(() => V.dictionary(M, 'ja').noSuchKey, /missing message/);
 });
+
+test('E: the descriptions of the figures of 1-1 and 1-2 (the <desc> of each SVG) are filled in for every setting, in both languages', () => {
+  let n = 0;
+  for (const id of ['popout-feature', 'popout-asymmetry']) {
+    const e = entry(id);
+    for (const values of combos(e)) {
+      for (const lang of ['ja', 'en']) {
+        for (const side of ['main', 'show', 'hide']) {
+          const s = V.descText(M, lang, e, values, side);
+          assert.equal(typeof s, 'string', `${id} ${side}`);
+          assert.doesNotMatch(s, LEFTOVER, `${id} ${lang} ${s}`);
+          n += 1;
+        }
+      }
+    }
+  }
+  assert.ok(n > 500);
+  const pf = entry('popout-feature'), d1 = V.controlValues(pf);
+  assert.equal(V.descText(M, 'ja', pf, d1, 'main'), '18本の棒のうち1本だけ色が違う。違いの大きさ：大、周りのばらつき：そろっている');
+  assert.equal(V.descText(M, 'en', pf, d1, 'main'), '18 bars; only one differs in color. Size of the difference: Large; variety around it: Uniform');
+  assert.equal(V.descText(M, 'ja', pf, { ...d1, kind: 'shape', shape: 'tl', count: 6 }, 'main'), '6個の図形のうち1つだけ形が違う（Lの中のT）');
+  // Direction and shape do not change the small figures: their descriptions say what is drawn
+  assert.equal(V.descText(M, 'ja', pf, { ...d1, kind: 'direction' }, 'show'), '8本の棒のうち1本を色で強調した棒グラフ');
+  assert.equal(V.descText(M, 'ja', pf, { ...d1, kind: 'size', diff: 'small' }, 'hide'),
+    '斑点の背景に物を置いた迷彩の絵。物と背景の違い（大きさ）：小、背景のばらつき：そろっている');
+  const pa = entry('popout-asymmetry');
+  assert.equal(V.descText(M, 'ja', pa, { target: 'noLine', count: 12 }, 'main'), '12個の丸。探すもの：線のない丸');
+  assert.equal(V.descText(M, 'en', pa, { target: 'withLine', count: 18 }, 'hide'),
+    'Camouflage scene: an object on a spotted background, with one straight line added');
+  // An entry without its own descriptions yet gives null (the figure then has its title only)
+  assert.equal(V.descText(M, 'ja', entry('gestalt-contour'), V.controlValues(entry('gestalt-contour')), 'main'), null);
+});

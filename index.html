@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ja" data-app-ready="false">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'; connect-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Vision Trap Atlas</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script src="theme-init.js"></script>
+  <script src="atlas-core.js" defer></script>
+  <script src="atlas-data.js" defer></script>
+  <script src="atlas-view.js" defer></script>
+  <script src="atlas-search.js" defer></script>
+  <script src="messages.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="page-header">
+    <div class="masthead">
+      <h1>Vision Trap <span>Atlas</span></h1>
+      <fieldset id="startup-tools" class="header-tools startup-control-group" disabled aria-label="表示 / Display" data-i18n-aria="displayControls">
+        <button id="theme" class="tool-button" type="button"><span class="tool-icon" aria-hidden="true">◐</span><span id="theme-label">暗くする</span></button>
+        <button id="language" class="tool-button" type="button" data-i18n-aria="languageToggle" aria-label="EN：英語の表示にする">EN</button>
+        <button id="help" class="tool-button" type="button" aria-haspopup="dialog"><span class="tool-icon" aria-hidden="true">?</span><span data-i18n="helpButton">ヘルプ・座学</span></button>
+      </fieldset>
+    </div>
+  </header>
+  <main>
+    <aside id="startup-note" class="startup-note" role="status">
+      <p>図と操作を準備中 / <span lang="en">Loading figures and controls</span></p>
+      <details id="startup-help">
+        <summary>表示されない場合 / <span lang="en">If nothing appears</span></summary>
+        <p>説明文と表はこのまま読めます。図と操作が表示されない場合は、JavaScriptを有効にして別タブで開き直してください。</p>
+        <p lang="en">You can read the explanations and the table. If the figures and controls do not appear, enable JavaScript and reopen this page in a new tab.</p>
+        <a id="startup-reload" href="" target="_blank" rel="noopener noreferrer">別タブで開き直す / Reopen in a new tab</a>
+      </details>
+    </aside>
+    <noscript>図と操作を出すには、JavaScriptを有効にしてください。 / Enable JavaScript to show the figures and controls.</noscript>
+    <fieldset id="startup-controls" class="startup-control-group" disabled aria-label="図鑑 / Atlas" data-i18n-aria="learningControls">
+      <p class="intro intro-short" data-i18n="introShort">人の目が、意識する前にしてしまうこと（目の罠）を、図を見て、押して確かめる図鑑です。</p>
+      <details id="intro-more" class="intro-more">
+        <summary data-i18n="introMore">くわしい説明を読む</summary>
+        <p class="intro" data-i18n="intro1">タブは左から、浮く・探す時間・まとまる・図と地・誤読の順です。前の4つは「見つかるか、まとまって見えるか」、最後の誤読は「見つけたあと、正しく読めるか」を扱います。</p>
+        <p class="intro" data-i18n="intro2">同じ目の性質を、グラフは見せたいものを浮かせ、まとめるために使います。迷彩は、物を浮かせず、輪郭を崩すために使います。各項目では、上の図と同じつまみで、グラフの小さな図（見せる側）と迷彩の小さな図（隠す側）が動きます。</p>
+      </details>
+      <div id="contrast" class="contrast">
+        <p id="contrast-line" class="contrast-line" data-i18n="contrastLine">同じ目の性質を、グラフは浮かせ、まとめるために、迷彩は浮かせず、崩すために使います。</p>
+        <table id="contrast-table" class="contrast-table" aria-labelledby="contrast-line">
+          <colgroup><col class="col-trait"><col><col></colgroup>
+          <thead>
+            <tr><th scope="col" data-i18n="contrastHead.trait">目の性質</th>
+              <th scope="col"><span data-i18n="contrastHead.show">見せる側（グラフ）</span><span class="term-slot" data-term-help="termShowSide"></span></th>
+              <th scope="col"><span data-i18n="contrastHead.hide">隠す側（迷彩）</span><span class="term-slot" data-term-help="termHideSide"></span></th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row" data-i18n="contrastRow1.trait">浮く</th>
+              <td data-i18n="contrastRow1.show">強調したいものだけを違う特徴にし、ほかはそろえる</td>
+              <td data-i18n="contrastRow1.hide">周りと同じ特徴にする</td></tr>
+            <tr><th scope="row" data-i18n="contrastRow2.trait">まとまる</th>
+              <td data-i18n="contrastRow2.show">仲間を近づけ、そろえ、囲む</td>
+              <td data-i18n="contrastRow2.hide">輪郭を途切れさせ、物の模様を背景の仲間にする</td></tr>
+            <tr><th scope="row" data-i18n="contrastRow3.trait">図と地</th>
+              <td data-i18n="contrastRow3.show">データを図に、目盛りと背景を地にする</td>
+              <td data-i18n="contrastRow3.hide">境目の手がかりを減らし、左右対称を避ける</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="tabs" class="tabs" role="tablist" aria-label="図鑑のタブ" data-i18n-aria="tablist">
+        <button id="tab-popout" role="tab" type="button" aria-controls="panel-popout" aria-selected="true" tabindex="0">
+          <span class="tab-name" data-i18n="tabPopout">浮く</span><span class="tab-term" data-i18n="tabPopoutTerm">前注意の特徴</span></button>
+        <button id="tab-search" role="tab" type="button" aria-controls="panel-search" aria-selected="false" tabindex="-1">
+          <span class="tab-name" data-i18n="tabSearch">探す時間</span><span class="tab-term" data-i18n="tabSearchTerm">視覚探索</span></button>
+        <button id="tab-gestalt" role="tab" type="button" aria-controls="panel-gestalt" aria-selected="false" tabindex="-1">
+          <span class="tab-name" data-i18n="tabGestalt">まとまる</span><span class="tab-term" data-i18n="tabGestaltTerm">ゲシュタルト<wbr>の法則</span></button>
+        <button id="tab-figure-ground" role="tab" type="button" aria-controls="panel-figure-ground" aria-selected="false" tabindex="-1">
+          <span class="tab-name" data-i18n="tabFigureGround">図と地</span><span class="tab-term" data-i18n="tabFigureGroundTerm">図と地の分化</span></button>
+        <button id="tab-misread" role="tab" type="button" aria-controls="panel-misread" aria-selected="false" tabindex="-1">
+          <span class="tab-name" data-i18n="tabMisread">誤読</span><span class="tab-term" data-i18n="tabMisreadTerm">グラフ</span></button>
+      </div>
+      <section id="panel-popout" class="panel" role="tabpanel" aria-labelledby="tab-popout" tabindex="0">
+        <h2 id="heading-popout" class="panel-heading">浮く（前注意の特徴）</h2>
+        <div id="body-popout" class="panel-body"></div>
+      </section>
+      <section id="panel-search" class="panel" role="tabpanel" aria-labelledby="tab-search" tabindex="0" hidden>
+        <h2 id="heading-search" class="panel-heading">探す時間（視覚探索）</h2>
+        <div id="body-search" class="panel-body"></div>
+      </section>
+      <section id="panel-gestalt" class="panel" role="tabpanel" aria-labelledby="tab-gestalt" tabindex="0" hidden>
+        <h2 id="heading-gestalt" class="panel-heading">まとまる（ゲシュタルトの法則）</h2>
+        <div id="body-gestalt" class="panel-body"></div>
+      </section>
+      <section id="panel-figure-ground" class="panel" role="tabpanel" aria-labelledby="tab-figure-ground" tabindex="0" hidden>
+        <h2 id="heading-figure-ground" class="panel-heading">図と地（図と地の分化）</h2>
+        <div id="body-figure-ground" class="panel-body"></div>
+      </section>
+      <section id="panel-misread" class="panel" role="tabpanel" aria-labelledby="tab-misread" tabindex="0" hidden>
+        <h2 id="heading-misread" class="panel-heading">誤読（グラフ）</h2>
+        <div id="body-misread" class="panel-body"></div>
+      </section>
+    </fieldset>
+  </main>
+  <footer><a href="https://github.com/ipusiron/vision-trap-atlas" data-i18n="footerGitHub" target="_blank" rel="noopener noreferrer">GitHub（ipusiron/vision-trap-atlas）</a></footer>
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <div class="help-header"><h2 id="help-title" data-i18n="helpButton">ヘルプ・座学</h2>
+      <button id="close-help" type="button" data-i18n="close">閉じる</button></div>
+    <div class="help-body" role="region" tabindex="0" data-i18n-aria="helpBody" aria-label="ヘルプの本文">
+      <h3 id="help-first" tabindex="-1" data-i18n="helpFirst">はじめて読むとき</h3>
+      <p data-i18n="helpFirstText">まず「浮く」のタブの「違いの種類と大きさ」でつまみを動かします。次に「探す時間」のタブで結合探索を測り、最後に「まとまる」のタブの「輪郭」で、見せる側と隠す側の小さな図が一緒に動くのを見ます。</p>
+      <h3 id="help-ops" tabindex="-1" data-i18n="helpKeysHeading">操作</h3>
+      <p data-i18n="helpKeys">タブと項目は押して選びます。つまみは指かマウスで動かし、キーボードでは←→で動かします。探す実験では、ある＝J・→、ない＝F・←、中断＝Escです。</p>
+      <h3 id="help-terms-heading" tabindex="-1" data-i18n="helpTermsHeading">用語</h3>
+      <dl id="help-terms" class="glossary">
+        <dt><span data-i18n="termTarget">探すもの・探す棒</span><span class="term-expert" data-i18n="termTargetExpert">標的（ターゲット）</span></dt>
+        <dd data-i18n="termTargetMeaning">探している1つの図形</dd>
+        <dt><span data-i18n="termDistractor">ほかの図形・ほかの棒</span><span class="term-expert" data-i18n="termDistractorExpert">妨害刺激（ディストラクター）</span></dt>
+        <dd data-i18n="termDistractorMeaning">探すもの以外の図形</dd>
+        <dt><span data-i18n="termSetSize">本数（項目の数）</span><span class="term-expert" data-i18n="termSetSizeExpert">セットサイズ</span></dt>
+        <dd data-i18n="termSetSizeMeaning">1つの図に出す図形の数（探すものを含む）</dd>
+        <dt><span data-i18n="termRt">見つけるまでの時間</span><span class="term-expert" data-i18n="termRtExpert">反応時間</span></dt>
+        <dd data-i18n="termRtMeaning">図が出てから答えるまでの時間</dd>
+        <dt><span data-i18n="termMedian">真ん中の値</span><span class="term-expert" data-i18n="termMedianExpert">中央値</span></dt>
+        <dd data-i18n="termMedianMeaning">時間を小さい順に並べた真ん中の値。たまたま遅かった1回に引っ張られにくい</dd>
+        <dt><span data-i18n="termSlope">1項目あたりの増え方（傾き）</span><span class="term-expert" data-i18n="termSlopeExpert">探索の傾き</span></dt>
+        <dd data-i18n="termSlopeMeaning">本数が1つ増えるごとに増える時間（ミリ秒）</dd>
+        <dt><span data-i18n="termIntercept">線の高さ</span><span class="term-expert" data-i18n="termInterceptExpert">切片</span></dt>
+        <dd data-i18n="termInterceptMeaning">本数を0とみなしたときの時間。端末の遅れで変わる</dd>
+        <dt><span data-i18n="termFeature">特徴探索</span></dt>
+        <dd data-i18n="termFeatureMeaning">1つの特徴（色だけ、など）で見分けられるものを探すこと</dd>
+        <dt><span data-i18n="termConjunction">結合探索</span></dt>
+        <dd data-i18n="termConjunctionMeaning">2つの特徴の組み合わせでしか見分けられないものを探すこと</dd>
+        <dt><span data-i18n="termPopout">浮く</span><span class="term-expert" data-i18n="termPopoutExpert">ポップアウト</span></dt>
+        <dd data-i18n="termPopoutMeaning">探そうとする前に目に入ること</dd>
+        <dt><span data-i18n="termPreattentive">前注意の特徴</span></dt>
+        <dd data-i18n="termPreattentiveMeaning">色・方向・大きさのように、探すときの手がかりになる特徴。「前注意」は速くて楽という感じを表す呼び名で、注意が働かないという意味ではない</dd>
+        <dt><span data-i18n="termGrouping">まとまって見える</span><span class="term-expert" data-i18n="termGroupingExpert">群化・ゲシュタルトの法則</span></dt>
+        <dd data-i18n="termGroupingMeaning">近いもの・似たものなどが、1つのまとまりとして見えること。まとまって見える条件（近接・類同など）を、ゲシュタルトの法則と呼ぶ。数え方は資料によって違う</dd>
+        <dt><span data-i18n="termFigureGround">図・地</span><span class="term-expert" data-i18n="termFigureGroundExpert">図と地の分化</span></dt>
+        <dd data-i18n="termFigureGroundMeaning">境目を分け合う2つの領域のうち、手前の形に見える側が図、背景に見える側が地</dd>
+        <dt><span data-i18n="termBackground">背景に合わせる</span><span class="term-expert" data-i18n="termBackgroundExpert">背景合わせ</span></dt>
+        <dd data-i18n="termBackgroundMeaning">物の色や模様を、周りの背景に似せる迷彩</dd>
+        <dt><span data-i18n="termDisruptive">輪郭を崩す模様</span><span class="term-expert" data-i18n="termDisruptiveExpert">分断色</span></dt>
+        <dd data-i18n="termDisruptiveMeaning">偽の縁を見せ、本当の輪郭を見つけにくくする模様（Stevens &amp; Merilaita 2009の定義）</dd>
+        <dt><span data-i18n="termMasquerade">別の物に見せる</span><span class="term-expert" data-i18n="termMasqueradeExpert">擬態（マスカレード）</span></dt>
+        <dd data-i18n="termMasqueradeMeaning">見つかっても、別の物（枝や葉など）と思わせる迷彩</dd>
+        <dt><span data-i18n="termDirection">方向（棒の）</span><span class="term-expert" data-i18n="termDirectionExpert">方位</span></dt>
+        <dd data-i18n="termDirectionMeaning">棒が縦か横か斜めか。「傾き」は結果の増え方だけに使う</dd>
+        <dt><span data-i18n="termShowSide">見せる側</span><span class="term-expert" data-i18n="termShowSideExpert">データ可視化</span></dt>
+        <dd data-i18n="termShowSideMeaning">グラフのように、見せたいものを見つけやすく、正しく読ませる使い方</dd>
+        <dt><span data-i18n="termHideSide">隠す側</span><span class="term-expert" data-i18n="termHideSideExpert">迷彩</span></dt>
+        <dd data-i18n="termHideSideMeaning">迷彩のように、物を見つけにくくする使い方</dd>
+        <dt><span data-i18n="termVisualSearch">視覚探索</span></dt>
+        <dd data-i18n="termVisualSearchMeaning">たくさんの物の中から、目当ての物を目で探すこと</dd>
+        <dt><span data-i18n="termFit">特徴統合理論</span></dt>
+        <dd data-i18n="termFitMeaning">色や方向などの特徴は、まず別々に、一度に処理される。特徴を組み合わせるには、1つずつ注意を向ける必要がある、という考え（Treisman &amp; Gelade 1980）</dd>
+        <dt><span data-i18n="termGuided">誘導探索</span></dt>
+        <dd data-i18n="termGuidedMeaning">特徴の手がかりが、探す物の候補へ注意を導く。導く強さで、探す速さが連続して変わる、という考え（Wolfe 1994・2021）</dd>
+        <dt><span data-i18n="termAsymmetry">探索非対称性</span></dt>
+        <dd data-i18n="termAsymmetryMeaning">AをBの中から探すのと、BをAの中から探すのとで、速さが大きく違うこと</dd>
+        <dt><span data-i18n="termProximity">近接</span></dt>
+        <dd data-i18n="termProximityMeaning">近くにあるもの同士が、まとまって見えること</dd>
+        <dt><span data-i18n="termSimilarity">類同</span></dt>
+        <dd data-i18n="termSimilarityMeaning">色や形が似ているもの同士が、まとまって見えること</dd>
+        <dt><span data-i18n="termCommonRegion">共通領域</span></dt>
+        <dd data-i18n="termCommonRegionMeaning">同じ枠の中にあるもの同士が、まとまって見えること（Palmer 1992）</dd>
+        <dt><span data-i18n="termConnectedness">連結性</span></dt>
+        <dd data-i18n="termConnectednessMeaning">線でつながったもの同士が、まとまって見えること（Palmer &amp; Rock 1994）</dd>
+        <dt><span data-i18n="termClosure">閉合</span></dt>
+        <dd data-i18n="termClosureMeaning">途切れた輪郭でも、閉じた形として見えること</dd>
+        <dt><span data-i18n="termContinuation">よい連続</span></dt>
+        <dd data-i18n="termContinuationMeaning">線は、なめらかにつながるほうへ続いて見えること</dd>
+        <dt><span data-i18n="termRubin">ルビンの壺</span></dt>
+        <dd data-i18n="termRubinMeaning">向かい合う2つの顔にも、1つの壺にも見える図。図と地が入れ替わる例として、Rubin 1915で知られる</dd>
+        <dt><span data-i18n="termTruncation">縦軸の途中の省略</span></dt>
+        <dd data-i18n="termTruncationMeaning">縦軸を0より上から始めること。差が実際より大きく見える</dd>
+        <dt><span data-i18n="termAccuracyRank">読み取りの正確さの順位</span></dt>
+        <dd data-i18n="termAccuracyRankMeaning">位置・長さ・角度・面積などを、値を正確に読み取りやすい順に並べた順位（Cleveland &amp; McGill 1984）。順位は著者の仮説で、実験で確かめたのは一部</dd>
+        <dt><span data-i18n="termDualAxis">二重軸</span></dt>
+        <dd data-i18n="termDualAxisMeaning">左右に別の縦軸を持つグラフ。片方の軸の範囲を変えるだけで、2本の線の関係が違って見える</dd>
+        <dt><span data-i18n="termAspect">縦横比</span></dt>
+        <dd data-i18n="termAspectMeaning">グラフの縦と横の長さの比。同じデータでも、線の傾きの見え方が変わる</dd>
+        <dt><span data-i18n="termFixation">注視点</span></dt>
+        <dd data-i18n="termFixationMeaning">図が出る前に見ておく印（＋）</dd>
+      </dl>
+      <h3 id="help-about" tabindex="-1" data-i18n="helpAboutHeading">この図鑑について</h3>
+      <p data-i18n="helpAbout">この図鑑は学習用です。探す実験の記録はこのページの中だけにあり、保存も送信もしません。点滅する表示と自動で動く表示は作っていません。色の違いを使う図には、色を使わない切り替えを付けています。</p>
+    </div>
+  </dialog>
+</body>
+</html>

@@ -505,6 +505,37 @@
       relDay070: '重ねた2枚の黒と灰の違いを、目が文字（図）として読む',
       relDay075: 'ゆがめた文字を、目は閉合とよい連続で読む',
       relDay125: '重ねて目で読む。重ねた白は50%の灰で、コントラストが半分になる',
+
+      // ===== 画面の枠（見出しのボタンの組・タブの列・ヘルプの見出し・出典の並び） =====
+      displayControls: '表示',
+      learningControls: '図鑑',
+      tablist: '図鑑のタブ',
+      close: '閉じる',
+      helpBody: 'ヘルプの本文',
+      helpKeysHeading: '操作',
+      helpTermsHeading: '用語',
+      helpAboutHeading: 'この図鑑について',
+      sourcesLabel: '出典',
+      relatedLabel: '関連ツール',
+      nameSep: '：',
+
+      // ===== 図の説明（SVG の <desc>。いまの設定を文で表す。desc.<項目>.<側>[.<場合>]） =====
+      'kindInline.color': '色',
+      'kindInline.direction': '方向',
+      'kindInline.size': '大きさ',
+      'kindInline.lightness': '明るさ',
+      'desc.popout-feature.main': '{n}本の棒のうち1本だけ{kind}が違う。違いの大きさ：{diff}、周りのばらつき：{variety}',
+      'desc.popout-feature.main.same': '{n}本の棒。探す1本の{kind}も、ほかの棒と同じ。周りのばらつき：{variety}',
+      'desc.popout-feature.main.shape': '{n}個の図形のうち1つだけ形が違う（{shape}）',
+      'desc.popout-feature.show': '8本の棒のうち1本を強調した棒グラフ。強調の違い（{kind}）：{diff}、ほかの棒のばらつき：{variety}',
+      'desc.popout-feature.show.fixed': '8本の棒のうち1本を色で強調した棒グラフ',
+      'desc.popout-feature.hide': '斑点の背景に物を置いた迷彩の絵。物と背景の違い（{kind}）：{diff}、背景のばらつき：{variety}',
+      'desc.popout-feature.hide.fixed': '斑点の背景に物を置いた迷彩の絵',
+      'desc.popout-asymmetry.main': '{n}個の丸。探すもの：{target}',
+      'desc.popout-asymmetry.show.add': '5行の表。例外の行にだけ印を足した形',
+      'desc.popout-asymmetry.show.omit': '5行の表。例外の行のほかに印を付け、例外だけ外した形',
+      'desc.popout-asymmetry.hide.line': '斑点の背景に置いた物に、まっすぐな線を1本足した迷彩の絵',
+      'desc.popout-asymmetry.hide.plain': '斑点の背景に物を置いた迷彩の絵。線は足していない',
     },
 
     en: {
@@ -1053,6 +1084,39 @@
       relDay070: 'The eye reads the difference between black and gray in two stacked sheets as letters (a figure)',
       relDay075: 'The eye reads distorted letters through closure and good continuation',
       relDay125: 'Read by stacking. Stacked white becomes 50% gray, so the contrast is halved',
+
+      // ===== Page frame (header buttons, tab bar, help headings, sources) =====
+      displayControls: 'Display',
+      learningControls: 'Atlas',
+      tablist: 'Atlas tabs',
+      close: 'Close',
+      helpBody: 'Help text',
+      helpKeysHeading: 'Controls',
+      helpTermsHeading: 'Terms',
+      helpAboutHeading: 'About this atlas',
+      sourcesLabel: 'Sources',
+      relatedLabel: 'Related tools',
+      nameSep: ': ',
+
+      // ===== Figure descriptions (the <desc> of each SVG: the current settings in words) =====
+      'kindInline.color': 'color',
+      'kindInline.direction': 'direction',
+      'kindInline.size': 'size',
+      'kindInline.lightness': 'lightness',
+      'desc.popout-feature.main': '{n} bars; only one differs in {kind}. Size of the difference: {diff}; variety around it: {variety}',
+      'desc.popout-feature.main.same': '{n} bars; the bar to find has the same {kind} as the others. Variety around it: {variety}',
+      'desc.popout-feature.main.shape': '{n} shapes; only one has a different shape ({shape})',
+      'desc.popout-feature.show': 'Bar chart of eight bars with one highlighted. Difference of the highlight ({kind}): {diff}; variety of the other '
+        + 'bars: {variety}',
+      'desc.popout-feature.show.fixed': 'Bar chart of eight bars with one highlighted in color',
+      'desc.popout-feature.hide': 'Camouflage scene: an object on a spotted background. Difference between object and background ({kind}): {diff}; '
+        + 'variety of the background: {variety}',
+      'desc.popout-feature.hide.fixed': 'Camouflage scene: an object on a spotted background',
+      'desc.popout-asymmetry.main': '{n} circles. Shape to find: {target}',
+      'desc.popout-asymmetry.show.add': 'A five-row table with a mark on the exception row only',
+      'desc.popout-asymmetry.show.omit': 'A five-row table with marks on every row but the exception',
+      'desc.popout-asymmetry.hide.line': 'Camouflage scene: an object on a spotted background, with one straight line added',
+      'desc.popout-asymmetry.hide.plain': 'Camouflage scene: an object on a spotted background, with no line added',
     },
   };
 }));

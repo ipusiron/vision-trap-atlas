@@ -75,3 +75,74 @@ test('F: the tab names and their specialist words', () => {
   assert.deepEqual(tabs.map((k) => M.en[k]), ['Pop out', 'Search time', 'Grouping', 'Figure and ground', 'Misreading']);
   assert.deepEqual(tabs.map((k) => M.en[k + 'Term']), ['Preattentive features', 'Visual search', 'Gestalt principles', 'Figure–ground', 'Charts']);
 });
+
+// ===== index.html and the screen =====
+const fs = require('node:fs');
+const path = require('node:path');
+const D = require('../atlas-data.js');
+const readFile = (file) => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+const html = readFile('index.html');
+const app = readFile('app.js');
+const decode = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+
+test('F: index.html uses existing keys, and its first text equals the Japanese dictionary', () => {
+  const keys = [...html.matchAll(/\bdata-i18n(?:-aria)?="([^"]+)"/g)].map((m) => m[1]);
+  assert.ok(keys.length > 50);
+  for (const key of keys) assert.ok(Object.hasOwn(M.ja, key), key);
+  // A static text may carry <wbr> (where a tab term may break between its words); it adds no character
+  const tags = [...html.matchAll(/<(?<tag>[a-z][a-z0-9]*)\b[^>]*\bdata-i18n="(?<key>[^"]+)"[^>]*>(?<text>(?:[^<]|<wbr>)*)<\/\k<tag>>/g)];
+  assert.equal(tags.length, [...html.matchAll(/\bdata-i18n="/g)].length, 'every translated element has static text');
+  for (const { groups } of tags) assert.equal(decode(groups.text.replaceAll('<wbr>', '')), M.ja[groups.key], 'first Japanese text: ' + groups.key);
+  // aria-labels start in Japanese; the two startup groups carry both languages until the page is ready
+  const labelled = [...html.matchAll(/<[a-z]+\b[^>]*\bdata-i18n-aria="([^"]+)"[^>]*>/g)];
+  assert.ok(labelled.length >= 5);
+  for (const m of labelled) {
+    const label = decode((m[0].match(/\baria-label="([^"]*)"/) || [])[1] ?? '');
+    assert.ok(label === M.ja[m[1]] || label === M.ja[m[1]] + ' / ' + M.en[m[1]], m[1] + ': ' + label);
+  }
+  for (const m of html.matchAll(/<[a-z]+\b[^>]*\baria-label="[^"]*"[^>]*>/g)) assert.match(m[0], /\bdata-i18n-aria="/, m[0]);
+  assert.match(app, /setAttribute\('aria-label', t\(el\.dataset\.i18nAria\)\)/);
+  // The static panel headings are "{tab}（{term}）" in Japanese, the same as app.js draws them
+  for (const g of D.groups) {
+    const m = html.match(new RegExp(`<h2 id="heading-${g.id}" class="panel-heading">([^<]+)</h2>`));
+    assert.equal(m[1], M.ja[g.labelKey] + '（' + M.ja[g.termKey] + '）', g.id);
+  }
+});
+
+test('F: the language button shows EN on the Japanese page and JA on the English page, and its name starts with the same letters', () => {
+  assert.match(app, /\$\('language'\)\.textContent = state\.language === 'ja' \? 'EN' : 'JA';/);
+  assert.ok(M.ja.languageToggle.startsWith('EN：'));
+  assert.ok(M.en.languageToggle.startsWith('JA: '));
+  assert.match(html, /<button id="language" class="tool-button" type="button" data-i18n-aria="languageToggle" aria-label="EN：英語の表示にする">EN<\/button>/);
+});
+
+test('F: the help lists the 35 terms in order, each followed by its meaning, with the specialist word where it differs', () => {
+  const list = html.match(/<dl id="help-terms"[^>]*>([\s\S]*?)<\/dl>/)[1];
+  const items = [...list.matchAll(/<(dt|dd)\b[^>]*>([\s\S]*?)<\/\1>/g)];
+  assert.equal(items.length, 70);
+  [...TERMS19, ...TERMS16].forEach((key, i) => {
+    const [dt, dd] = [items[2 * i], items[2 * i + 1]];
+    assert.equal(dt[1], 'dt', key);
+    assert.match(dt[2], new RegExp(`^<span data-i18n="${key}">`), key);
+    const expert = TERMS19.includes(key) && (M.ja[key] !== M.ja[key + 'Expert'] || M.en[key].toLowerCase() !== M.en[key + 'Expert'].toLowerCase());
+    assert.equal(dt[2].includes(`data-i18n="${key}Expert"`), expert, key + ' specialist word');
+    assert.equal(dd[1], 'dd', key);
+    assert.match(dd[0], new RegExp(`^<dd data-i18n="${key}Meaning">`), key);
+  });
+});
+
+test('F: every term with a dashed underline or a "?" is in the terms table, and its word appears in the sentence in both languages', () => {
+  const termKeys = new Set([...TERMS19, ...TERMS16]);
+  for (const m of html.matchAll(/data-term-help="(\w+)"/g)) assert.ok(termKeys.has(m[1]), m[1]);
+  for (const g of D.groups) if (g.termTip) assert.ok(termKeys.has(g.termTip), g.id);
+  for (const e of D.entries) for (const t of e.titleTerms) assert.ok(termKeys.has(t.term), e.id);
+  // The terms inside sentences (TEXT_TERMS of app.js): the word is found in the sentence of each language
+  const block = app.match(/const TEXT_TERMS = \{([\s\S]*?)\n {2}\};/)[1];
+  const rows = [...block.matchAll(/(\w+): \[\{ term: '(\w+)', ja: '([^']+)', en: '([^']+)' \}\]/g)];
+  assert.ok(rows.length >= 2);
+  for (const [, key, term, ja, en] of rows) {
+    assert.ok(termKeys.has(term), term);
+    assert.ok(M.ja[key].includes(ja), `${key} ja: ${ja}`);
+    assert.ok(M.en[key].includes(en), `${key} en: ${en}`);
+  }
+});

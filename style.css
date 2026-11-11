@@ -1,0 +1,466 @@
+/* Vision Trap Atlas - MIT (c) 2026 ipusiron. */
+/* The colors of the page (--bg … --on-accent) and of the figures (--c-<name>[-<index>], the values of AtlasData.palette).
+   The dark theme is set for the screen only, so that the browser's printing uses the light colors. */
+:root {
+  --bg: #f6f4ed;
+  --paper: #fffdf7;
+  --ink: #152b45;
+  --muted: #44576b;
+  --line: #aabccb;
+  --accent: #1d6b5a;
+  --focus: #1d6b5a;
+  --shadow: #d9d6cc;
+  --on-accent: #fffdf7;
+  --c-stimCool: #0072b2;
+  --c-stimHot: #d55e00;
+  --c-popColor-0: #0072b2; --c-popColor-1: #406c7d; --c-popColor-2: #806647; --c-popColor-3: #d55e00;
+  --c-popOthers-0: #0072b2; --c-popOthers-1: #009e73; --c-popOthers-2: #cc79a7;
+  --c-popLight-0: #0072b2; --c-popLight-1: #00639b; --c-popLight-2: #005484; --c-popLight-3: #00466d;
+  --c-popLightOthers-0: #0072b2; --c-popLightOthers-1: #2184bc; --c-popLightOthers-2: #4095c5;
+  --c-seriesTarget: #0072b2;
+  --c-seriesOthers-0: #d55e00; --c-seriesOthers-1: #009e73; --c-seriesOthers-2: #cc79a7;
+  --c-groups-0: #0072b2; --c-groups-1: #d55e00; --c-groups-2: #009e73; --c-groups-3: #cc79a7;
+  --c-regionA: #34495e;
+  --c-regionB: #e3dccb;
+  --c-band: #e9e2d0;
+  --c-camoBase: #c9c1a5;
+  --c-camoFar: #a8432a;
+  --c-camoSpots-0: #8a9a5b; --c-camoSpots-1: #a39069; --c-camoSpots-2: #6b705c;
+  --c-camoObj-0: #c9c1a5; --c-camoObj-1: #bf9b80; --c-camoObj-2: #b5755b; --c-camoObj-3: #a8432a;
+  --c-camoObjLight-0: #c9c1a5; --c-camoObjLight-1: #afa890; --c-camoObjLight-2: #958f7a; --c-camoObjLight-3: #7b7665;
+  --c-camoSpotsLight-0: #8a9a5b; --c-camoSpotsLight-1: #9ca974; --c-camoSpotsLight-2: #adb88c;
+  --c-camoObjSpots-0: #7b6a96; --c-camoObjSpots-1: #4f7a8f; --c-camoObjSpots-2: #9a6d55;
+}
+@media screen {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d1b2d;
+    --paper: #172940;
+    --ink: #eaf1f6;
+    --muted: #c5d4df;
+    --line: #668098;
+    --accent: #7fd4bd;
+    --focus: #7fd4bd;
+    --shadow: #091523;
+    --on-accent: #172940;
+    --c-stimCool: #56b4e9;
+    --c-stimHot: #e69f00;
+    --c-popColor-0: #56b4e9; --c-popColor-1: #81aea3; --c-popColor-2: #aca75d; --c-popColor-3: #e69f00;
+    --c-popOthers-0: #56b4e9; --c-popOthers-1: #009e73; --c-popOthers-2: #cc79a7;
+    --c-popLight-0: #56b4e9; --c-popLight-1: #80c7ef; --c-popLight-2: #aedbf4; --c-popLight-3: #dceffa;
+    --c-popLightOthers-0: #56b4e9; --c-popLightOthers-1: #4da0cf; --c-popLightOthers-2: #448eb8;
+    --c-seriesTarget: #56b4e9;
+    --c-seriesOthers-0: #e69f00; --c-seriesOthers-1: #009e73; --c-seriesOthers-2: #cc79a7;
+    --c-groups-0: #56b4e9; --c-groups-1: #e69f00; --c-groups-2: #009e73; --c-groups-3: #cc79a7;
+    --c-regionA: #c9d6e2;
+    --c-regionB: #2c405a;
+    --c-band: #24384f;
+    --c-camoBase: #4a5240;
+    --c-camoFar: #d08a5c;
+    --c-camoSpots-0: #6e7d4f; --c-camoSpots-1: #7a6c52; --c-camoSpots-2: #3a4535;
+    --c-camoObj-0: #4a5240; --c-camoObj-1: #726348; --c-camoObj-2: #9a7451; --c-camoObj-3: #d08a5c;
+    --c-camoObjLight-0: #4a5240; --c-camoObjLight-1: #777d70; --c-camoObjLight-2: #a8aca3; --c-camoObjLight-3: #d9dbd7;
+    --c-camoSpotsLight-0: #6e7d4f; --c-camoSpotsLight-1: #5e6a43; --c-camoSpotsLight-2: #4d5837;
+    --c-camoObjSpots-0: #9a88b5; --c-camoObjSpots-1: #6f9ab0; --c-camoObjSpots-2: #b88b70;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+/* The ground is plain: regular lines near the figures would mix into what the figures show (no grid, no stripes) */
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--ink);
+  background: var(--bg);
+  font: 1rem/1.55 system-ui, sans-serif;
+  /* A Japanese word stays whole: app.js puts a <wbr> between words (phrases()), and a line breaks only there, at a space
+     or after punctuation */
+  word-break: keep-all;
+}
+button, input, select { font: inherit; }
+:where(button) {
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  padding: .4rem .7rem;
+  border: 1px solid var(--muted);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+@media (hover: hover) { button:hover:not(:disabled) { border-color: var(--accent); } }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+a { color: var(--accent); overflow-wrap: anywhere; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Header: the title and the three buttons with words (theme, language, help); centered below 720px */
+.page-header, main, footer { width: min(100% - 2rem, 1000px); margin-inline: auto; }
+.page-header { padding: .6rem 0 .1rem; }
+.masthead { display: flex; flex-direction: column; align-items: center; gap: .6rem; }
+h1 { margin: 0; font-size: clamp(1.4rem, 3vw, 1.85rem); line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
+h1 span, h2, h3 { color: var(--accent); }
+.header-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: .35rem; }
+.tool-button {
+  display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .8rem; border-radius: 999px; font-weight: 700; white-space: nowrap;
+}
+.tool-icon { font-size: 1.05em; }
+.startup-control-group { min-width: 0; min-inline-size: 0; margin: 0; padding: 0; border: 0; }
+.startup-note { margin: .5rem 0; padding: .5rem .75rem; border-left: 4px solid var(--accent); background: var(--paper); }
+.startup-note p { margin: 0; }
+.startup-note a { display: inline-flex; min-height: 44px; align-items: center; }
+
+/* Introduction: one sentence at every width, the rest behind "Read more" */
+.intro { margin: .25rem 0; font-size: .9375rem; line-height: 1.5; overflow-wrap: anywhere; }
+.intro-short { margin: .4rem 0 0; }
+.intro-more { margin: 0 0 .3rem; padding: 0; border: 0; border-radius: 0; background: none; }
+.intro-more[open] { padding-bottom: 0; }
+.intro-more > summary {
+  display: list-item; min-height: 44px; margin: 0; padding: .55rem .2rem; border-radius: 0; background: none; color: var(--accent);
+}
+.intro-more[open] > summary { margin-bottom: .2rem; border-bottom: 0; }
+
+/* The contrast line and the short table (the trait, the showing side, the hiding side). The block is where a tooltip of its
+   headings lines up on the right */
+.contrast { position: relative; margin: .4rem 0 .2rem; }
+.contrast-line { margin: 0 0 .35rem; font-weight: 700; font-size: .9375rem; line-height: 1.5; }
+.contrast-table { table-layout: fixed; background: var(--paper); font-size: .875rem; line-height: 1.45; }
+.contrast-table .col-trait { width: 22%; }
+.contrast-table th[scope="row"] { color: var(--accent); }
+
+/* A piece that app.js keeps on one line (の法則 of ゲシュタルト｜の法則, a short quote such as 「探して押す」) */
+.joined { white-space: nowrap; }
+
+/* Tables (no horizontal page scroll; a Japanese word stays whole) */
+table { width: 100%; border-collapse: collapse; word-break: keep-all; }
+th, td { padding: .35rem .4rem; border: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: break-word; }
+th { background: var(--bg); }
+
+/* Tabs: two lines each (the word, then the term in small letters). Below 720px a grid of six columns: three tabs on the first
+   row (two columns each) and two on the second (three columns each). Never a sideways scrolling row */
+.tabs {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .15rem; margin-top: .7rem; padding: .15rem .2rem;
+  background: var(--paper); border: 1px solid var(--line); box-shadow: 3px 3px 0 var(--shadow); scroll-margin-top: .5rem;
+}
+.tabs button:nth-child(-n+3) { grid-column: span 2; }
+.tabs button:nth-child(n+4) { grid-column: span 3; }
+/* A tab name breaks only at a <wbr> between its words (ゲシュタルト｜の法則) or at a space (keep-all, without auto-phrase, which
+   would break ゲシュタルトの｜法則 before the page is ready) */
+.tabs button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .05rem;
+  min-width: 0; padding: .3rem .15rem; border: 0; border-radius: 0; line-height: 1.3; text-align: center;
+  word-break: keep-all; overflow-wrap: anywhere;
+}
+.tab-name { font-size: .9375rem; }
+.tab-term { color: var(--muted); font-size: .75rem; font-weight: 400; }
+.tabs button[aria-selected="true"] { color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); font-weight: 700; }
+.tabs button[aria-selected="true"] .tab-term { color: var(--accent); }
+
+/* Panels: the tooltips of a panel line up with its inner right edge (position: relative) */
+.panel {
+  position: relative; min-width: 0; margin: -1px 0 1rem; padding: .65rem; overflow-wrap: anywhere;
+  background: var(--paper); border: 1px solid var(--line); box-shadow: 3px 3px 0 var(--shadow);
+}
+.panel > :first-child { margin-top: 0; }
+.panel-heading { margin: .1rem 0 .4rem; font-size: 1.3rem; line-height: 1.35; }
+.panel-lead { margin: .3rem 0; font-size: .9375rem; line-height: 1.5; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.1rem; }
+footer { padding: 1rem 0 3rem; text-align: center; }
+footer a { display: inline-flex; align-items: center; min-height: 44px; }
+
+/* "Entries in this tab": the buttons to the entries, with the line that says what they do above them */
+.section-nav { margin: .5rem 0 .75rem; padding: .4rem .6rem .5rem; border: 1px solid var(--line); background: var(--bg); scroll-margin-top: .5rem; }
+.section-nav-label { margin: 0; font-size: .875rem; font-weight: 700; }
+.section-nav-hint { margin: 0 0 .3rem; color: var(--muted); font-size: .8125rem; }
+.section-nav-buttons { display: grid; grid-template-columns: minmax(0, 1fr); gap: .35rem; }
+.section-nav-buttons button { min-width: 0; padding: .3rem .6rem; font-size: .875rem; line-height: 1.4; text-align: left; }
+.next-tab { display: block; margin: 1.2rem auto .2rem; font-weight: 700; }
+
+/* An entry card: the title, what it is, how to use it, the controls, then the figure, how to read it, the line of "Find and
+   tap", the small figures (showing and hiding), where the comparison breaks down, and the sources */
+.entry { margin: 1rem 0 0; padding: .9rem 0 .4rem; border-top: 2px solid var(--line); scroll-margin-top: .5rem; }
+.section-nav + .entry { margin-top: 0; }
+.entry:focus { outline: none; }
+.entry:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.entry-title { margin: 0 0 .3rem; font-size: 1.15rem; line-height: 1.4; }
+.entry-oneline { margin: 0 0 .2rem; }
+.entry-howto { margin: 0 0 .5rem; color: var(--muted); font-size: .9375rem; line-height: 1.5; }
+
+/* Controls: switches (a group of aria-pressed buttons) with their name on the left when they fit, sliders with their name and
+   the step shown above them. A note keeps its line even while it is not shown, so nothing below moves */
+.controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem .75rem; margin: .4rem 0 .5rem; }
+.control { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; min-width: 0; grid-column: 1 / -1; }
+.control.range { display: block; grid-column: auto; }
+.control-name { font-size: .8125rem; font-weight: 700; line-height: 1.4; }
+.range-head { display: flex; justify-content: space-between; gap: .5rem; font-size: .8125rem; line-height: 1.4; }
+.range-head .control-name { min-width: 0; }
+.range-value { flex: none; font-weight: 700; color: var(--accent); }
+.choice { display: flex; flex-wrap: wrap; gap: .3rem; flex: 1 1 auto; min-width: 0; }
+.choice button { flex: 1 1 auto; min-width: 44px; padding: .3rem .5rem; font-size: .875rem; line-height: 1.3; }
+.choice button[aria-pressed="true"], .actions .find-button[aria-pressed="true"] {
+  color: var(--on-accent); background: var(--accent); border-color: var(--accent); font-weight: 700;
+}
+.range input { display: block; width: 100%; height: 44px; margin: 0; font-size: 16px; accent-color: var(--accent); cursor: pointer; }
+.range input:disabled { cursor: not-allowed; opacity: .55; }
+/* The names of the steps under a slider (the current one in bold); "Not used for shape" takes their place while it is off */
+.tick-stack { margin-top: -.25rem; color: var(--muted); font-size: .75rem; line-height: 1.4; }
+.ticks { display: flex; justify-content: space-between; gap: .3rem; }
+.ticks .now { color: var(--accent); font-weight: 700; }
+.tick-note { margin: 0; }
+.control-note { grid-column: 1 / -1; margin: -.2rem 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
+.control-note.off { visibility: hidden; }
+.actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem; }
+.actions button { padding-inline: .9rem; }
+
+/* The figure and the small figures: the main figure keeps its frame (a square for 1-1 and 1-2, 4:3 for the others) whatever the
+   settings; the board of "Find and tap" covers it at the same size */
+.entry-stage { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "main" "read" "uses"; gap: .5rem 1rem; }
+.entry-main { grid-area: main; min-width: 0; }
+.entry-read { grid-area: read; min-width: 0; }
+.entry-uses { grid-area: uses; min-width: 0; }
+.figure-frame { position: relative; margin: 0; background: var(--paper); border: 1px solid var(--line); }
+.figure-frame > svg { display: block; width: 100%; height: auto; }
+.figure-frame.finding > svg { cursor: pointer; }
+.find-cover {
+  position: absolute; inset: 0; width: 100%; height: 100%; border: 2px dashed var(--muted); border-radius: 0;
+  background: var(--paper); color: var(--ink); font-size: 1.05rem; font-weight: 700;
+}
+
+/* How to read: every sentence of the entry sits in the same cell, only the current one is shown; the height is that of the
+   longest one. The line of "Find and tap" keeps the height of its longest sentence the same way */
+.stack { display: grid; }
+.stack > * { grid-area: 1 / 1; min-width: 0; }
+.stack > .off { visibility: hidden; }
+.read-stack { margin: .1rem 0 0; font-size: .9375rem; line-height: 1.5; }
+.read-stack p { margin: 0; }
+.find-line { margin: .35rem 0 0; font-size: .9375rem; line-height: 1.5; }
+.find-line p { margin: 0; }
+.find-live { font-weight: 700; }
+.find-reveal { justify-self: start; align-self: start; font-weight: 700; }
+
+/* Same controls, showing and hiding: two small figures side by side below 720px */
+.uses-heading { margin: .2rem 0 .3rem; font-size: 1rem; line-height: 1.4; }
+.uses-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.use { min-width: 0; margin: 0; }
+.use-label { margin: 0 0 .15rem; font-size: .8125rem; font-weight: 700; line-height: 1.4; }
+.use-figure > svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: var(--paper); }
+.use-texts { min-width: 0; }
+.use-linked { margin: .25rem 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+.use-text { margin: .25rem 0 0; font-size: .875rem; line-height: 1.5; }
+.use-note { margin: .25rem 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+/* A link inside a sentence: the line keeps its height, the place to press is 44px high */
+.inline-link { display: inline-block; padding-block: .85rem; margin-block: -.85rem; }
+.gap-note { margin: .8rem 0 0; padding: .45rem .7rem; border-left: 4px solid var(--muted); background: var(--bg); font-size: .875rem; }
+.gap-note p { margin: 0; }
+.gap-head { font-weight: 700; }
+.entry-sources { margin: .7rem 0 0; }
+.entry-sources h4 { display: inline; margin: 0; font-size: .9375rem; }
+.sources-label { margin: .4rem 0 .1rem; font-size: .8125rem; font-weight: 700; }
+.source-list { margin: 0 0 .4rem; padding-left: 1.2rem; font-size: .8125rem; line-height: 1.45; overflow-wrap: anywhere; }
+.source-list li + li { margin-top: .3rem; }
+.source-list a { display: inline-flex; align-items: center; min-height: 44px; }
+.back-to-list { display: block; margin: .6rem 0 0 auto; padding: .3rem .7rem; font-size: .875rem; }
+
+/* Terms: a dashed underline on the word, which is a button; its short explanation shows right under it. "?" beside a word
+   where an underline would be hard to read (a table heading). Only one explanation is shown at a time */
+.term-wrap { position: relative; }
+/* The word with the brackets around it, one box: no line break between them (a long word still wraps inside the box) */
+.term-glue { display: inline-block; max-width: 100%; text-indent: 0; }
+.term {
+  display: inline; min-width: 0; min-height: 0; padding: 0; margin: 0; border: 0; border-radius: 0;
+  background: none; color: inherit; font: inherit; line-height: inherit; text-align: inherit; cursor: help;
+  text-decoration: underline dashed; text-decoration-color: color-mix(in srgb, currentColor 60%, transparent);
+  text-decoration-thickness: 1px; text-underline-offset: .2em;
+}
+.term-help {
+  display: inline-flex; align-items: center; justify-content: center; width: 24px; min-width: 24px; height: 24px; min-height: 24px;
+  margin: 0 .5rem 0 .25rem; padding: 0; border-radius: 50%; font-size: .8125rem; font-weight: 700; line-height: 1; vertical-align: middle;
+}
+.term-tip {
+  position: absolute; z-index: 5; left: 0; top: 100%; display: block; width: max-content; max-width: min(18rem, 100vw - 2rem);
+  margin-top: .2rem; padding: .45rem .6rem; border: 1px solid var(--muted); border-radius: 8px;
+  background: var(--bg); color: var(--ink); font-size: .875rem; font-weight: 400; line-height: 1.5; text-align: left;
+  white-space: normal; word-break: keep-all; overflow-wrap: anywhere;
+}
+/* Too wide for the screen: the explanation's right edge lines up with the inner right edge of the panel (the word's box stops
+   being the reference, so the panel is; the explanation still starts under the line of the word) */
+.term-wrap.tip-right { position: static; }
+.term-wrap.tip-right > .term-tip { left: auto; right: 0; top: auto; }
+/* Too low for the screen: above the word */
+.term-wrap.tip-above > .term-tip { top: auto; bottom: 100%; margin: 0 0 .2rem; }
+.term-wrap.tip-right.tip-above > .term-tip { bottom: auto; translate: 0 calc(-100% - 1.9em); }
+
+/* Details and the help dialog */
+details {
+  min-width: 0;
+  margin: .75rem 0;
+  padding: 0 .6rem;
+  border: 1px solid var(--muted);
+  border-radius: 8px;
+  background: var(--paper);
+}
+details > summary {
+  min-height: 44px;
+  margin: 0 -.6rem;
+  padding: .6rem;
+  border-radius: 7px;
+  background: var(--bg);
+  cursor: pointer;
+  font-weight: 700;
+}
+details[open] { padding-bottom: .6rem; }
+details[open] > summary { margin-bottom: .6rem; border-bottom: 1px solid var(--muted); border-radius: 7px 7px 0 0; }
+dialog {
+  width: min(100% - 1rem, 46rem);
+  max-width: none;
+  max-height: 90dvh;
+  padding: 0;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+}
+dialog[open] { display: flex; flex-direction: column; }
+dialog::backdrop { background: #101a2ab0; }
+.help-header {
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; padding: .75rem 1rem; border-bottom: 1px solid var(--line);
+}
+.help-header h2 { margin: 0; }
+.help-header button { flex: none; }
+.help-body { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 1rem 1rem; overflow-wrap: anywhere; }
+.help-body:focus-visible { outline-offset: -3px; }
+.help-body h3 { scroll-margin-top: .75rem; }
+.glossary { margin: .8rem 0 1.2rem; }
+.glossary dt { margin-top: .7rem; font-weight: 700; color: var(--accent); }
+.glossary > dt:first-child { margin-top: 0; }
+.glossary dd { margin: .15rem 0 0; }
+.term-expert { display: block; color: var(--muted); font-size: .8125rem; font-weight: 400; }
+
+/* Figures: the colors come from the palette classes below; these are the lines, dots, marks and letters */
+svg text { font-family: system-ui, sans-serif; }
+.ta-start { text-anchor: start; }
+.ta-middle { text-anchor: middle; }
+.ta-end { text-anchor: end; }
+.fig-title { fill: var(--ink); font-size: 13px; font-weight: 700; }
+.fig-axisname, .fig-tick, .fig-legend { fill: var(--ink); font-size: 11px; }
+.fig-axis { stroke: var(--muted); stroke-width: 1; }
+.fig-rule { stroke: var(--line); stroke-width: 1; }
+.fig-frame-small { stroke: var(--line); stroke-width: 1; }
+.fig-series { fill: none; stroke-width: 2.5; stroke-linejoin: round; }
+.fig-stroke { stroke: var(--ink); stroke-width: 3; }
+.fig-outline { fill: none; stroke: var(--ink); stroke-width: 2; }
+.fig-dot, .fig-mark { fill: var(--ink); }
+.fig-textbar { fill: var(--muted); }
+.fig-frame { fill: none; stroke: var(--ink); stroke-width: 2; }
+.fig-link { stroke: var(--ink); stroke-width: 3; }
+.fig-barline { stroke-width: 1.2; }
+.fig-pattern { stroke-width: 1; }
+.fig-spine { stroke: var(--paper); stroke-width: 2; }
+.fig-break { fill: none; stroke: var(--ink); stroke-width: 2; }
+.line-dashed { stroke-dasharray: 6 4; }
+.camo-outline { stroke: var(--ink); stroke-width: 1.5; }
+.camo-line { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+.fixation { stroke: var(--ink); stroke-width: 2.5; }
+.stim-solid { fill: var(--ink); }
+.stim-outline { fill: var(--paper); stroke: var(--ink); stroke-width: 2; }
+/* The marks of "Find and tap": the shape pressed has a thick circle, the shape to find a double rounded square (shapes, not colors) */
+.mark-pressed { fill: none; stroke: var(--ink); stroke-width: 4; }
+.mark-target { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+.fill-stimCool { fill: var(--c-stimCool); } .stroke-stimCool { stroke: var(--c-stimCool); }
+.fill-stimHot { fill: var(--c-stimHot); } .stroke-stimHot { stroke: var(--c-stimHot); }
+.fill-popColor-0 { fill: var(--c-popColor-0); } .stroke-popColor-0 { stroke: var(--c-popColor-0); }
+.fill-popColor-1 { fill: var(--c-popColor-1); } .stroke-popColor-1 { stroke: var(--c-popColor-1); }
+.fill-popColor-2 { fill: var(--c-popColor-2); } .stroke-popColor-2 { stroke: var(--c-popColor-2); }
+.fill-popColor-3 { fill: var(--c-popColor-3); } .stroke-popColor-3 { stroke: var(--c-popColor-3); }
+.fill-popOthers-0 { fill: var(--c-popOthers-0); } .stroke-popOthers-0 { stroke: var(--c-popOthers-0); }
+.fill-popOthers-1 { fill: var(--c-popOthers-1); } .stroke-popOthers-1 { stroke: var(--c-popOthers-1); }
+.fill-popOthers-2 { fill: var(--c-popOthers-2); } .stroke-popOthers-2 { stroke: var(--c-popOthers-2); }
+.fill-popLight-0 { fill: var(--c-popLight-0); } .stroke-popLight-0 { stroke: var(--c-popLight-0); }
+.fill-popLight-1 { fill: var(--c-popLight-1); } .stroke-popLight-1 { stroke: var(--c-popLight-1); }
+.fill-popLight-2 { fill: var(--c-popLight-2); } .stroke-popLight-2 { stroke: var(--c-popLight-2); }
+.fill-popLight-3 { fill: var(--c-popLight-3); } .stroke-popLight-3 { stroke: var(--c-popLight-3); }
+.fill-popLightOthers-0 { fill: var(--c-popLightOthers-0); } .stroke-popLightOthers-0 { stroke: var(--c-popLightOthers-0); }
+.fill-popLightOthers-1 { fill: var(--c-popLightOthers-1); } .stroke-popLightOthers-1 { stroke: var(--c-popLightOthers-1); }
+.fill-popLightOthers-2 { fill: var(--c-popLightOthers-2); } .stroke-popLightOthers-2 { stroke: var(--c-popLightOthers-2); }
+.fill-seriesTarget { fill: var(--c-seriesTarget); } .stroke-seriesTarget { stroke: var(--c-seriesTarget); }
+.fill-seriesOthers-0 { fill: var(--c-seriesOthers-0); } .stroke-seriesOthers-0 { stroke: var(--c-seriesOthers-0); }
+.fill-seriesOthers-1 { fill: var(--c-seriesOthers-1); } .stroke-seriesOthers-1 { stroke: var(--c-seriesOthers-1); }
+.fill-seriesOthers-2 { fill: var(--c-seriesOthers-2); } .stroke-seriesOthers-2 { stroke: var(--c-seriesOthers-2); }
+.fill-groups-0 { fill: var(--c-groups-0); } .stroke-groups-0 { stroke: var(--c-groups-0); }
+.fill-groups-1 { fill: var(--c-groups-1); } .stroke-groups-1 { stroke: var(--c-groups-1); }
+.fill-groups-2 { fill: var(--c-groups-2); } .stroke-groups-2 { stroke: var(--c-groups-2); }
+.fill-groups-3 { fill: var(--c-groups-3); } .stroke-groups-3 { stroke: var(--c-groups-3); }
+.fill-regionA { fill: var(--c-regionA); } .stroke-regionA { stroke: var(--c-regionA); }
+.fill-regionB { fill: var(--c-regionB); } .stroke-regionB { stroke: var(--c-regionB); }
+.fill-band { fill: var(--c-band); } .stroke-band { stroke: var(--c-band); }
+.fill-camoBase { fill: var(--c-camoBase); } .stroke-camoBase { stroke: var(--c-camoBase); }
+.fill-camoFar { fill: var(--c-camoFar); } .stroke-camoFar { stroke: var(--c-camoFar); }
+.fill-camoSpots-0 { fill: var(--c-camoSpots-0); } .stroke-camoSpots-0 { stroke: var(--c-camoSpots-0); }
+.fill-camoSpots-1 { fill: var(--c-camoSpots-1); } .stroke-camoSpots-1 { stroke: var(--c-camoSpots-1); }
+.fill-camoSpots-2 { fill: var(--c-camoSpots-2); } .stroke-camoSpots-2 { stroke: var(--c-camoSpots-2); }
+.fill-camoObj-0 { fill: var(--c-camoObj-0); } .stroke-camoObj-0 { stroke: var(--c-camoObj-0); }
+.fill-camoObj-1 { fill: var(--c-camoObj-1); } .stroke-camoObj-1 { stroke: var(--c-camoObj-1); }
+.fill-camoObj-2 { fill: var(--c-camoObj-2); } .stroke-camoObj-2 { stroke: var(--c-camoObj-2); }
+.fill-camoObj-3 { fill: var(--c-camoObj-3); } .stroke-camoObj-3 { stroke: var(--c-camoObj-3); }
+.fill-camoObjLight-0 { fill: var(--c-camoObjLight-0); } .stroke-camoObjLight-0 { stroke: var(--c-camoObjLight-0); }
+.fill-camoObjLight-1 { fill: var(--c-camoObjLight-1); } .stroke-camoObjLight-1 { stroke: var(--c-camoObjLight-1); }
+.fill-camoObjLight-2 { fill: var(--c-camoObjLight-2); } .stroke-camoObjLight-2 { stroke: var(--c-camoObjLight-2); }
+.fill-camoObjLight-3 { fill: var(--c-camoObjLight-3); } .stroke-camoObjLight-3 { stroke: var(--c-camoObjLight-3); }
+.fill-camoSpotsLight-0 { fill: var(--c-camoSpotsLight-0); } .stroke-camoSpotsLight-0 { stroke: var(--c-camoSpotsLight-0); }
+.fill-camoSpotsLight-1 { fill: var(--c-camoSpotsLight-1); } .stroke-camoSpotsLight-1 { stroke: var(--c-camoSpotsLight-1); }
+.fill-camoSpotsLight-2 { fill: var(--c-camoSpotsLight-2); } .stroke-camoSpotsLight-2 { stroke: var(--c-camoSpotsLight-2); }
+.fill-camoObjSpots-0 { fill: var(--c-camoObjSpots-0); } .stroke-camoObjSpots-0 { stroke: var(--c-camoObjSpots-0); }
+.fill-camoObjSpots-1 { fill: var(--c-camoObjSpots-1); } .stroke-camoObjSpots-1 { stroke: var(--c-camoObjSpots-1); }
+.fill-camoObjSpots-2 { fill: var(--c-camoObjSpots-2); } .stroke-camoObjSpots-2 { stroke: var(--c-camoObjSpots-2); }
+.fig-nofill, svg .fig-nofill { fill: none; }
+
+/* Narrow screens: a little smaller sentences under the figure, so that the controls, the figure and the small figures fit the
+   height of a phone together */
+@media (max-width: 719px) {
+  .read-stack, .find-line { font-size: .875rem; }
+  .entry-stage { row-gap: .4rem; }
+  .uses-heading { margin-top: .1rem; }
+}
+@media (min-width: 720px) {
+  .masthead { flex-direction: row; justify-content: space-between; }
+  .masthead h1 { text-align: left; }
+  .tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .tabs button:nth-child(n) { grid-column: auto; }
+  .tab-name { font-size: 1rem; }
+  .contrast-table .col-trait { width: 16%; }
+  .section-nav-buttons { display: flex; flex-wrap: wrap; }
+  /* The figure on the left (about 60%) and the two small figures one above the other on the right (about 40%) */
+  .entry-stage { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-areas: "main uses" "read uses"; align-items: start; }
+  .entry-read { align-self: start; }
+  .uses-list { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+  .entry.square .figure-frame { max-width: 27.5rem; }
+  .controls { grid-template-columns: repeat(2, minmax(0, 18rem)); }
+}
+/* Wide screens: the square figure keeps its size, and each small figure has its sentences beside it */
+@media (min-width: 1000px) {
+  .entry.square .entry-stage { grid-template-columns: minmax(0, 27.5rem) minmax(0, 1fr); }
+  .use { display: grid; grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); grid-template-areas: "label label" "figure texts"; gap: 0 .8rem; }
+  .use-label { grid-area: label; }
+  .use-figure { grid-area: figure; }
+  .use-texts { grid-area: texts; }
+  .use-texts > :first-child { margin-top: 0; }
+}
+
+@media print {
+  button, dialog, .find-cover { display: none !important; }
+}
