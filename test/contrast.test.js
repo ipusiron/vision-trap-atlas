@@ -118,6 +118,10 @@ test('F: the stimuli, the lines and the parts of the small figures keep at least
     }
     // The two regions of figure and ground are told apart from each other
     assert.ok(ratio(p.regionA, p.regionB) >= 3, theme + ' regionA / regionB');
+    // 3-1 calls its wedges dark and light: the dark one is darker in both themes, and the two keep 3:1 as parts of a figure
+    assert.ok(C.relativeLuminance(p.areaDark) < C.relativeLuminance(p.areaLight), theme + ' areaDark is the darker');
+    t.diagnostic(`${theme} areaDark / areaLight: ${ratio(p.areaDark, p.areaLight).toFixed(2)}:1`);
+    assert.ok(ratio(p.areaDark, p.areaLight) >= 3, theme + ' areaDark / areaLight');
     // The focus mark against the ground as well
     assert.ok(ratio(theme === 'light' ? light.focus : dark.focus, theme === 'light' ? light.bg : dark.bg) >= 3, theme + ' focus on the ground');
   }

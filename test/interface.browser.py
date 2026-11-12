@@ -131,13 +131,22 @@ def expected_linked(card, use, values, language):
     return fill(L["linkedTo"], names=("・" if language == "ja" else ", ").join(L[f"ctl.{card}.{cid}"] for cid in ids))
 
 
+def control_enabled(control, values):
+    """A control is off while its enabledWhen does not hold or its disabledWhen holds (the same rule as AtlasView.controlEnabled)."""
+    def hit(cond):
+        return all(values[k] in allowed for k, allowed in cond.items())
+    if control.get("enabledWhen") and not hit(control["enabledWhen"]):
+        return False
+    return not (control.get("disabledWhen") and hit(control["disabledWhen"]))
+
+
 def expected_desc(card, side, values, language):
-    """The <desc> of a figure of the Grouping and Figure and ground cards: its title with the current settings (the main figure: every
-    control; a small figure: the controls that change it)."""
+    """The <desc> of a figure of the cards with controls: its title with the current settings (the main figure: every control that can be
+    used now; a small figure: the controls that change it)."""
     L, entry = M[language], ENTRY[card]
     title = L[f"fig.{card}.{side}.title"]
     if side == "main":
-        ids = [c["id"] for c in entry["controls"]]
+        ids = [c["id"] for c in entry["controls"] if control_enabled(c, values)]
     else:
         ids = linked_ids(card, next(u for u in entry["uses"] if u["side"] == side), values)
     if not ids:
@@ -161,7 +170,7 @@ def expected_read(card, values, language):
         return [first, L["contourRead." + values["crossing"]]]
     if card == "figure-ground-area":
         p = round(values["share"] * 100)
-        return [L["areaRead.filledNarrow" if p < 50 else "areaRead.equal" if p == 50 else "areaRead.emptyNarrow"]]
+        return [L["areaRead.darkNarrow" if p < 50 else "areaRead.equal" if p == 50 else "areaRead.lightNarrow"]]
     if card == "figure-ground-symmetry":
         if values["cue"] == "convex":
             return [L["symRead.convex2" if values["regions"] == 2 else "symRead.convex8"]]
@@ -239,6 +248,10 @@ CARD_PLACES = """id => { const card = document.getElementById(id), top = el => e
     read: top(card.querySelector('.read-stack')), find: top(card.querySelector('.find-line')),
     uses: Array.from(card.querySelectorAll('.use-figure svg'), s => top(s)),
     linked: Array.from(card.querySelectorAll('.use-linked'), s => top(s))}; }"""
+# The names of the steps under each slider of a card: their boxes and the box of the slider's control
+TICKS = """id => Array.from(document.querySelectorAll('#' + id + ' .controls .control.range'), c => { const b = c.getBoundingClientRect();
+  return {key: c.querySelector('input').dataset.key, left: b.left, right: b.right,
+    spans: Array.from(c.querySelectorAll('.ticks > span'), s => { const r = s.getBoundingClientRect(); return [r.left, r.right]; })}; })"""
 CARD_TEXTS = """id => { const card = document.getElementById(id);
   const text = el => el ? el.textContent.trim() : '';
   return {read: text(card.querySelector('.read-live')), find: text(card.querySelector('.find-live')),
@@ -722,6 +735,28 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
         assert_language_text(t["read"], language, (card, name, "reading"))
         return t
 
+    # The names of the steps under each slider neither overlap nor leave the slider's box (320px too)
+    for ticks in page.evaluate(TICKS, card):
+        spans = ticks["spans"]
+        check(spans[0][0] >= ticks["left"] - 0.5 and spans[-1][1] <= ticks["right"] + 0.5, (card, ticks["key"], "step names inside", ticks))
+        check(all(a[1] <= b[0] + 0.5 for a, b in zip(spans, spans[1:])), (card, ticks["key"], "step names apart", spans))
+    if card == "figure-ground-symmetry":
+        # While the cue is none there is no cue to swap: the switch cannot be pressed and the note under it says why. Choosing a cue
+        # makes it pressable again; nothing below moves meanwhile
+        swap, note = page.locator(f'[data-key="ctl:{card}:swap"]'), page.locator(f"#ctl-{card}-swap-note")
+
+        def swap_state():
+            return {"disabled": swap.is_disabled(), "note": note.evaluate("n => getComputedStyle(n).visibility"),
+                    "described": swap.get_attribute("aria-describedby")}
+        check(note.inner_text().strip() == M[language]["cueNeeded"], (card, "the note under the switch", note.inner_text()))
+        check(swap_state() == {"disabled": True, "note": "visible", "described": note.get_attribute("id")}, (card, "cue none", swap_state()))
+        for cue, off in (("symmetric", False), ("convex", False), ("none", True)):
+            page.locator(f'[data-key="ctl:{card}:cue:{cue}"]').click()
+            follow("cue", cue)
+            same_places("cue " + cue)
+            expected = {"disabled": True, "note": "visible", "described": note.get_attribute("id")} if off else {
+                "disabled": False, "note": "hidden", "described": None}
+            check(swap_state() == expected, (card, "cue", cue, swap_state()))
     keys = control_buttons(page, card)
     seen_linked = set()
     first = dict(drawn)

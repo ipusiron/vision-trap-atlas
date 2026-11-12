@@ -92,7 +92,7 @@ test('C: every figure of every entry stays inside its viewBox for every combinat
       n += 1;
     }
   }
-  assert.equal(n, 503);
+  assert.equal(n, 496);
   // The 1-1 and 1-2 figures stay inside with other seeds as well
   for (let seed = 1; seed <= 30; seed += 1) {
     for (const kind of ['color', 'direction', 'size', 'shape', 'lightness']) {
@@ -165,7 +165,16 @@ test('C: the counts of shapes in the main figures', () => {
   assert.deepEqual(marksOf(contour(0), 'fill-seriesOthers-0'), [[30, 225], [290, 165]]);
   assert.deepEqual(marksOf(contour(0, 'corner'), 'fill-seriesTarget'), [[30, 165], [290, 165]]);
   assert.deepEqual(marksOf(contour(0, 'corner'), 'fill-seriesOthers-0'), [[30, 225], [290, 225]]);
-  assert.equal(V.renderMain(entry('figure-ground-area'), { share: 0.2, swap: false }, ctx).shapes.length, 9);
+  assert.equal(V.renderMain(entry('figure-ground-area'), { share: 0.2 }, ctx).shapes.length, 9);
+  // 3-1: the dark wedges take the share given by the slider, and the bars of the chart beside it are the dark color on the light one
+  // (the same two colors as the wedges)
+  for (const share of [0.2, 0.5, 0.8]) {
+    const wedges = V.renderMain(entry('figure-ground-area'), { share }, ctx).shapes.slice(0, 8);
+    assert.deepEqual(wedges.map((w) => w.cls), Array.from({ length: 8 }, (_, i) => (i % 2 === 0 ? 'fill-areaDark' : 'fill-areaLight')));
+    const bars = V.renderUse(entry('figure-ground-area').uses[0], { share }, ctx).shapes;
+    assert.equal(bars[0].cls, 'fill-areaLight');
+    assert.ok(bars.slice(1, 7).every((b) => b.cls === 'fill-areaDark' && Math.abs(b.attrs.width - 30 * share) < 1e-9), String(share));
+  }
   for (const regions of [2, 8]) {
     assert.equal(V.renderMain(entry('figure-ground-symmetry'), { cue: 'convex', regions, swap: false }, ctx).shapes.length, regions);
   }
@@ -312,9 +321,9 @@ test('C: the reading sentences use the rounded values shown for their borders', 
   assert.deepEqual([0, 0.1, 0.3, 0.4, 0.6].map((g) => contour(g).key),
     ['contourRead.gap0', 'contourRead.gapLow', 'contourRead.gapLow', 'contourRead.gapHigh', 'contourRead.gapHigh']);
   assert.equal(contour(0.3).values.p, '30');
-  const area = (share) => V.readCases(D, 'figure-ground-area', { share, swap: false })[0].key;
+  const area = (share) => V.readCases(D, 'figure-ground-area', { share })[0].key;
   assert.deepEqual([0.2, 0.4, 0.5, 0.6, 0.8].map(area),
-    ['areaRead.filledNarrow', 'areaRead.filledNarrow', 'areaRead.equal', 'areaRead.emptyNarrow', 'areaRead.emptyNarrow']);
+    ['areaRead.darkNarrow', 'areaRead.darkNarrow', 'areaRead.equal', 'areaRead.lightNarrow', 'areaRead.lightNarrow']);
   const deg = (aspect, range) => V.readCases(D, 'misread-aspect-range', { aspect, range })[0];
   assert.deepEqual([0.5, 1, 2, 4].map((a) => deg(a, 'all').values.deg), ['67.3', '51.4', '33.5', '19.0']);
   assert.deepEqual([0.5, 1, 2, 4].map((a) => deg(a, 'all').key), ['aspectRead.steep', 'aspectRead.mid', 'aspectRead.mid', 'aspectRead.flat']);
@@ -356,7 +365,7 @@ test('C: the linked line of 1-1 for each of the five kinds, and of the other ent
     }
   }
   const line = (id, side) => { const e = entry(id); return V.linkedText(M, 'ja', e, e.uses.find((u) => u.side === side), V.controlValues(e)); };
-  assert.equal(line('gestalt-proximity-similarity', 'show'), 'この図を変える操作：近さ・形の変え方');
+  assert.equal(line('gestalt-proximity-similarity', 'show'), 'この図を変える操作：点の間隔・形の変え方');
   assert.equal(line('gestalt-proximity-similarity', 'hide'), 'この図を変える操作：形の変え方');
   assert.equal(line('gestalt-contour', 'show'), 'この図を変える操作：輪郭の途切れ・交わり方');
   assert.equal(line('gestalt-contour', 'hide'), 'この図を変える操作：輪郭の途切れ');
@@ -414,6 +423,10 @@ test('C: which controls are enabled', () => {
   const mark = entry('misread-baseline').controls.find((c) => c.id === 'mark');
   assert.equal(V.controlEnabled(mark, { bottom: 0 }), false);
   assert.equal(V.controlEnabled(mark, { bottom: 5 }), true);
+  // 3-2: there is no cue to swap while the cue is none; choosing a cue makes the switch pressable again
+  const swap = entry('figure-ground-symmetry').controls.find((c) => c.id === 'swap');
+  assert.deepEqual(['none', 'symmetric', 'convex'].map((cue) => V.controlEnabled(swap, { cue, regions: 8, swap: false })), [false, true, true]);
+  assert.equal(swap.disabledNoteKey, 'cueNeeded');
 });
 
 test('C: the small figures of the search tab: one blue dashed line among blue solid and other dashed lines, or one blue line', () => {

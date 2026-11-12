@@ -213,14 +213,13 @@
     };
   });
 
-  // 3-1：円を8つの扇形に分け、1つおきに塗る
+  // 3-1：円を8つの扇形に分け、1つおきに色の濃い扇形と薄い扇形にする（share＝色の濃い扇形の割合）
   register('sectors', (s) => {
-    const sp = Core.sectorPaths(s.share ?? 0.5, 8), swap = !!s.swap;
-    const filledCls = swap ? 'fill-regionB' : 'fill-regionA', emptyCls = swap ? 'fill-regionA' : 'fill-regionB';
+    const sp = Core.sectorPaths(s.share ?? 0.5, 8);
     return {
       width: W, height: H,
       shapes: [
-        ...sp.sectors.map((q) => path(Core.sectorPath(W / 2, H / 2, 100, q.start, q.end), q.filled ? filledCls : emptyCls)),
+        ...sp.sectors.map((q) => path(Core.sectorPath(W / 2, H / 2, 100, q.start, q.end), q.filled ? 'fill-areaDark' : 'fill-areaLight')),
         circle(W / 2, H / 2, 100, 'fig-stroke fig-nofill'),
       ],
     };
@@ -363,11 +362,12 @@
       });
       shapes.push(line(8, base, 192, base, 'fig-axis'));
     } else if (mode === 'share') {
-      const values = ds.shareBars, slot = 180 / values.length, share = s.share ?? 0.5, swap = !!s.swap;
-      shapes.push(rect(10, 10, 180, base - 10, swap ? 'fill-regionA' : 'fill-regionB'));
+      // 棒は上の図の色の濃い扇形と同じ色、背景は薄い扇形と同じ色。棒の幅の割合＝色の濃い扇形の割合
+      const values = ds.shareBars, slot = 180 / values.length, share = s.share ?? 0.5;
+      shapes.push(rect(10, 10, 180, base - 10, 'fill-areaLight'));
       values.forEach((val, i) => {
         const width = slot * share, cx = 10 + slot * (i + 0.5);
-        shapes.push(rect(cx - width / 2, base - val * scaleY, width, val * scaleY, swap ? 'fill-regionB' : 'fill-regionA'));
+        shapes.push(rect(cx - width / 2, base - val * scaleY, width, val * scaleY, 'fill-areaDark'));
       });
       shapes.push(line(10, base, 190, base, 'fig-axis'));
     } else if (mode === 'baseline') {
@@ -716,7 +716,7 @@
       }
       case 'area': {
         const p = Math.round(values.share * 100);
-        return [{ key: p < 50 ? 'areaRead.filledNarrow' : p === 50 ? 'areaRead.equal' : 'areaRead.emptyNarrow', values: {} }];
+        return [{ key: p < 50 ? 'areaRead.darkNarrow' : p === 50 ? 'areaRead.equal' : 'areaRead.lightNarrow', values: {} }];
       }
       case 'symmetry': {
         if (values.cue === 'convex') return [{ key: values.regions === 2 ? 'symRead.convex2' : 'symRead.convex8', values: {} }];

@@ -158,13 +158,13 @@
       titleTerms: [{ term: 'termFigureGround', ja: '図と地', en: 'figure and ground' }],
       figure: { part: 'sectors', seed: 3101, params: {} },
       controls: [
+        // share＝色の濃い扇形の割合。20〜80%を通るので、濃い側が狭いときも薄い側が狭いときも同じつまみで見られる
         { id: 'share', type: 'range', values: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], default: 0.5, unit: 'percent' },
-        { id: 'swap', type: 'toggle', default: false },
       ],
       actions: [],
       read: { cases: 'area' },
       uses: [
-        { side: 'show', part: 'barChart', params: { mode: 'share' }, bind: { share: 'share', swap: 'swap' }, textKey: 'areaShow', noteKey: 'showNote' },
+        { side: 'show', part: 'barChart', params: { mode: 'share' }, bind: { share: 'share' }, textKey: 'areaShow', noteKey: 'showNote' },
         { side: 'hide', part: 'camoScene', params: { seed: 3192, objLevel: 2 }, bind: { share: 'objectShare' }, textKey: 'areaHide',
           noteKey: 'hideNote', link: 'day085' },
       ],
@@ -180,7 +180,8 @@
       controls: [
         { id: 'cue', type: 'choice', options: ['none', 'symmetric', 'convex'], default: 'none' },
         { id: 'regions', type: 'choice', options: [2, 8], default: 8 },
-        { id: 'swap', type: 'toggle', default: false },
+        // 手がかりが「なし」の間は、入れ替える手がかりがないので押せない（押せない理由を下に書く）
+        { id: 'swap', type: 'toggle', default: false, disabledWhen: { cue: ['none'] }, disabledNoteKey: 'cueNeeded' },
       ],
       actions: [],
       read: { cases: 'symmetry' },
@@ -391,6 +392,8 @@
   // style.css はこの値を CSS の変数に写す（テストで値が一致することを確かめる）。
   // popColor：1-1 の色の4段（ほかの図形の色から探すものの色へ 0・30・60・100% 混ぜる）。popLight：明るさの4段。
   // camoSpots：迷彩の絵の背景の斑点の3色（岡部・伊藤の配色から選ばない）。camoObj：物と背景の色の差の4段（camoBase から camoFar へ 0・30・60・100%）
+  // regionA・regionB：3-2 の1つおきの帯。areaDark・areaLight：3-1 の色の濃い扇形と薄い扇形（見せる側の棒と背景も同じ2色）。
+  // 文が「色の濃い扇形」と呼ぶので、どちらのテーマでも areaDark のほうを暗くする
   const palette = {
     light: {
       paper: '#fffdf7', ink: '#152b45',
@@ -403,6 +406,7 @@
       seriesOthers: ['#d55e00', '#009e73', '#cc79a7'],
       groups: ['#0072b2', '#d55e00', '#009e73', '#cc79a7'],
       regionA: '#34495e', regionB: '#e3dccb',
+      areaDark: '#34495e', areaLight: '#e3dccb',
       band: '#e9e2d0',
       camoBase: '#c9c1a5', camoFar: '#a8432a',
       camoSpots: ['#8a9a5b', '#a39069', '#6b705c'],
@@ -422,6 +426,7 @@
       seriesOthers: ['#e69f00', '#009e73', '#cc79a7'],
       groups: ['#56b4e9', '#e69f00', '#009e73', '#cc79a7'],
       regionA: '#c9d6e2', regionB: '#2c405a',
+      areaDark: '#2c405a', areaLight: '#c9d6e2',
       band: '#24384f',
       camoBase: '#4a5240', camoFar: '#d08a5c',
       camoSpots: ['#6e7d4f', '#7a6c52', '#3a4535'],

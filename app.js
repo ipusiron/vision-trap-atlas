@@ -358,7 +358,13 @@
       button.addEventListener('click', () => setControl(id, control.id, !state.items[id].values[control.id]));
       buttons.push([true, button]);
       parts.choices.set(control.id, buttons);
-      return E('div', { class: 'control' }, E('div', { class: 'choice' }, button));
+      // A switch that can be off (3-2: swapping needs a cue) says why under it. The line is kept while it is not shown, so that the
+      // figure and the sentences below never move
+      if (!control.disabledNoteKey) return E('div', { class: 'control' }, E('div', { class: 'choice' }, button));
+      const note = E('p', { class: 'toggle-note off', id: nameId + '-note' }, phrases(t(control.disabledNoteKey)));
+      parts.toggleNotes = parts.toggleNotes || new Map();
+      parts.toggleNotes.set(control.id, note);
+      return E('div', { class: 'control' }, E('div', { class: 'choice' }, button), note);
     }
     View.controlOptions(control).forEach((value) => {
       const label = stepText(entry, control, value);
@@ -866,6 +872,12 @@
         for (const [value, button] of parts.choices.get(control.id)) {
           button.setAttribute('aria-pressed', String(control.type === 'toggle' ? !!values[control.id] : value === values[control.id]));
           button.disabled = !enabled;
+        }
+        const note = parts.toggleNotes && parts.toggleNotes.get(control.id);
+        if (note) {
+          note.classList.toggle('off', enabled);
+          const button = parts.choices.get(control.id)[0][1];
+          if (enabled) button.removeAttribute('aria-describedby'); else button.setAttribute('aria-describedby', note.id);
         }
       }
     }

@@ -36,14 +36,17 @@ test('B: controls have a known type, a default among their values, and messages 
       seen.add(c.id);
       assert.ok(['choice', 'range', 'toggle'].includes(c.type), `${e.id}.${c.id}`);
       assert.ok(inBoth(`ctl.${e.id}.${c.id}`), `name of ${e.id}.${c.id}`);
-      if (c.type === 'toggle') { assert.equal(typeof c.default, 'boolean'); continue; }
-      const values = c.type === 'range' ? c.values : c.options;
-      assert.ok(Array.isArray(values) && values.length >= 2, `${e.id}.${c.id}`);
-      assert.ok(values.includes(c.default), `default of ${e.id}.${c.id}`);
-      if (c.steps) assert.equal(c.steps.length, values.length);
-      if (c.type === 'choice' || c.named) {
-        values.forEach((v, i) => assert.ok(inBoth(`ctl.${e.id}.${c.id}.${c.steps ? c.steps[i] : String(v)}`), `step ${e.id}.${c.id}.${v}`));
+      if (c.type === 'toggle') assert.equal(typeof c.default, 'boolean');
+      else {
+        const values = c.type === 'range' ? c.values : c.options;
+        assert.ok(Array.isArray(values) && values.length >= 2, `${e.id}.${c.id}`);
+        assert.ok(values.includes(c.default), `default of ${e.id}.${c.id}`);
+        if (c.steps) assert.equal(c.steps.length, values.length);
+        if (c.type === 'choice' || c.named) {
+          values.forEach((v, i) => assert.ok(inBoth(`ctl.${e.id}.${c.id}.${c.steps ? c.steps[i] : String(v)}`), `step ${e.id}.${c.id}.${v}`));
+        }
       }
+      // A switch can be off as well (3-2: swapping needs a cue)
       for (const cond of [c.enabledWhen, c.disabledWhen].filter(Boolean)) {
         for (const [k, list] of Object.entries(cond)) {
           const other = e.controls.find((x) => x.id === k);

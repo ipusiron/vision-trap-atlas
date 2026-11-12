@@ -22,6 +22,8 @@
   --c-groups-0: #0072b2; --c-groups-1: #d55e00; --c-groups-2: #009e73; --c-groups-3: #cc79a7;
   --c-regionA: #34495e;
   --c-regionB: #e3dccb;
+  --c-areaDark: #34495e;
+  --c-areaLight: #e3dccb;
   --c-band: #e9e2d0;
   --c-camoBase: #c9c1a5;
   --c-camoFar: #a8432a;
@@ -54,6 +56,8 @@
     --c-groups-0: #56b4e9; --c-groups-1: #e69f00; --c-groups-2: #009e73; --c-groups-3: #cc79a7;
     --c-regionA: #c9d6e2;
     --c-regionB: #2c405a;
+    --c-areaDark: #2c405a;
+    --c-areaLight: #c9d6e2;
     --c-band: #24384f;
     --c-camoBase: #4a5240;
     --c-camoFar: #d08a5c;
@@ -244,6 +248,9 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 .tick-note { margin: 0; }
 .control-note { grid-column: 1 / -1; margin: -.2rem 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
 .control-note.off { visibility: hidden; }
+/* Why a switch cannot be pressed now (3-2: no cue to swap): under the switch, its line kept while it is not shown */
+.toggle-note { flex: 1 0 100%; margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
+.toggle-note.off { visibility: hidden; }
 .actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem; }
 .actions button { padding-inline: .9rem; }
 
@@ -430,6 +437,8 @@ svg text { font-family: system-ui, sans-serif; }
 .fill-groups-3 { fill: var(--c-groups-3); } .stroke-groups-3 { stroke: var(--c-groups-3); }
 .fill-regionA { fill: var(--c-regionA); } .stroke-regionA { stroke: var(--c-regionA); }
 .fill-regionB { fill: var(--c-regionB); } .stroke-regionB { stroke: var(--c-regionB); }
+.fill-areaDark { fill: var(--c-areaDark); } .stroke-areaDark { stroke: var(--c-areaDark); }
+.fill-areaLight { fill: var(--c-areaLight); } .stroke-areaLight { stroke: var(--c-areaLight); }
 .fill-band { fill: var(--c-band); } .stroke-band { stroke: var(--c-band); }
 .fill-camoBase { fill: var(--c-camoBase); } .stroke-camoBase { stroke: var(--c-camoBase); }
 .fill-camoFar { fill: var(--c-camoFar); } .stroke-camoFar { stroke: var(--c-camoFar); }

@@ -298,26 +298,29 @@ test('E: the descriptions of the figures of the Grouping and Figure and ground e
       }
     }
   }
-  assert.equal(n, (15 + 3 + 14 + 14 + 12) * 2 * 3);
+  assert.equal(n, (15 + 3 + 14 + 7 + 12) * 2 * 3);
   const d = (lang, id, values, side) => V.descText(M, lang, entry(id), { ...V.controlValues(entry(id)), ...values }, side);
   // The main figure: every control with its value, in the order of the data
-  assert.equal(d('ja', 'gestalt-proximity-similarity', { prox: -2, sim: 'cols' }, 'main'), '6×6の点（近さ：行がとても近い、形の変え方：列ごとに形を変える）');
+  assert.equal(d('ja', 'gestalt-proximity-similarity', { prox: -2, sim: 'cols' }, 'main'),
+    '6×6の点（点の間隔：横がとても狭い、形の変え方：列ごとに形を変える）');
   assert.equal(d('en', 'gestalt-proximity-similarity', { prox: -2, sim: 'cols' }, 'main'),
-    'A 6 × 6 grid of dots (Proximity: Rows much closer; Similarity: Shapes vary by column)');
+    'A 6 × 6 grid of dots (Dot spacing: Very tight across; Similarity: Shapes vary by column)');
   assert.equal(d('ja', 'gestalt-contour', { gap: 0.3, crossing: 'corner' }, 'main'),
-    '輪郭が途切れた丸と四角、交わる2本の線（輪郭の途切れ：30%、交わり方：交わる所で折れる）');
-  assert.equal(d('ja', 'figure-ground-area', { share: 0.2, swap: true }, 'main'), '8つの扇形に分けた円（塗った扇形の割合：20%、明暗を入れ替える：オン）');
+    '丸と四角、交わる2本の線（輪郭の途切れ：30%、交わり方：交わる所で折れる）');
+  assert.equal(d('ja', 'figure-ground-area', { share: 0.2 }, 'main'), '8つの扇形に分けた円（色の濃い扇形の割合：20%）');
   assert.equal(d('en', 'figure-ground-symmetry', { cue: 'convex', regions: 2, swap: false }, 'main'),
     'Bands divided by vertical borders (Cue: Bulging outward; Number of regions: 2; Swap the side with the cue: Off)');
+  // While the cue is none, the switch that swaps the side with the cue cannot be pressed, and the description leaves it out
+  assert.equal(d('ja', 'figure-ground-symmetry', { cue: 'none', regions: 8, swap: true }, 'main'), '縦の境目で区切った帯（手がかり：なし、領域の数：8）');
   // A small figure: only the controls that change it
   assert.equal(d('ja', 'gestalt-proximity-similarity', {}, 'hide'), '背景の上の物を描いた迷彩の絵（形の変え方：変えない）');
   assert.equal(d('ja', 'gestalt-region-connection', { link: 'line' }, 'show'), '折れ線グラフと散布図（囲む・つなぐ：隣り合う組の点を線でつなぐ）');
-  assert.equal(d('ja', 'figure-ground-area', { share: 0.7 }, 'hide'), '背景の上の物を描いた迷彩の絵（塗った扇形の割合：70%）');
+  assert.equal(d('ja', 'figure-ground-area', { share: 0.7 }, 'hide'), '背景の上の物を描いた迷彩の絵（色の濃い扇形の割合：70%）');
   assert.equal(d('en', 'gestalt-contour', { gap: 0.6 }, 'show'), 'Two lines with missing months (Gap in the outline: 60%; Crossing: Cross smoothly)');
   // The step names are those of the screen (the same function draws the names under the sliders)
   const prox = entry('gestalt-proximity-similarity').controls[0];
   assert.deepEqual(prox.values.map((v) => V.stepLabel(V.dictionary(M, 'ja'), entry('gestalt-proximity-similarity'), prox, v)),
-    ['行がとても近い', '行が近い', '同じ', '列が近い', '列がとても近い']);
+    ['横がとても狭い', '横が狭い', '縦横で同じ', '縦が狭い', '縦がとても狭い']);
 });
 
 test('E: the texts of the results area: the column of each number of items, the approximate research values and the chart description', () => {
