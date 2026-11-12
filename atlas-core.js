@@ -191,6 +191,8 @@
       if (!b || b.ratioState === null) continue;
       if (b.ratioState === 'below1') { out.push({ key: 'resRatioNone', values: { search } }); continue; }
       const r = b.ratio;
+      // 比が0以下（「ない」の傾きが0以下）のときは、比の数を出さない文にする（負や0の倍率は読み取れないため）
+      if (r <= 0) { out.push({ key: 'resRatioZeroOrLess', values: { search } }); continue; }
       const key = r < 1 ? 'resRatioLow' : r < 2 ? 'resRatioMid' : r <= 3 ? 'resRatioTypical' : 'resRatioHigh';
       out.push({ key, values: { search, r } });
     }

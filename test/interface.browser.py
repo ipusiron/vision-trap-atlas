@@ -1,15 +1,18 @@
 """Browser gates for Vision Trap Atlas (Playwright for Python; not part of CI).
 
 Run with a Python that already has Playwright and its Chromium, Firefox and WebKit:
-    python -X utf8 -B test/interface.browser.py --stage 3
-    python -X utf8 -B test/interface.browser.py --stage 3 --output <folder>
-    python -X utf8 -B test/interface.browser.py --stage 3 --browser chromium
+    python -X utf8 -B test/interface.browser.py --stage 4
+    python -X utf8 -B test/interface.browser.py --stage 4 --output <folder>
+    python -X utf8 -B test/interface.browser.py --stage 4 --browser chromium
 Every case runs at 320x568, 390x844, 720x900 and 1280x800, in Japanese and English, light and dark, in the three
 browsers: no console error, no CSP violation, no sideways page scroll, and the checks of the screen (the header, the
 introduction and the contrast table, the tabs and their names, the help, the explanations of the terms, the two cards of
 the Pop out tab with every value of their controls, and "Find and tap" with the clock held by Playwright). From --stage 3,
 the Search time tab and its experiment with the clock held and paused: the answers are put in at chosen times, and the table
-and the sentences of the results must be those that AtlasCore computes from the test's own record of the tries. Then the
+and the sentences of the results must be those that AtlasCore computes from the test's own record of the tries. From
+--stage 4, the three cards of the Grouping tab and the two of the Figure and ground tab, with every value of their controls:
+the figure and the small figures change, the sentence under the figure, the line under each small figure and the description of
+each figure follow the settings (the test computes them from the data and the dictionary), and nothing moves. Then the
 addresses with a group or an entry id, the button to the next tab and the browser's back button, the links to other
 sites, the saved preferences, and the page served over HTTP.
 Results and viewport screenshots are written to --output (default: a new folder in the system temporary directory).
@@ -37,11 +40,20 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 PREFIX = "vision-trap-atlas."
-STAGES = ("2", "3")
+STAGES = ("2", "3", "4")
 SIZES = ((320, 568), (390, 844), (720, 900), (1280, 800))
 BROWSERS = ("chromium", "firefox", "webkit")
 GROUPS = ("popout", "search", "gestalt", "figure-ground", "misread")
-CARDS = ("popout-feature", "popout-asymmetry")
+# The cards with "Find and tap" (square figures), and the cards with controls drawn at each stage (the search card is apart)
+FIND_CARDS = ("popout-feature", "popout-asymmetry")
+GROUPING_CARDS = ("gestalt-proximity-similarity", "gestalt-region-connection", "gestalt-contour", "figure-ground-area", "figure-ground-symmetry")
+STAGE_CARDS = {"2": FIND_CARDS, "3": FIND_CARDS, "4": FIND_CARDS + GROUPING_CARDS}
+STAGE_GROUPS = {"2": ("popout",), "3": ("popout", "search"), "4": ("popout", "search", "gestalt", "figure-ground")}
+RUN = {"stage": STAGES[-1]}
+
+
+def cards():
+    return STAGE_CARDS[RUN["stage"]]
 CSP = (
     "default-src 'none'; script-src 'self'; style-src 'self'; "
     "img-src 'self' data:; base-uri 'none'; form-action 'none'; "
@@ -60,10 +72,101 @@ def load_module(name):
 
 M = load_module("messages.js")
 DATA = load_module("atlas-data.js")
+ENTRY = {e["id"]: e for e in DATA["entries"]}
 
 
 def fill(template, **values):
     return re.sub(r"\{([a-zA-Z0-9_]+)\}", lambda m: str(values.get(m.group(1), m.group(0))), template)
+
+
+def js_str(value):
+    """String(value) in JavaScript (the step names and the data-key of the buttons use it)."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def control_options(control):
+    return control["values"] if control["type"] == "range" else control["options"] if control["type"] == "choice" else [False, True]
+
+
+def step_name(card, control, value, language):
+    """The name of a value, as under the sliders and on the buttons."""
+    L = M[language]
+    if control["type"] == "toggle":
+        return L["toggleOn" if value else "toggleOff"]
+    if control["type"] == "choice" or control.get("named"):
+        index = control_options(control).index(value)
+        return L[f"ctl.{card}.{control['id']}." + (control["steps"][index] if control.get("steps") else js_str(value))]
+    if control.get("unit") == "percent":
+        return f"{round(value * 100)}%"
+    return js_str(value)
+
+
+def use_settings(use, values):
+    """The settings of a small figure: its own, with the values of the controls bound to it (when its condition holds)."""
+    settings, linked = dict(use.get("params") or {}), []
+    when = use.get("bindWhen")
+    if not when or all(values[k] in allowed for k, allowed in when.items()):
+        for cid, spec in (use.get("bind") or {}).items():
+            if isinstance(spec, str):
+                settings[spec] = values[cid]
+            else:
+                settings[spec["to"]] = spec["map"][js_str(values[cid])]
+            linked.append(cid)
+    return settings, linked
+
+
+def linked_ids(card, use, values):
+    linked = use_settings(use, values)[1]
+    return [c["id"] for c in ENTRY[card]["controls"] if c["id"] in linked]
+
+
+def expected_linked(card, use, values, language):
+    L, ids = M[language], linked_ids(card, use, values)
+    if not ids:
+        return L["linkedNone"]
+    return fill(L["linkedTo"], names=("・" if language == "ja" else ", ").join(L[f"ctl.{card}.{cid}"] for cid in ids))
+
+
+def expected_desc(card, side, values, language):
+    """The <desc> of a figure of the Grouping and Figure and ground cards: its title with the current settings (the main figure: every
+    control; a small figure: the controls that change it)."""
+    L, entry = M[language], ENTRY[card]
+    title = L[f"fig.{card}.{side}.title"]
+    if side == "main":
+        ids = [c["id"] for c in entry["controls"]]
+    else:
+        ids = linked_ids(card, next(u for u in entry["uses"] if u["side"] == side), values)
+    if not ids:
+        return title
+    controls = {c["id"]: c for c in entry["controls"]}
+    pairs = [fill(L["descPair"], name=L[f"ctl.{card}.{cid}"], value=step_name(card, controls[cid], values[cid], language)) for cid in ids]
+    return fill(L["descSettings"], title=title, settings=("、" if language == "ja" else "; ").join(pairs))
+
+
+def expected_read(card, values, language):
+    """The sentences under the figure of the Grouping and Figure and ground cards, from the cases of the spec."""
+    L = M[language]
+    if card == "gestalt-proximity-similarity":
+        side = "rows" if values["prox"] < 0 else "cols" if values["prox"] > 0 else "even"
+        return [L[f"proxRead.{side}.{values['sim']}"]]
+    if card == "gestalt-region-connection":
+        return [L["regionRead." + values["link"]]]
+    if card == "gestalt-contour":
+        p = round(values["gap"] * 100)
+        first = L["contourRead.gap0"] if p == 0 else fill(L["contourRead.gapLow" if p <= 30 else "contourRead.gapHigh"], p=p)
+        return [first, L["contourRead." + values["crossing"]]]
+    if card == "figure-ground-area":
+        p = round(values["share"] * 100)
+        return [L["areaRead.filledNarrow" if p < 50 else "areaRead.equal" if p == 50 else "areaRead.emptyNarrow"]]
+    if card == "figure-ground-symmetry":
+        if values["cue"] == "convex":
+            return [L["symRead.convex2" if values["regions"] == 2 else "symRead.convex8"]]
+        return [L["symRead." + values["cue"]]]
+    raise ValueError(card)
 
 
 def heading_text(group, language):
@@ -520,20 +623,80 @@ def test_terms(page, width, language, has_touch, screenshot):
         check(not tips_open(page), "a second tap hides it")
 
 
+def test_card_terms(page, language):
+    """The terms of the Grouping and Figure and ground tabs (the panel headings, the card titles and the sentences beside the small
+    figures): each shows its own explanation, inside the screen, and Esc hides it."""
+    for group in ("gestalt", "figure-ground"):
+        page.locator("#tab-" + group).click()
+        selectors = [f"#heading-{group} .term"]
+        for card in (c for c in GROUPING_CARDS if ENTRY[c]["group"] == group):
+            count = page.locator(f"#{card}-title .term").count()
+            check(count == len(ENTRY[card]["titleTerms"]), (card, "the terms of the title", count))
+            selectors += [f"#{card}-title .term >> nth={i}" for i in range(count)]
+            selectors += [f"#{card} .use-text .term >> nth={i}" for i in range(page.locator(f"#{card} .use-text .term").count())]
+        for selector in selectors:
+            locator = page.locator(selector)
+            locator.scroll_into_view_if_needed()
+            locator.click()
+            tips = tips_open(page)
+            key = locator.get_attribute("data-term")
+            check(len(tips) == 1 and tips[0]["text"] == M[language][key + "Meaning"], (selector, "one explanation, the meaning", tips))
+            assert_tip_inside(tips[0], selector)
+            page.keyboard.press("Escape")
+            check(not tips_open(page), (selector, "Esc hides it"))
+        if group == "gestalt":
+            check(page.locator("#panel-gestalt .use-text .term").count() == 2, "分断色 in the two hiding sentences of the Grouping tab")
+
+
 def control_buttons(page, card):
     return page.locator(f"#{card} .controls .choice button").evaluate_all("els => els.map(b => b.dataset.key)")
 
 
 def test_card_controls(page, width, height, layouts, language, card, screenshot):
-    """Every value of every control: the figure frame, the reading line, the line of "Find and tap" and the small figures stay in place."""
-    page.locator("#tab-popout").click()
+    """Every value of every control: the figure frame, the reading line, the line of "Find and tap" and the small figures stay in place.
+    For the Grouping and Figure and ground cards also: each control changes the figure, each control bound to a small figure changes
+    it and the others never do, and the sentence under the figure, the lines under the small figures and the descriptions of the
+    figures are those of the current settings."""
+    entry = ENTRY[card]
+    page.locator("#tab-" + entry["group"]).click()
     before = page.evaluate(CARD_PLACES, card)
     texts = page.evaluate(CARD_TEXTS, card)
     assert_language_text(texts["read"], language, card + " reading")
-    check(all(d for d in texts["desc"]) and len(texts["desc"]) == 3, (card, "descriptions of the three figures", texts["desc"]))
+    figures = 1 + len(entry["uses"])
+    check(all(d for d in texts["desc"]) and len(texts["desc"]) == figures, (card, "descriptions of the figures", texts["desc"]))
     for d in texts["desc"]:
         assert_language_text(d, language, card + " desc")
-    check(abs(before["frameW"] - before["frameH"]) <= 1, (card, "a square figure", before))
+    if card in FIND_CARDS:
+        check(abs(before["frameW"] - before["frameH"]) <= 1, (card, "a square figure", before))
+    else:
+        check(abs(before["frameW"] * 3 / 4 - before["frameH"]) <= 1.5, (card, "a 4:3 figure", before))
+    grouping = card in GROUPING_CARDS
+    values = {c["id"]: c["default"] for c in entry["controls"]}
+    controls = {c["id"]: c for c in entry["controls"]}
+    drawn = page.evaluate(FIGURE_SHAPES, card)
+    changed = {"main": set(), "uses": set()}
+
+    def follow(control_id, value):
+        """After a change of one control: what changed is recorded, the small figures that it is not bound to stay the same, and the
+        sentences follow the settings."""
+        nonlocal drawn
+        old = dict(values)
+        values[control_id] = value
+        now = page.evaluate(FIGURE_SHAPES, card)
+        if now["main"] != drawn["main"]:
+            changed["main"].add(control_id)
+        for i, use in enumerate(entry["uses"]):
+            if now["uses"][i] != drawn["uses"][i]:
+                changed["uses"].add((i, control_id))
+            if grouping and use_settings(use, old)[0] == use_settings(use, values)[0]:
+                check(now["uses"][i] == drawn["uses"][i], (card, control_id, value, "a small figure not bound to the control stays the same", i))
+        drawn = now
+        if grouping:
+            t = page.evaluate(CARD_TEXTS, card)
+            check(t["read"] == "".join(expected_read(card, values, language)), (card, control_id, value, "the sentence under the figure", t["read"]))
+            check(t["linked"] == [expected_linked(card, u, values, language) for u in entry["uses"]], (card, control_id, value, "linked", t["linked"]))
+            sides = ["main"] + [u["side"] for u in entry["uses"]]
+            check(t["desc"] == [expected_desc(card, s, values, language) for s in sides], (card, control_id, value, "descriptions", t["desc"]))
     uses = page.locator(f"#{card} .use-figure svg").evaluate_all("els => els.map(s => { const r = s.getBoundingClientRect(); "
                                                                    "return [r.left, r.top, r.width, r.bottom]; })")
     if width < 720:
@@ -549,7 +712,10 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
     def same_places(name):
         now = page.evaluate(CARD_PLACES, card)
         for key in ("frame", "frameH", "read", "find"):
-            check(abs(now[key] - before[key]) <= 1, (card, name, key, before[key], now[key]))
+            if before[key] is None:
+                check(now[key] is None, (card, name, key, now[key]))
+            else:
+                check(abs(now[key] - before[key]) <= 1, (card, name, key, before[key], now[key]))
         for a, b in zip(now["uses"] + now["linked"], before["uses"] + before["linked"]):
             check(abs(a - b) <= 1, (card, name, "small figures", before["uses"], now["uses"]))
         t = page.evaluate(CARD_TEXTS, card)
@@ -558,18 +724,24 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
 
     keys = control_buttons(page, card)
     seen_linked = set()
+    first = dict(drawn)
     for key in keys:
         button = page.locator(f'[data-key="{key}"]')
         if button.is_disabled():
             continue
         button.click()
         check(button.get_attribute("aria-pressed") == "true", (key, "pressed"))
+        parts = key.split(":")
+        control = controls[parts[2]]
+        follow(parts[2], not values[parts[2]] if control["type"] == "toggle"
+               else next(v for v in control_options(control) if js_str(v) == parts[3]))
         t = same_places(key)
         seen_linked.update(t["live"])
         if key.startswith(f"ctl:{card}:kind:shape"):
             # 形: the two shape pairs, and the sliders are off with the note beside them
             for pair in page.locator(f'#{card} [data-key^="ctl:{card}:shape:"]').all():
                 pair.click()
+                follow("shape", pair.get_attribute("data-key").split(":")[3])
                 same_places(pair.get_attribute("data-key"))
             check(page.locator(f"#{card} input[type=range]").evaluate_all("els => els.every(e => e.disabled)"), "sliders off for shape")
             notes = page.locator(f"#{card} .tick-note").evaluate_all("els => els.map(e => getComputedStyle(e).visibility)")
@@ -577,31 +749,66 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
     for slider in page.locator(f"#{card} .controls input[type=range]").all():
         if slider.is_disabled():
             continue
+        control_id = slider.get_attribute("data-key").split(":")[2]
+        options = control_options(controls[control_id])
         slider.focus()
         page.keyboard.press("Home")
+        follow(control_id, options[int(slider.input_value())])
         for _ in range(int(slider.get_attribute("max")) + 1):
             same_places(slider.get_attribute("data-key") + "=" + slider.input_value())
             check(slider.get_attribute("aria-valuetext"), "the step in words")
+            if grouping:
+                check(slider.get_attribute("aria-valuetext") == step_name(card, controls[control_id], values[control_id], language),
+                      (card, control_id, "the step in words", slider.get_attribute("aria-valuetext")))
             page.keyboard.press("ArrowRight")
+            follow(control_id, options[int(slider.input_value())])
     if card == "popout-feature":
         # The line under the small figures: the three operations for color, lightness and size, none for direction and shape
         names = M[language]["linkedTo"].replace("{names}", ("・" if language == "ja" else ", ").join(
             M[language][f"ctl.popout-feature.{c}"] for c in ("kind", "diff", "variety")))
         check({names, M[language]["linkedNone"]} <= seen_linked, ("linked lines", seen_linked))
-        page.locator('[data-key="ctl:popout-feature:kind:color"]').click()
-        page.locator("#ctl-popout-feature-diff-input").focus()
-        page.keyboard.press("End")
-        page.locator("#ctl-popout-feature-variety-input").focus()
-        page.keyboard.press("Home")
-        page.locator('[data-key="ctl:popout-feature:count:18"]').click()
+    if grouping:
+        # Every control changes the figure; every control bound to a small figure changes it
+        check(changed["main"] == set(controls), (card, "the controls that changed the figure", changed["main"]))
+        bound = {(i, cid) for i, use in enumerate(entry["uses"]) for cid in (use.get("bind") or {})}
+        check(bound <= changed["uses"], (card, "the controls that changed the small figures", sorted(changed["uses"]), sorted(bound)))
+    # Back to the first values (a control that is off now keeps its value)
+    for control in entry["controls"]:
+        control_id, default = control["id"], control["default"]
+        if values[control_id] == default:
+            continue
+        if control["type"] == "range":
+            slider = page.locator(f"#ctl-{card}-{control_id}-input")
+            if slider.is_disabled():
+                continue
+            slider.focus()
+            page.keyboard.press("Home")
+            for _ in range(control_options(control).index(default)):
+                page.keyboard.press("ArrowRight")
+        else:
+            button = page.locator(f'[data-key="ctl:{card}:{control_id}"]' if control["type"] == "toggle"
+                                  else f'[data-key="ctl:{card}:{control_id}:{js_str(default)}"]')
+            if button.is_disabled():
+                continue
+            button.click()
+        follow(control_id, default)
+    if grouping:
+        check(page.evaluate(FIGURE_SHAPES, card) == first, (card, "the first values draw the first figures again"))
+    reshuffle = page.locator(f'[data-key="act:{card}:reshuffle"]')
+    if reshuffle.count():
+        reshuffle.click()
+        same_places("reshuffle")
     else:
-        page.locator('[data-key="ctl:popout-asymmetry:target:withLine"]').click()
-        page.locator('[data-key="ctl:popout-asymmetry:count:18"]').click()
-    page.locator(f'[data-key="act:{card}:reshuffle"]').click()
-    same_places("reshuffle")
+        same_places("first values")
     assert_layout(page, width, card + "-controls", layouts)
     page.evaluate("id => document.getElementById(id).scrollIntoView({block: 'start'})", card)
     shot(page, screenshot)
+
+
+# The shapes of the figure and of each small figure of a card (without the title and the description)
+FIGURE_SHAPES = """id => { const c = document.getElementById(id);
+  const inner = svg => Array.from(svg.children).filter(el => !['title', 'desc'].includes(el.tagName)).map(el => el.outerHTML).join('');
+  return {main: inner(c.querySelector('.figure-frame svg')), uses: Array.from(c.querySelectorAll('.use-figure svg'), inner)}; }"""
 
 
 # The bottom edges of the figure and of the small figures of a card, on the screen
@@ -611,31 +818,38 @@ FIGURE_BOTTOMS = """id => { const c = document.getElementById(id);
 
 
 def assert_figure_on_screen(page, card, width, height):
-    """From 720px the square figure is held by the height of the screen too: right after moving to the card, its bottom edge is on
-    the screen (and at 1280x800 the small figures beside it as well)."""
+    """From 720px, right after moving to the card, the bottom edge of its figure is on the screen (the square figure is held by the
+    height of the screen too; at 1280x800 the small figures beside it are on the screen as well)."""
     if width < 720:
-        return
+        return None
     b = page.evaluate(FIGURE_BOTTOMS, card)
     check(b["frame"] <= b["inner"], (card, "the bottom of the figure on the screen", b))
-    if (width, height) == (1280, 800):
+    if (width, height) == (1280, 800) and card in FIND_CARDS:
         check(max(b["uses"]) <= b["inner"], (card, "the small figures on the screen", b))
+    return b
 
 
 def test_entry_nav(page, language, width, height):
-    """"Entries in this tab": a button moves to its card (at the top of the screen), and the button at the end of the card comes back."""
-    page.locator("#tab-popout").click()
-    hint = page.locator("#nav-popout .section-nav-hint").inner_text()
-    check(hint == M[language]["tabNavHint"], ("the hint above the buttons", hint))
-    for card in CARDS:
-        page.locator(f'[data-key="nav:{card}"]').click()
-        top = page.locator("#" + card).bounding_box()["y"]
-        check(abs(top) <= 12, (card, "the card at the top of the screen", top))
-        assert_figure_on_screen(page, card, width, height)
-        check(page.evaluate("() => document.activeElement.id") == card, (card, "the card has the focus"))
-        page.locator(f'[data-key="back:{card}"]').click()
-        top = page.locator("#nav-popout").bounding_box()["y"]
-        check(abs(top) <= 12, (card, "back at the list", top))
-        check(page.evaluate(ACTIVE)["key"] == "nav:" + card, (card, "the button of the card has the focus"))
+    """"Entries in this tab" (each tab with two cards or more): a button moves to its card (at the top of the screen, or as far as the
+    page goes), and the button at the end of the card comes back. Returns the bottom edges of the figures right after the move."""
+    bottoms = {}
+    for group in STAGE_GROUPS[RUN["stage"]]:
+        group_cards = [c for c in cards() if ENTRY[c]["group"] == group]
+        if len(group_cards) < 2:
+            continue
+        page.locator("#tab-" + group).click()
+        hint = page.locator(f"#nav-{group} .section-nav-hint").inner_text()
+        check(hint == M[language]["tabNavHint"], ("the hint above the buttons", group, hint))
+        for card in group_cards:
+            page.locator(f'[data-key="nav:{card}"]').click()
+            check(at_top(page, "#" + card), (card, "the card at the top of the screen", page.locator("#" + card).bounding_box()["y"]))
+            bottoms[card] = assert_figure_on_screen(page, card, width, height)
+            check(page.evaluate("() => document.activeElement.id") == card, (card, "the card has the focus"))
+            page.locator(f'[data-key="back:{card}"]').click()
+            top = page.locator(f"#nav-{group}").bounding_box()["y"]
+            check(abs(top) <= 12, (card, "back at the list", top))
+            check(page.evaluate(ACTIVE)["key"] == "nav:" + card, (card, "the button of the card has the focus"))
+    return bottoms
 
 
 def test_preferences(page, language, theme):
@@ -680,16 +894,18 @@ def matrix_case(browser, browser_name, url, width, height, language, theme, outp
         test_tabs(page, width, layouts, language)
         test_help(page, width, layouts, output / (name + "-help.png"), language)
         test_terms(page, width, language, browser_name == "chromium" and width < 720, output / (name + "-term.png"))
-        for card in CARDS:
+        if RUN["stage"] >= "4":
+            test_card_terms(page, language)
+        for card in cards():
             test_card_controls(page, width, dict(SIZES)[width], layouts, language, card, output / (name + "-" + card + ".png"))
-        test_entry_nav(page, language, width, height)
+        bottoms = test_entry_nav(page, language, width, height)
         if language == "en":
             text = page.evaluate("() => { const c = document.body.cloneNode(true); c.querySelectorAll('noscript').forEach(n => n.remove()); "
                                  "return c.textContent; }")
             check(not JAPANESE.search(text), ("Japanese on the English page", JAPANESE.findall(text)[:10]))
         saved = test_preferences(page, language, theme)
         assert_clean(errors, violations)
-        return {"case": name, "status": "passed", "layouts": len(layouts), "tabs": tabs, "saved": saved}
+        return {"case": name, "status": "passed", "layouts": len(layouts), "tabs": tabs, "saved": saved, "figure_bottoms": bottoms}
     except Exception as error:
         try:
             shot(page, output / (name + "-failed.png"))
@@ -713,7 +929,7 @@ def find_case(browser, browser_name, url, width, height, language, theme, output
         page.goto(set_language_query(url, language), wait_until="load")
         check(page.evaluate("() => document.documentElement.dataset.appReady") == "true", "ready")
         L = M[language]
-        for card in CARDS:
+        for card in FIND_CARDS:
             page.evaluate("id => document.getElementById(id).scrollIntoView({block: 'start'})", card)
             places = page.evaluate(CARD_PLACES, card)
 
@@ -1332,7 +1548,7 @@ def at_top(page, selector):
     return abs(top) <= 12 or (top > 0 and bottom)
 
 
-def address_case(browser, browser_name, url, width, height, output):
+def address_case(browser, browser_name, url, width, height, output, stage):
     """Opening with #group or #entry, an unknown id, the button to the next tab and the browser's back button."""
     name = f"{browser_name}-{width}-address"
     context = new_context(browser, browser_name, width, height, "ja", "light")
@@ -1352,17 +1568,25 @@ def address_case(browser, browser_name, url, width, height, output):
         wait_ready(page)
         return page
 
+    # An entry id moves to its card once the card is drawn (before that, to the tab bar)
+    drawn = STAGE_CARDS[stage]
+
+    def to(card):
+        return "#" + card if card in drawn else "#tabs"
+
     try:
         for value, tab, place in (("popout-feature", "popout", "#popout-feature"), ("popout-asymmetry", "popout", "#popout-asymmetry"),
-                                  ("misread", "misread", "#tabs"), ("gestalt-contour", "gestalt", "#tabs"), ("search-time", "search", "#search-time"),
-                                  ("xyz", "popout", None)):
+                                  ("misread", "misread", "#tabs"), ("gestalt-contour", "gestalt", to("gestalt-contour")),
+                                  ("gestalt-proximity-similarity", "gestalt", to("gestalt-proximity-similarity")),
+                                  ("figure-ground", "figure-ground", "#tabs"), ("figure-ground-symmetry", "figure-ground", to("figure-ground-symmetry")),
+                                  ("search-time", "search", "#search-time"), ("xyz", "popout", None)):
             open_page(with_hash(url, value))
             assert_selected(page, tab)
             if place:
                 check(at_top(page, place), (value, "moved to", place, page.locator(place).bounding_box()["y"]))
             else:
                 check(page.evaluate("() => scrollY") == 0, (value, "an unknown id is ignored"))
-            if value in CARDS:
+            if value in drawn:
                 assert_figure_on_screen(page, value, width, height)
             # An element that is not pressed (a card) shows no focus line when the browser moves the focus to it
             ring = page.evaluate("""() => { const a = document.activeElement;
@@ -1418,7 +1642,7 @@ def links_case(browser, browser_name, url, width, height, language, theme, outpu
         wait_ready(page)
         page.locator('[data-key="ctl:popout-feature:kind:size"]').click()
         # Every tab with cards: its sources opened, then each link of the tab and of the footer
-        groups = ("popout",) if stage == "2" else ("popout", "search")
+        groups = STAGE_GROUPS[stage]
         total = page.locator('main a[href^="http"], footer a[href^="http"]').count()
         for group in groups:
             page.locator("#tab-" + group).click()
@@ -1500,8 +1724,9 @@ def http_case(browser, browser_name, base_url, width, height, output, stage):
     try:
         page.goto(base_url, wait_until="load")
         wait_ready(page)
-        cards = 2 if stage == "2" else 3
-        check(page.locator(".entry").count() == cards, ("the cards", cards))
+        # The cards with controls and the search card (from the stage of the search experiment)
+        count = len(STAGE_CARDS[stage]) + (1 if "search" in STAGE_GROUPS[stage] else 0)
+        check(page.locator(".entry").count() == count, ("the cards", count))
         layouts = []
         assert_layout(page, width, "http", layouts)
         assert_clean(errors, violations)
@@ -1557,6 +1782,7 @@ def main():
     else:
         check(not inside_repository(Path(tempfile.gettempdir()).resolve()), "Write results outside the repository")
         output = Path(tempfile.mkdtemp(prefix="vision-trap-atlas-")).resolve()
+    RUN["stage"] = args.stage
     report = {"stage": args.stage, "url": args.url, "browsers": {}, "cases": []}
 
     def record(result):
@@ -1585,7 +1811,7 @@ def main():
                 browser.close()
                 continue
             for width, height in ((390, 844), (1280, 800)):
-                record(address_case(browser, browser_name, args.url, width, height, output))
+                record(address_case(browser, browser_name, args.url, width, height, output, args.stage))
             for width, height, language, theme in ((1280, 800, "ja", "light"), (320, 568, "en", "dark")):
                 record(links_case(browser, browser_name, args.url, width, height, language, theme, output, args.stage))
             for result in precedence_cases(browser, browser_name, args.url):

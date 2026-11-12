@@ -14,8 +14,9 @@ const OKABE_ITO = ['#000000', '#e69f00', '#56b4e9', '#009e73', '#f0e442', '#0072
 const PARTS = ['popoutGrid', 'asymGrid', 'searchDisplay', 'proximityGrid', 'regionDots', 'contour', 'sectors', 'symmetryBands', 'baselineChart',
   'areaPictures', 'dualAxisChart', 'aspectChart', 'barChart', 'groupedBars', 'lineChart', 'scatter', 'markTable', 'camoScene'];
 // Classes without a color of their own; style.css gives each a look (line, text, fill with the ink or paper of the theme)
-const PLAIN_CLASSES = ['camo-line', 'camo-outline', 'fig-axis', 'fig-axisname', 'fig-barline', 'fig-break', 'fig-dot', 'fig-frame', 'fig-frame-small',
-  'fig-legend', 'fig-link', 'fig-mark', 'fig-nofill', 'fig-outline', 'fig-pattern', 'fig-rule', 'fig-series', 'fig-spine', 'fig-stroke', 'fig-textbar',
+const PLAIN_CLASSES = ['camo-line', 'camo-outline', 'fig-axis', 'fig-axisname', 'fig-barline', 'fig-break', 'fig-cross', 'fig-dot', 'fig-frame',
+  'fig-frame-small', 'fig-legend', 'fig-link', 'fig-mark', 'fig-nofill', 'fig-outline', 'fig-pattern', 'fig-rule', 'fig-series', 'fig-spine', 'fig-stroke',
+  'fig-textbar',
   'fig-tick', 'fig-title', 'fixation', 'line-dashed', 'mark-pressed', 'mark-target', 'stim-outline', 'stim-solid', 'ta-end', 'ta-middle', 'ta-start'];
 
 // ----- bounding box of a shape list (paths use M, L, A and Z; arcs are sampled from their center) -----
@@ -150,10 +151,20 @@ test('C: the counts of shapes in the main figures', () => {
   assert.equal(region('none').length, 8);
   assert.equal(region('frame').filter((s) => s.type === 'rect').length, 2);
   assert.equal(region('line').filter((s) => s.type === 'line').length, 2);
-  const contour = (gap) => V.renderMain(entry('gestalt-contour'), { gap, crossing: 'smooth' }, ctx).shapes;
-  assert.equal(contour(0).length, 4);
+  const contour = (gap, crossing = 'smooth') => V.renderMain(entry('gestalt-contour'), { gap, crossing }, ctx).shapes;
+  // The circle, the square, the two crossing lines and the marks at their ends (two circles for A, two squares for B)
+  assert.equal(contour(0).length, 8);
   assert.equal(contour(0)[0].attrs['stroke-dasharray'], undefined);
   assert.equal(contour(0.3)[1].attrs['stroke-dasharray'], '35 15');
+  // The two lines differ in color and in the marks at their ends, so that the picture shows which ends belong to one line: crossing
+  // smoothly, A runs from the upper left to the lower right; bending where they meet, A runs from the upper left to the upper right
+  const marksOf = (shapes, cls) => shapes.filter((x) => x.cls === cls).map((x) => (x.type === 'circle' ? [x.attrs.cx, x.attrs.cy]
+    : [x.attrs.x + 5.5, x.attrs.y + 5.5]));
+  assert.deepEqual(contour(0).slice(2, 4).map((x) => x.cls), ['stroke-seriesTarget fig-series fig-cross', 'stroke-seriesOthers-0 fig-series fig-cross']);
+  assert.deepEqual(marksOf(contour(0), 'fill-seriesTarget'), [[30, 165], [290, 225]]);
+  assert.deepEqual(marksOf(contour(0), 'fill-seriesOthers-0'), [[30, 225], [290, 165]]);
+  assert.deepEqual(marksOf(contour(0, 'corner'), 'fill-seriesTarget'), [[30, 165], [290, 165]]);
+  assert.deepEqual(marksOf(contour(0, 'corner'), 'fill-seriesOthers-0'), [[30, 225], [290, 225]]);
   assert.equal(V.renderMain(entry('figure-ground-area'), { share: 0.2, swap: false }, ctx).shapes.length, 9);
   for (const regions of [2, 8]) {
     assert.equal(V.renderMain(entry('figure-ground-symmetry'), { cue: 'convex', regions, swap: false }, ctx).shapes.length, regions);

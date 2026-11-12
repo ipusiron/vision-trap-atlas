@@ -29,6 +29,9 @@ SOURCES = ("index.html", "style.css", "theme-init.js", "atlas-core.js", "atlas-d
 SCRIPTS = ["theme-init.js", "atlas-core.js", "atlas-data.js", "atlas-view.js", "atlas-search.js", "messages.js", "app.js"]
 TABS_JA = ["目立つ前注意の特徴", "探す時間視覚探索", "まとまるゲシュタルトの法則", "図と地図と地の分化", "誤読グラフ"]
 HEADINGS_JA = ["目立つ（前注意の特徴）", "探す時間（視覚探索）", "まとまる（ゲシュタルトの法則）", "図と地（図と地の分化）", "誤読（グラフ）"]
+# The cards drawn when the page is ready: two in the Pop out tab, the Search time card (its experiment opens in a dialog, so it has no
+# figure frame), three in the Grouping tab and two in the Figure and ground tab
+CARDS, FIGURES = 8, 7
 # The lines of the term of the third tab at 320px before the page is ready (a <wbr> in the page; Firefox has no word-break: auto-phrase)
 GESTALT_LINES = """() => { const el = document.querySelector('#tab-gestalt .tab-term'), chars = [];
   const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node;
@@ -160,15 +163,14 @@ def pending_contract(page, snap, width):
 
 
 def ready_contract(page, snap):
-    """The first view: the introduction, the table, the tabs, the two cards of the Pop out tab with their figures and the card of the
-    Search time tab (its experiment opens in a dialog, so it has no figure frame)."""
+    """The first view: the introduction, the table, the tabs, and the cards with their figures (CARDS and FIGURES above)."""
     check(snap["ready"] == "true", "ready")
     check(not snap["toolsDisabled"] and not snap["controlsDisabled"], "the startup guards are released")
     check(not snap["noteVisible"] and not snap["note"], "the startup notice is removed")
-    check(snap["cards"] == 3 and snap["figures"] == 2 and all(snap["reading"]), ("the three cards", snap["cards"], snap["reading"]))
+    check(snap["cards"] == CARDS and snap["figures"] == FIGURES and all(snap["reading"]), ("the cards", snap["cards"], snap["reading"]))
     check(snap["scroll"] <= snap["client"], "no horizontal page scroll")
     ready_states = [s for s in snap["evidence"]["states"] if s["ready"] == "true"]
-    check(ready_states and all(s["cards"] == 3 and s["figures"] >= 12 and not s["note"] and not s["tools"] and not s["controls"]
+    check(ready_states and all(s["cards"] == CARDS and s["figures"] >= 12 and not s["note"] and not s["tools"] and not s["controls"]
                                for s in ready_states), ("readiness never comes before the complete first view", ready_states[:3]))
     check(not page.evaluate("() => !!document.activeElement.closest('[hidden]')"), "the focus is never left in a hidden element")
 

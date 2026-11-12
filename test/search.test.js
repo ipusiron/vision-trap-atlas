@@ -385,6 +385,11 @@ test('D: resultCases: the ratio at present 0.9 and ratios 0.9, 1.9, 2.0, 3.0 and
   assert.deepEqual(ratio(10, 20), { key: 'resRatioTypical', values: { search: 'feature', r: 2 } });
   assert.deepEqual(ratio(10, 30), { key: 'resRatioTypical', values: { search: 'feature', r: 3 } });
   assert.deepEqual(ratio(10, 31), { key: 'resRatioHigh', values: { search: 'feature', r: 3.1 } });
+  // A ratio of 0 or less (after rounding): the sentence without the ratio
+  assert.deepEqual(ratio(10, -5), { key: 'resRatioZeroOrLess', values: { search: 'feature' } });
+  assert.deepEqual(ratio(10, 0), { key: 'resRatioZeroOrLess', values: { search: 'feature' } });
+  assert.deepEqual(ratio(10, 0.4), { key: 'resRatioZeroOrLess', values: { search: 'feature' } }, '0.04 is shown as 0.0');
+  assert.deepEqual(ratio(10, 1), { key: 'resRatioLow', values: { search: 'feature', r: 0.1 } });
   // 0.96 is shown as 1.0, so the ratio is given (3.2 ÷ 1.0)
   assert.deepEqual(ratio(0.96, 3.2), { key: 'resRatioHigh', values: { search: 'feature', r: 3.2 } });
 });
@@ -421,9 +426,9 @@ test('D: resultCases follows the order of the screen', () => {
   });
   assert.deepEqual(keys(full), ['resOneFeature', 'resRatioNone', 'resNegative', 'resNoSlope', 'resPartial', 'resMixed', 'resErrors', 'resCoarse',
     'resDevice', 'resLimits']);
-  const order = ['resNone', 'resOneFeature', 'resOneConj', 'resBoth', 'resCmpLarger', 'resCmpSimilar', 'resCmpSmaller', 'resRatioNone', 'resRatioLow',
-    'resRatioMid', 'resRatioTypical', 'resRatioHigh', 'resNegative', 'resNoSlope', 'resPartial', 'resMixed', 'resErrors', 'resCoarse', 'resDevice',
-    'resLimits'];
+  const order = ['resNone', 'resOneFeature', 'resOneConj', 'resBoth', 'resCmpLarger', 'resCmpSimilar', 'resCmpSmaller', 'resRatioNone',
+    'resRatioZeroOrLess', 'resRatioLow', 'resRatioMid', 'resRatioTypical', 'resRatioHigh', 'resNegative', 'resNoSlope', 'resPartial', 'resMixed',
+    'resErrors', 'resCoarse', 'resDevice', 'resLimits'];
   const rank = (k) => (k.startsWith('resRatio') ? order.indexOf('resRatioNone') : k.startsWith('resCmp') ? order.indexOf('resCmpLarger')
     : k.startsWith('resOne') || k === 'resBoth' ? order.indexOf('resBoth') : order.indexOf(k));
   const ranks = keys(full).map(rank);

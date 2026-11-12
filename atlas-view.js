@@ -189,19 +189,26 @@
     return { width: W, height: H, shapes };
   });
 
-  // 2-3：輪郭が途切れた丸と四角、交わる2本の線
-  const CROSS_SMOOTH = ['M30 165 L290 225', 'M30 225 L290 165'];
-  const CROSS_CORNER = ['M30 165 L160 195 L290 165', 'M30 225 L160 195 L290 225'];
+  // 2-3：輪郭が途切れた丸と四角、交わる2本の線。2本は色と両端の印（A＝丸、B＝四角）で分け、どの端どうしが1本の線かを見せる
+  // （同じ見た目で描くと、交わる所で折れる2本は、まっすぐ交わる2本と同じ絵になってしまう）
+  const CROSS = {
+    smooth: [[[30, 165], [290, 225]], [[30, 225], [290, 165]]],
+    corner: [[[30, 165], [160, 195], [290, 165]], [[30, 225], [160, 195], [290, 225]]],
+  };
   register('contour', (s) => {
     const gap = s.gap || 0, r = 50, side = 100;
     const cDash = Core.dashForGap(2 * Math.PI * r, gap), sDash = Core.dashForGap(4 * side, gap);
     const dash = (d) => (d === 'none' ? {} : { 'stroke-dasharray': d });
+    const [a, b] = CROSS[s.crossing || 'smooth'];
+    const ends = (p) => [p[0], p[p.length - 1]];
     return {
       width: W, height: H,
       shapes: [
         el('circle', { cx: 85, cy: 85, r, ...dash(cDash) }, 'fig-stroke fig-nofill'),
         rect(175, 35, side, side, 'fig-stroke fig-nofill', dash(sDash)),
-        ...((s.crossing || 'smooth') === 'corner' ? CROSS_CORNER : CROSS_SMOOTH).map((d) => path(d, 'fig-stroke fig-nofill')),
+        path(pts(a), 'stroke-seriesTarget fig-series fig-cross'), path(pts(b), 'stroke-seriesOthers-0 fig-series fig-cross'),
+        ...ends(a).map(([x, y]) => circle(x, y, 6, 'fill-seriesTarget')),
+        ...ends(b).map(([x, y]) => rect(x - 5.5, y - 5.5, 11, 11, 'fill-seriesOthers-0')),
       ],
     };
   });
@@ -606,6 +613,16 @@
     }
     return { settings, linked };
   }
+  // つまみの値の名前（画面の目盛り・ボタンと同じ）：段の名前のある操作は辞書の名前、割合は「30%」、切り替えはオン・オフ、ほかは数そのまま
+  function stepLabel(D, entry, control, value) {
+    if (control.type === 'toggle') return D[value ? 'toggleOn' : 'toggleOff'];
+    if (control.type === 'choice' || control.named) {
+      const index = controlOptions(control).indexOf(value);
+      return D[`ctl.${entry.id}.${control.id}.${control.steps ? control.steps[index] : String(value)}`];
+    }
+    if (control.unit === 'percent') return Math.round(value * 100) + '%';
+    return String(value);
+  }
   // 小さな図の下の行：linkedTo（つながる操作の名前を controls の順に）か linkedNone
   function linkedLine(entry, use, values) {
     const { linked } = useSettings(use, values);
@@ -897,6 +914,13 @@
     }
     return { width, height, shapes, top, step };
   }
+  // 結果のグラフの説明（SVG の <desc>）：描いた行の名前を並べる。行の名前の中に「・」や「,」があるので、日本語は「、」、英語は「; 」で
+  // 区切る。描いた行がなければ null
+  function resultChartDesc(M, lang, results) {
+    const D = dictionary(M, lang);
+    const names = resultRows(results).filter((r) => r.medians.some((v) => v !== null)).map((r) => D[r.labelKey]);
+    return names.length ? fill(D.resChartDesc, { rows: names.join(lang === 'ja' ? '、' : '; ') }) : null;
+  }
 
   // ===== 図の説明（SVG の <desc>。いまの設定を文で表す） =====
   // side＝main（上の図）・show・hide。戻り値＝{ key, values, refs }。refs は「辞書のキーを引いて差し込む値」。
@@ -923,13 +947,30 @@
       if (side === 'hide') return { key: `desc.${id}.hide.${withLine ? 'line' : 'plain'}`, values: {}, refs: {} };
     }
     if (id === 'search-time' && side === 'show') return { key: `desc.${id}.show.${values.view}`, values: {}, refs: {} };
-    return null;
+    if (id === 'search-time') return null;
+    // ほかの項目：図の題に、いまの設定（操作の名前と値）を添える。上の図は使える操作すべて、小さな図はつながる操作だけ。
+    // つながる操作がない小さな図は null（画面は題だけを付ける）
+    let settings;
+    if (side === 'main') {
+      if (!entry.figure) return null;
+      settings = entry.controls.filter((c) => controlEnabled(c, values)).map((c) => c.id);
+    } else {
+      const use = entry.uses.find((u) => u.side === side);
+      if (!use) return null;
+      settings = linkedLine(entry, use, values).controls;
+      if (!settings.length) return null;
+    }
+    return { key: 'descSettings', values: {}, refs: { title: `fig.${id}.${side}.title` }, settings };
   }
   function descText(M, lang, entry, values, side) {
     const c = descCase(entry, values, side);
     if (!c) return null;
     const D = dictionary(M, lang), v = { ...c.values };
     for (const [name, key] of Object.entries(c.refs)) v[name] = D[key];
+    if (c.settings) {
+      v.settings = c.settings.map((cid) => fill(D.descPair, { name: D[`ctl.${entry.id}.${cid}`],
+        value: stepLabel(D, entry, entry.controls.find((x) => x.id === cid), values[cid]) })).join(lang === 'ja' ? '、' : '; ');
+    }
     return fill(D[c.key], v);
   }
 
@@ -937,7 +978,7 @@
     fill, dictionary, partNames, renderPart, renderMain, renderUse, compose, popoutLayout, asymLayout, findLayout, markShapes, fixationShapes,
     sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, useSettings, linkedLine, linkedText, buildViewModel, readCases,
     numbersCase, readKeysAll, texts, resultTexts, resultSetTexts, experimentTitle, messageText, descCase, descText, RESULT_SERIES, resultRows,
-    resultTop, resultChart, resultKey, numberText,
+    resultTop, resultChart, resultChartDesc, resultKey, numberText, stepLabel,
     SIZES: Object.freeze({ square: SQ, cell: CELL, card: [W, H], small: [SW, SH], aspect: [AW, AH] }),
     DIFF, VARIETY, ANGLES, SCALES, JIT_ANGLE, JIT_SCALE,
   });

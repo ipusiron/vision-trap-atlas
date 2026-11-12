@@ -117,6 +117,7 @@ test('E: every result sentence is filled in, with the search names and the row n
     { feature: block(3, 20), conjunction: block(28.7, 67.1) },
     { feature: block(3, 20), conjunction: block(4, 5) },
     { feature: block(0.5, 8), conjunction: block(10, 8) },
+    { feature: block(10, -5) },
   ];
   const seen = new Set();
   for (const sc of scenarios) {
@@ -126,7 +127,7 @@ test('E: every result sentence is filled in, with the search names and the row n
     }
     cases.forEach((c) => seen.add(c.key));
   }
-  assert.equal(seen.size, 20, [...seen].join(', '));
+  assert.equal(seen.size, 21, [...seen].join(', '));
   const t = (lang, sc) => V.resultTexts(M, lang, C.resultCases(sc));
   assert.equal(t('ja', { feature: block(3.1, 25.1) })[0],
     '特徴探索の傾き（図形1つあたりに増えた時間）は、「ある」で3.1ミリ秒、「ない」で25.1ミリ秒でした。結合探索も測ると、2つを比べられます。');
@@ -183,7 +184,13 @@ test('E: repeated result sentences are joined into one, and a negative value has
   assert.equal(t('en', { feature: block(-2.74, 7) })[0],
     'For feature search, the slope was \u22122.7 ms per item when the bar was there and 7.0 ms when it was not. Measure conjunction search too to '
     + 'compare the slopes.');
-  assert.ok(t('ja', { feature: block(10, -5) }).includes('特徴探索では、「ない」の傾きが「ある」より小さくなりました（\u22120.5倍）。'));
+  // A ratio of 0 or less: the sentence without the ratio (a negative ratio cannot be read)
+  for (const b of [-5, 0, 0.4]) {
+    assert.ok(t('ja', { feature: block(10, b) }).includes('特徴探索では、「ない」の傾きが「ある」より小さくなりました。'), String(b));
+    assert.ok(t('en', { feature: block(10, b) }).includes('For feature search, the slope with the bar absent was smaller than with it present.'), String(b));
+    assert.ok(!t('ja', { feature: block(10, b) }).some((x) => x.includes('倍）')), String(b));
+  }
+  assert.ok(t('ja', { feature: block(10, 1) }).includes('特徴探索では、「ない」の傾きが「ある」より小さくなりました（0.1倍）。'));
   assert.equal(t('en', { feature: block(3, 20), conjunction: block(-4, -1.2) })[0],
     'Slopes per item: feature search 3.0 ms (there) and 20.0 ms (not there); conjunction search \u22124.0 ms (there) and \u22121.2 ms (not there).');
   for (const lang of ['ja', 'en']) {
@@ -271,8 +278,46 @@ test('E: the descriptions of the figures of 1-1 and 1-2 (the <desc> of each SVG)
   assert.equal(V.descText(M, 'ja', pa, { target: 'noLine', count: 12 }, 'main'), '12個の丸。探すもの：線のない丸');
   assert.equal(V.descText(M, 'en', pa, { target: 'withLine', count: 18 }, 'hide'),
     'Camouflage scene: an object on a spotted background, with one straight line added');
-  // An entry without its own descriptions yet gives null (the figure then has its title only)
-  assert.equal(V.descText(M, 'ja', entry('gestalt-contour'), V.controlValues(entry('gestalt-contour')), 'main'), null);
+});
+
+test('E: the descriptions of the figures of the Grouping and Figure and ground entries: the title with the current settings', () => {
+  const ids = ['gestalt-proximity-similarity', 'gestalt-region-connection', 'gestalt-contour', 'figure-ground-area', 'figure-ground-symmetry'];
+  let n = 0;
+  for (const id of ids) {
+    const e = entry(id);
+    for (const values of combos(e)) {
+      for (const lang of ['ja', 'en']) {
+        for (const side of ['main', 'show', 'hide']) {
+          const s = V.descText(M, lang, e, values, side);
+          // Every small figure of these entries changes with at least one control, so every figure has its description
+          assert.equal(typeof s, 'string', `${id} ${side}`);
+          assert.doesNotMatch(s, LEFTOVER, `${id} ${lang} ${s}`);
+          assert.ok(s.startsWith(M[lang][`fig.${id}.${side}.title`]), `${id} ${side} ${s}`);
+          n += 1;
+        }
+      }
+    }
+  }
+  assert.equal(n, (15 + 3 + 14 + 14 + 12) * 2 * 3);
+  const d = (lang, id, values, side) => V.descText(M, lang, entry(id), { ...V.controlValues(entry(id)), ...values }, side);
+  // The main figure: every control with its value, in the order of the data
+  assert.equal(d('ja', 'gestalt-proximity-similarity', { prox: -2, sim: 'cols' }, 'main'), '6×6の点（近さ：行がとても近い、形の変え方：列ごとに形を変える）');
+  assert.equal(d('en', 'gestalt-proximity-similarity', { prox: -2, sim: 'cols' }, 'main'),
+    'A 6 × 6 grid of dots (Proximity: Rows much closer; Similarity: Shapes vary by column)');
+  assert.equal(d('ja', 'gestalt-contour', { gap: 0.3, crossing: 'corner' }, 'main'),
+    '輪郭が途切れた丸と四角、交わる2本の線（輪郭の途切れ：30%、交わり方：交わる所で折れる）');
+  assert.equal(d('ja', 'figure-ground-area', { share: 0.2, swap: true }, 'main'), '8つの扇形に分けた円（塗った扇形の割合：20%、明暗を入れ替える：オン）');
+  assert.equal(d('en', 'figure-ground-symmetry', { cue: 'convex', regions: 2, swap: false }, 'main'),
+    'Bands divided by vertical borders (Cue: Bulging outward; Number of regions: 2; Swap the side with the cue: Off)');
+  // A small figure: only the controls that change it
+  assert.equal(d('ja', 'gestalt-proximity-similarity', {}, 'hide'), '背景の上の物を描いた迷彩の絵（形の変え方：変えない）');
+  assert.equal(d('ja', 'gestalt-region-connection', { link: 'line' }, 'show'), '折れ線グラフと散布図（囲む・つなぐ：隣り合う組の点を線でつなぐ）');
+  assert.equal(d('ja', 'figure-ground-area', { share: 0.7 }, 'hide'), '背景の上の物を描いた迷彩の絵（塗った扇形の割合：70%）');
+  assert.equal(d('en', 'gestalt-contour', { gap: 0.6 }, 'show'), 'Two lines with missing months (Gap in the outline: 60%; Crossing: Cross smoothly)');
+  // The step names are those of the screen (the same function draws the names under the sliders)
+  const prox = entry('gestalt-proximity-similarity').controls[0];
+  assert.deepEqual(prox.values.map((v) => V.stepLabel(V.dictionary(M, 'ja'), entry('gestalt-proximity-similarity'), prox, v)),
+    ['行がとても近い', '行が近い', '同じ', '列が近い', '列がとても近い']);
 });
 
 test('E: the texts of the results area: the column of each number of items, the approximate research values and the chart description', () => {
@@ -283,9 +328,19 @@ test('E: the texts of the results area: the column of each number of items, the 
   assert.equal(V.fill(M.ja.termHelpLabel, { term: M.ja.slopeWord }), '傾きの解説');
   assert.equal(V.fill(M.en.termHelpLabel, { term: M.en.slopeWord }), 'About slope');
   for (const lang of ['ja', 'en']) {
-    const rows = ['resRowFeatureYes', 'resRowConjNo'].map((k) => M[lang][k]).join(lang === 'ja' ? '・' : ', ');
-    assert.doesNotMatch(V.fill(M[lang].resChartDesc, { rows }), /\{|\}/);
     // The research values named in the table come with their note (stimuli and how the values were read)
     assert.ok(M[lang].resRefNote.includes(M[lang].resRefTreisman) && M[lang].resRefNote.includes(M[lang].resRefWolfe), lang);
   }
+  // The chart description names the rows drawn. A row name has 「・」 (or a comma in English) inside, so the names are separated by 「、」
+  // (Japanese) and by a semicolon (English)
+  const row = (m) => ({ cells: Object.fromEntries(C.SET_SIZES.map((n) => [n, { median: m }])), slope: m === null ? null : 10, accuracy: 1, excluded: 0 });
+  const feature = { rows: { present: row(500), absent: row(620) } };
+  assert.equal(V.resultChartDesc(M, 'ja', { feature, conjunction: null }),
+    '図形の数ごとの真ん中の値を結んだ線（特徴・ある、特徴・ない）。同じ値を下の表に載せています。');
+  assert.equal(V.resultChartDesc(M, 'en', { feature, conjunction: null }),
+    'Lines joining the middle value for each number of items (Feature, there; Feature, not there). The table below has the same values.');
+  const conjunction = { rows: { present: row(700), absent: row(null) } };
+  assert.equal(V.resultChartDesc(M, 'ja', { feature, conjunction }),
+    '図形の数ごとの真ん中の値を結んだ線（特徴・ある、特徴・ない、結合・ある）。同じ値を下の表に載せています。');
+  assert.equal(V.resultChartDesc(M, 'ja', { feature: null, conjunction: null }), null);
 });

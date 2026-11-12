@@ -388,6 +388,7 @@
       resCmpSmaller: '今回は、「ない」の傾きが特徴探索のほうで大きくなりました。回数が少ないと結果はぶれます。順番を入れ替えて測り直すと比べやすくなります。',
       resRatioNone: '{search}では、「ある」の傾きが1ミリ秒未満なので、「ない」との比は出しません。',
       resRatioLow: '{search}では、「ない」の傾きが「ある」より小さくなりました（{r}倍）。',
+      resRatioZeroOrLess: '{search}では、「ない」の傾きが「ある」より小さくなりました。',
       resRatioMid: '{search}では、「ない」の傾きが「ある」の{r}倍でした。研究では2倍より少し大きいことが多く、ふつうは3倍より小さい値です。',
       resRatioTypical: '{search}では、「ない」の傾きが「ある」の{r}倍で、研究でよく見られる2〜3倍の範囲にあります。',
       resRatioHigh: '{search}では、「ない」の傾きが「ある」の{r}倍で、研究でよく見られる2〜3倍より大きくなりました。',
@@ -568,6 +569,11 @@
       'desc.popout-asymmetry.hide.plain': '斑点の背景に物を置いた迷彩の絵。線は足していない',
       'desc.search-time.show.feature': '6本の折れ線と凡例。探す系列は、凡例の色だけで決まる',
       'desc.search-time.show.conjunction': '6本の折れ線と凡例。探す系列は、凡例の色と線の種類の組み合わせで決まる',
+      // 専用の説明がない図：図の題と、いまの設定（操作の名前：値）を並べる
+      descSettings: '{title}（{settings}）',
+      descPair: '{name}：{value}',
+      toggleOn: 'オン',
+      toggleOff: 'オフ',
     },
 
     en: {
@@ -986,6 +992,7 @@
         + 'the other order makes comparison easier.',
       resRatioNone: 'For {search}, the slope with the bar present is under 1 ms, so no ratio is given.',
       resRatioLow: 'For {search}, the slope with the bar absent was smaller than with it present ({r}×).',
+      resRatioZeroOrLess: 'For {search}, the slope with the bar absent was smaller than with it present.',
       resRatioMid: 'For {search}, the slope with the bar absent was {r}× the slope with it present. In research it is often a little over 2× and usually '
         + 'under 3×.',
       resRatioTypical: 'For {search}, the slope with the bar absent was {r}× the slope with it present, within the 2× to 3× often seen in research.',
@@ -1184,6 +1191,11 @@
       'desc.search-time.show.feature': 'Six lines and a legend. The series to find is set apart by its legend color alone',
       'desc.search-time.show.conjunction': 'Six lines and a legend. The series to find is set apart only by the combination of its legend color and '
         + 'line style',
+      // A figure without its own description: its title and the current settings (name of the control: value)
+      descSettings: '{title} ({settings})',
+      descPair: '{name}: {value}',
+      toggleOn: 'On',
+      toggleOff: 'Off',
     },
   };
 }));

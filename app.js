@@ -19,9 +19,8 @@
   const VM = View.buildViewModel(Data);
   const TABS = VM.tabs.map((tab) => tab.id);
   const ENTRIES = new Map(Data.entries.map((e) => [e.id, e]));
-  const MODELS = new Map(VM.tabs.flatMap((tab) => tab.entries).map((m) => [m.id, m]));
   // The groups whose entry cards are drawn (the other tabs show their heading and the way to the next tab)
-  const CARD_GROUPS = ['popout', 'search'];
+  const CARD_GROUPS = ['popout', 'search', 'gestalt', 'figure-ground'];
   const drawnEntries = (tab) => (CARD_GROUPS.includes(tab.id) ? tab.entries : []);
   // The entries with "Find and tap"
   const FIND_ENTRIES = Data.entries.filter((e) => (e.actions || []).includes('find')).map((e) => e.id);
@@ -330,13 +329,7 @@
   // ===== Entry cards =====
   const cards = new Map();
   const controlLabel = (entry, control) => t(`ctl.${entry.id}.${control.id}`);
-  const optionLabel = (model, control, index) => t(model.controls.find((c) => c.id === control.id).optionKeys[index]);
-  function stepText(entry, control, value) {
-    const model = MODELS.get(entry.id), index = View.controlOptions(control).indexOf(value);
-    if (control.type === 'choice' || control.named) return optionLabel(model, control, index);
-    if (control.unit === 'percent') return Math.round(value * 100) + '%';
-    return String(value);
-  }
+  const stepText = (entry, control, value) => View.stepLabel(dictionaries[state.language], entry, control, value);
   // The order on the screen: the switches first, then the sliders (right above the figure), then the buttons of the entry
   const displayControls = (entry) => [...entry.controls.filter((c) => c.type !== 'range'), ...entry.controls.filter((c) => c.type === 'range')];
 
@@ -350,20 +343,26 @@
       const ticks = E('div', { class: 'ticks' }, options.map((v) => E('span', { 'data-value': String(v) }, phrases(stepText(entry, control, v)))));
       const note = control.disabledNoteKey ? E('p', { class: 'tick-note' }, phrases(t(control.disabledNoteKey))) : null;
       parts.ranges.set(control.id, { input, ticks, note });
-      return E('div', { class: 'control range' },
+      // A card with a single slider: on a narrow screen it takes the whole row, so that the names of its steps stay on one line
+      const sole = entry.controls.filter((c) => c.type === 'range').length === 1;
+      return E('div', { class: 'control range' + (sole ? ' sole' : '') },
         E('label', { class: 'control-name', for: input.id }, phrases(controlLabel(entry, control))),
         input, E('div', { class: 'stack tick-stack', 'aria-hidden': 'true' }, ticks, note));
     }
+    // data-label: the label once more, for style.css to keep the width of the bold (pressed) label, so that pressing a button never
+    // changes how the buttons wrap
     const buttons = [];
     if (control.type === 'toggle') {
-      const button = E('button', { type: 'button', 'data-key': `ctl:${id}:${control.id}` }, phrases(controlLabel(entry, control)));
+      const label = controlLabel(entry, control);
+      const button = E('button', { type: 'button', 'data-key': `ctl:${id}:${control.id}`, 'data-label': label }, phrases(label));
       button.addEventListener('click', () => setControl(id, control.id, !state.items[id].values[control.id]));
       buttons.push([true, button]);
       parts.choices.set(control.id, buttons);
       return E('div', { class: 'control' }, E('div', { class: 'choice' }, button));
     }
     View.controlOptions(control).forEach((value) => {
-      const button = E('button', { type: 'button', 'data-key': `ctl:${id}:${control.id}:${value}` }, phrases(stepText(entry, control, value)));
+      const label = stepText(entry, control, value);
+      const button = E('button', { type: 'button', 'data-key': `ctl:${id}:${control.id}:${value}`, 'data-label': label }, phrases(label));
       button.addEventListener('click', () => setControl(id, control.id, value));
       buttons.push([value, button]);
     });
@@ -649,10 +648,9 @@
     if (!results.feature && !results.conjunction) return [E('p', { class: 'res-none' }, phrases(t('resNone')))];
     const used = new Set(), rows = View.resultRows(results);
     const drawn = rows.filter((r) => r.medians.some((v) => v !== null));
-    const names = drawn.map((r) => t(r.labelKey)).join(state.language === 'ja' ? '・' : ', ');
     const chart = (wide) => {
       const svg = svgFor('res-chart-svg ' + (wide ? 'res-wide' : 'res-narrow'), wide ? 'res-chart-wide' : 'res-chart-narrow');
-      paintSvg(svg, View.resultChart(results, { wide, t: (key) => t(key) }), t('resChartTitle'), names ? t('resChartDesc', { rows: names }) : null);
+      paintSvg(svg, View.resultChart(results, { wide, t: (key) => t(key) }), t('resChartTitle'), View.resultChartDesc(Messages, state.language, results));
       return svg;
     };
     const out = [E('div', { class: 'res-sets' }, View.resultSetTexts(Messages, state.language, results).map((line) => E('p', {}, phrases(line)))),
