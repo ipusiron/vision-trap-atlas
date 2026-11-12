@@ -373,7 +373,8 @@ test('C: the view model lists the tabs in order with their entries, headings and
   assert.deepEqual(vm.tabs[4].leadKeys, ['misreadLead', 'misreadFictional']);
   for (const tab of vm.tabs) {
     for (const e of tab.entries) {
-      assert.equal(e.usesHeadingKey, tab.id === 'misread' ? 'usesHeadingReadable' : 'usesHeading', e.id);
+      // The search time card has the showing side only, so its heading names that side alone
+      assert.equal(e.usesHeadingKey, tab.id === 'misread' ? 'usesHeadingReadable' : tab.id === 'search' ? 'usesHeadingShow' : 'usesHeading', e.id);
       for (const key of [e.titleKey, e.oneLineKey, e.howToKey, e.usesHeadingKey, ...e.uses.map((u) => u.labelKey), ...e.uses.map((u) => u.titleKey),
         ...e.controls.map((c) => c.labelKey), ...e.controls.flatMap((c) => c.optionKeys)]) {
         assert.equal(typeof M.ja[key], 'string', `${e.id} ${key}`);
@@ -427,6 +428,19 @@ function knownBlock(present, absent) {
   }
   return C.summarizeBlock(records);
 }
+test('C: a negative number on the screen has the minus sign (U+2212), not a hyphen; the value itself is unchanged', () => {
+  const block = knownBlock([560, -2], [500, 10]);
+  const rows = V.resultRows({ feature: block, conjunction: null });
+  assert.deepEqual([rows[0].slope, rows[1].slope], ['\u22122.0', '10.0']);
+  assert.ok(Math.abs(block.rows.present.slope + 2) < 1e-9, 'the computed slope stays a number');
+  // A slope that is shown as 0.0 has no sign
+  assert.equal(V.resultRows({ feature: knownBlock([500, -0.04], [500, 1]), conjunction: null })[0].slope, '0.0');
+  assert.deepEqual([V.numberText(-12.5), V.numberText(0), V.numberText(18), V.numberText('-0.5')], ['\u221212.5', '0', '18', '\u22120.5']);
+  // The ticks of the chart are written the same way (they start at 0, so none of them is negative)
+  const fig = V.resultChart({ feature: block, conjunction: null }, { wide: true, t: (k) => k });
+  const ticks = fig.shapes.filter((sh) => sh.type === 'text' && /fig-tick/.test(sh.cls)).map((sh) => sh.text);
+  assert.ok(ticks.length >= 8 && ticks.every((x) => /^[0-9]+$/.test(x)), ticks.join(' '));
+});
 const CHART_CLASSES = ['fig-axis', 'fig-axisname', 'fig-legend', 'fig-series', 'fig-tick', 'fill-seriesOthers-0', 'fill-seriesTarget', 'line-dashed',
   'res-leader', 'res-open', 'stroke-seriesOthers-0', 'stroke-seriesTarget', 'ta-end', 'ta-middle', 'ta-start'];
 

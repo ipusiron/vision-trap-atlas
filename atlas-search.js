@@ -218,7 +218,7 @@
     // 本番の記録の集計（本番の記録が1つもなければ null）。練習の回は入れない
     function summary() {
       if (!s.records.length) return null;
-      return Core.summarizeBlock(s.records, { aborted: s.aborted, granularity: s.granularity });
+      return Core.summarizeBlock(s.records, { aborted: s.aborted, granularity: s.granularity, set: s.set });
     }
     return { start, proceed, respond, setHidden, resume, abort, summary, state, seed };
   }

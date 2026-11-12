@@ -140,10 +140,76 @@ test('E: every result sentence is filled in, with the search names and the row n
     '"Conjunction, not there" has fewer than three measured numbers of items, so no slope is given.'));
 });
 
+test('E: repeated result sentences are joined into one, and a negative value has the minus sign', () => {
+  const block = (a, b, extra = {}) => ({ rows: { present: { slope: a }, absent: { slope: b } },
+    ratioState: a === null || b === null ? null : C.round1(a) < 1 ? 'below1' : 'ok',
+    ratio: a !== null && b !== null && C.round1(a) >= 1 ? C.round1(C.round1(b) / C.round1(a)) : null,
+    errors: 0, answered: 64, aborted: false, mixedInput: false, granularity: 0.1, ...extra });
+  const t = (lang, sc) => V.resultTexts(M, lang, C.resultCases(sc));
+  // Wrong answers in both searches: one sentence with both counts
+  const errors = { feature: block(3, 20, { errors: 8, answered: 61 }), conjunction: block(20, 50, { errors: 8, answered: 62 }) };
+  assert.deepEqual(t('ja', errors).filter((x) => x.includes('押し間違い')),
+    ['押し間違いは、特徴探索が8回（13%）、結合探索が8回（13%）でした。急ぐと間違いが増えます。正確さを保てる速さで答えてください。']);
+  assert.deepEqual(t('en', errors).filter((x) => x.includes('wrong answers') || x.includes('Wrong answers')),
+    ['Wrong answers: 8 (13%) in feature search and 8 (13%) in conjunction search. Rushing adds mistakes; answer at a pace that keeps you accurate.']);
+  // In one search only: the sentence of that search, as before
+  const oneError = { feature: block(3, 20, { errors: 8, answered: 61 }), conjunction: block(20, 50) };
+  assert.deepEqual(t('ja', oneError).filter((x) => x.includes('押し間違い')),
+    ['特徴探索の押し間違いは8回（13%）でした。急ぐと間違いが増えます。正確さを保てる速さで答えてください。']);
+  // Rows without a slope: one sentence naming them (two or more), the sentence of the row (one)
+  const three = { feature: block(3, null), conjunction: block(null, null, { aborted: true }) };
+  assert.ok(t('ja', three).includes('「特徴・ない」「結合・ある」「結合・ない」は、測れた段が3つ未満なので、傾きを出しません。'));
+  assert.ok(t('en', three).includes('"Feature, not there", "Conjunction, there" and "Conjunction, not there" have fewer than three measured numbers of '
+    + 'items, so no slopes are given.'));
+  const two = { feature: block(3, 20), conjunction: block(null, null, { aborted: true }) };
+  assert.ok(t('ja', two).includes('「結合・ある」「結合・ない」は、測れた段が3つ未満なので、傾きを出しません。'));
+  assert.ok(t('en', two).includes('"Conjunction, there" and "Conjunction, not there" have fewer than three measured numbers of items, so no slopes '
+    + 'are given.'));
+  assert.equal(t('ja', two).filter((x) => x.includes('傾きを出しません')).length, 1);
+  assert.ok(t('ja', { feature: block(3, null) }).includes('「特徴・ない」は、測れた段が3つ未満なので、傾きを出しません。'));
+  // The one search with both slopes opens the sentences even when the other search was measured too
+  assert.equal(t('ja', two)[0], '特徴探索の傾きは、「ある」で1項目あたり3.0ミリ秒、「ない」で20.0ミリ秒でした。結合探索も測ると、傾きを比べられます。');
+  // Negative values: the minus sign (U+2212) in both languages, also in a ratio
+  assert.equal(t('ja', { feature: block(-2.74, 7) })[0],
+    '特徴探索の傾きは、「ある」で1項目あたり\u22122.7ミリ秒、「ない」で7.0ミリ秒でした。結合探索も測ると、傾きを比べられます。');
+  assert.equal(t('en', { feature: block(-2.74, 7) })[0],
+    'For feature search, the slope was \u22122.7 ms per item when the bar was there and 7.0 ms when it was not. Measure conjunction search too to '
+    + 'compare the slopes.');
+  assert.ok(t('ja', { feature: block(10, -5) }).includes('特徴探索では、「ない」の傾きが「ある」より小さくなりました（\u22120.5倍）。'));
+  assert.equal(t('en', { feature: block(3, 20), conjunction: block(-4, -1.2) })[0],
+    'Slopes per item: feature search 3.0 ms (there) and 20.0 ms (not there); conjunction search \u22124.0 ms (there) and \u22121.2 ms (not there).');
+  for (const lang of ['ja', 'en']) {
+    for (const sc of [{ feature: block(-2.74, -7) }, { feature: block(-3, 2), conjunction: block(-1.5, -20.25) }]) {
+      for (const x of t(lang, sc)) assert.doesNotMatch(x, /-[0-9]/, x);
+    }
+  }
+});
+
+test('E: the line of the feature pairs over the chart, and the note under the table of excluded tries', () => {
+  const sets = (lang, f, c) => V.resultSetTexts(M, lang, { feature: f ? { set: f } : null, conjunction: c ? { set: c } : null });
+  assert.deepEqual(sets('ja', 'color', 'fill'), ['測った特徴の組：特徴探索＝色×方向、結合探索＝塗り×方向',
+    '特徴の組が違うので、同じ組で測り直すと比べやすくなります。']);
+  assert.deepEqual(sets('en', 'color', 'fill'), ['Measured with color × direction for feature search and fill × direction for conjunction search.',
+    'The feature pairs differ, so measuring again with the same pair makes comparison easier.']);
+  assert.deepEqual(sets('ja', 'fill', 'fill'), ['測った特徴の組：特徴探索＝塗り×方向、結合探索＝塗り×方向']);
+  assert.deepEqual(sets('ja', null, 'color'), ['測った特徴の組：結合探索＝色×方向']);
+  assert.deepEqual(sets('en', null, 'fill'), ['Measured with fill × direction for conjunction search.']);
+  assert.deepEqual(sets('ja', null, null), []);
+  assert.equal(M.ja.resExcludedNote, '除いた回数は、早すぎた回・時間切れの回・押し間違えた回の合計です。真ん中の値と傾きには使っていません。');
+  // The note matches the calculation: the excluded count is early + time-outs + wrong answers; a hidden try is not counted at all
+  const r = (setSize, present, outcome, rt) => ({ setSize, present, outcome, rt, input: 'key' });
+  const rows = [3, 6, 12, 18].flatMap((n) => [600, 610, 620, 630].map((rt) => r(n, true, 'correct', rt)));
+  const sum = C.summarizeBlock([...rows, r(3, true, 'early', 120), r(3, true, 'timeout', 4000), r(3, true, 'miss', 700), r(3, true, 'hidden', null)]);
+  assert.equal(sum.rows.present.excluded, 3);
+  assert.equal(sum.rows.present.cells[3].median, 615, 'the excluded tries are not in the middle value');
+});
+
 test('E: the experiment texts: the title, the feedback and the progress', () => {
   assert.equal(V.experimentTitle(M, 'ja', 'conjunction', 'color'), '結合探索（色×方向）');
   assert.equal(V.experimentTitle(M, 'en', 'feature', 'fill'), 'Feature search (fill × direction)');
   assert.equal(V.messageText(M, 'ja', { key: 'fbCorrect', values: { t: '0.62' } }), '○ 0.62秒');
+  // The end of a run, without the word for a block of tries
+  assert.equal(M.ja.expDone, '測定が終わりました。');
   assert.equal(V.messageText(M, 'en', { key: 'expMain', values: { i: 12 } }), 'Recorded 12 / 64');
   // No space between Japanese and the number put in (the rule of the Japanese texts)
   assert.equal(V.messageText(M, 'ja', { key: 'expPractice', values: { i: 3 } }), '練習3／8');

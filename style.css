@@ -91,6 +91,9 @@ button, input, select { font: inherit; }
 }
 @media (hover: hover) { button:hover:not(:disabled) { border-color: var(--accent); } }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+/* An element that is not pressed but takes the focus from the page (a card opened from the address or the list of entries, a
+   heading, the square of the experiment) shows no focus line. Buttons, links and the other controls keep theirs */
+[tabindex="-1"]:not(button, a, input, select, textarea, summary):focus { outline: none; }
 a { color: var(--accent); overflow-wrap: anywhere; }
 button:disabled { cursor: not-allowed; opacity: .55; }
 .visually-hidden {
@@ -193,8 +196,6 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
    tap", the small figures (showing and hiding), where the comparison breaks down, and the sources */
 .entry { margin: 1rem 0 0; padding: .9rem 0 .4rem; border-top: 2px solid var(--line); scroll-margin-top: .5rem; }
 .section-nav + .entry { margin-top: 0; }
-.entry:focus { outline: none; }
-.entry:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .entry-title { margin: 0 0 .3rem; font-size: 1.15rem; line-height: 1.4; }
 .entry-oneline { margin: 0 0 .2rem; }
 .entry-howto { margin: 0 0 .5rem; color: var(--muted); font-size: .9375rem; line-height: 1.5; }
@@ -450,8 +451,6 @@ svg text { font-family: system-ui, sans-serif; }
    start buttons each with the other bars of its search, and the notes on the length of a run */
 .search-why { margin: .3rem 0 .2rem; font-size: .9375rem; line-height: 1.5; }
 .search-heading { margin: 1rem 0 .35rem; font-size: 1rem; line-height: 1.4; scroll-margin-top: .5rem; }
-.search-heading:focus { outline: none; }
-.search-heading:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .search-measure .control { margin: .2rem 0; }
 .search-measure .choice { max-width: 32rem; }
 .search-measure .control-note { margin: .2rem 0 0; }
@@ -466,11 +465,12 @@ svg.sample { display: block; width: 30px; height: 30px; border: 1px solid var(--
 .search-read p, .search-limits p { margin: .2rem 0 .4rem; font-size: .9375rem; line-height: 1.55; }
 .uses-list.single { grid-template-columns: minmax(0, 1fr); max-width: 26rem; }
 
-/* The results: the note on the record with the button to clear it, the chart, the legend in words (narrow screens), the tables
-   (one from 720px, two below), the sentences and the values of research */
+/* The results: the note on the record with the button to clear it, the feature pairs measured, the chart, the legend in words
+   (narrow screens), the tables (one from 720px, two below) with what the excluded tries are, the sentences and the values of research */
 .res-privacy { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .35rem .75rem; margin: .2rem 0 .4rem; }
 .res-privacy p { flex: 1 1 14rem; margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
-.res-body > p, .res-texts p { margin: .3rem 0; font-size: .9375rem; line-height: 1.5; }
+.res-body > p, .res-texts p, .res-sets p { margin: .3rem 0; font-size: .9375rem; line-height: 1.5; }
+.res-sets { margin: .3rem 0 .5rem; }
 .res-body > .res-axis-note { color: var(--muted); font-size: .8125rem; }
 .res-legend { display: flex; flex-wrap: wrap; gap: .15rem .9rem; margin: .3rem 0; padding: 0; list-style: none; font-size: .8125rem; line-height: 1.4; }
 .res-legend li { display: inline-flex; align-items: center; gap: .3rem; }
@@ -485,6 +485,7 @@ svg.res-key { display: block; width: 32px; height: 14px; }
 .res-table thead th { vertical-align: bottom; }
 .res-ref { max-width: 36rem; margin-bottom: .2rem; }
 .res-body > .res-ref-note { margin: 0 0 .5rem; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+.res-body > .res-excluded-note { margin: -.35rem 0 .5rem; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
 .res-texts { margin: .5rem 0; }
 @media (max-width: 719px) {
   .res-body .res-wide { display: none; }
@@ -496,8 +497,8 @@ svg.res-key { display: block; width: 32px; height: 14px; }
 
 /* The search experiment: a dialog over the whole screen on a plain ground. The side of the square of the display: on a portrait screen
    the width less 32px, the height less 200px or 360px, whichever is smallest, with the two answer buttons under it; on a landscape
-   screen the height less 48px, the width less 288px or 360px, with the answer buttons on its two sides. Stop is at the top right,
-   away from the answers; the line of the result of a try keeps its height */
+   screen the height less 48px, the width less 288px or 360px, with the answer buttons on its two sides. Stop is at the top right
+   of the square, away from the answers; the line of the result of a try keeps its height */
 .exp-dialog { width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; border-radius: 0; }
 .exp-dialog[open] { display: block; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
 .exp-shell {
@@ -515,7 +516,6 @@ svg.res-key { display: block; width: 32px; height: 14px; }
   border: 1px solid var(--line); background: var(--paper);
   touch-action: manipulation;
 }
-.exp-stage:focus { outline: none; }
 .exp-stage > * { grid-area: 1 / 1; min-width: 0; }
 .exp-stage > svg { display: block; width: 100%; height: auto; align-self: start; }
 .exp-message { padding: .75rem; background: var(--paper); font-size: .9375rem; line-height: 1.5; }
@@ -544,7 +544,8 @@ svg.res-key { display: block; width: 32px; height: 14px; }
   .exp-top { display: contents; }
   .exp-stage { width: min(100dvh - 48px, 100vw - 288px, 360px); min-height: min(100dvh - 48px, 100vw - 288px, 360px); }
   .exp-head { grid-area: head; justify-self: end; text-align: right; }
-  .exp-abort { grid-area: abort; justify-self: end; align-self: start; }
+  /* The title and progress, Stop and the answers stand close to the square on its two sides, so that they read as one group */
+  .exp-abort { grid-area: abort; justify-self: start; align-self: start; }
   .exp-answer { align-self: center; width: min(100%, 13rem); margin: 0; }
   .exp-absent { justify-self: end; }
   .exp-present { justify-self: start; }

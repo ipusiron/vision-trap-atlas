@@ -24,8 +24,10 @@
       },
     });
   }
-  const f1 = (x) => Core.round1(x).toFixed(1);
-  const f2 = (x) => Core.round2(x).toFixed(2);
+  // 画面に出す数：負の数は半角のハイフンではなくマイナス記号（U+2212）で書く。計算の値は変えない
+  const numberText = (x) => String(x).replace(/^-/, '\u2212');
+  const f1 = (x) => numberText(Core.round1(x).toFixed(1));
+  const f2 = (x) => numberText(Core.round2(x).toFixed(2));
 
   // ===== 形の部品 =====
   const r2 = (x) => Math.round(x * 100) / 100;
@@ -630,6 +632,8 @@
   const SIDE_LABEL = { show: 'showLabel', hide: 'hideLabel', readable: 'readableLabel', read: 'readLabel' };
   function entryModel(e) {
     const readable = e.uses.length > 0 && e.uses.every((u) => u.side === 'readable');
+    // 見せる側の小さな図しかない項目（探す時間）は、見出しに隠す側を書かない
+    const showOnly = e.uses.length > 0 && e.uses.every((u) => u.side === 'show');
     const sf = e.safety;
     const safetyActions = [];
     if (sf.motion === 'onPlay') safetyActions.push({ id: 'play', labelKey: 'motionPlay' }, { id: 'stop', labelKey: 'motionStop' });
@@ -644,7 +648,7 @@
           ? controlOptions(c).map((v, i) => `ctl.${e.id}.${c.id}.${c.steps ? c.steps[i] : String(v)}`) : [],
       })),
       actions: e.actions || [],
-      usesHeadingKey: readable ? 'usesHeadingReadable' : 'usesHeading',
+      usesHeadingKey: readable ? 'usesHeadingReadable' : showOnly ? 'usesHeadingShow' : 'usesHeading',
       uses: e.uses.map((u) => ({ side: u.side, labelKey: SIDE_LABEL[u.side], titleKey: `fig.${e.id}.${u.side}.title`, part: u.part,
         textKey: u.textKey || null, noteKey: u.noteKey || null, link: u.link || null })),
       mainTitleKey: e.figure ? `fig.${e.id}.main.title` : null,
@@ -768,18 +772,52 @@
   // 探し方の名前：文の頭（resErrors）は termFeature・termConjunction、文の中は *Inline（英語は小文字で始める）
   const searchName = (D, id, inline) => (inline ? D[id === 'feature' ? 'searchFeatureInline' : 'searchConjInline']
     : D[id === 'feature' ? 'termFeature' : 'termConjunction']);
+  // 語を並べる：日本語は sep でつなぎ、英語は「A, B and C」
+  const listText = (lang, items, sep = '') => (lang === 'ja' || items.length < 2 ? items.join(sep)
+    : items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1]);
+  // 結果の文。同じ文が続くときは1文にまとめる：傾きを出せない行が2つ以上なら行の名前を並べ、押し間違いが両方の探し方にあれば
+  // 両方の回数を1文に書く
   function resultTexts(M, lang, cases) {
     const D = dictionary(M, lang);
-    return cases.map(({ key, values }) => {
+    const one = ({ key, values }) => {
       const v = {};
       for (const [k, x] of Object.entries(values)) {
         if (k === 'search') v[k] = searchName(D, x, key !== 'resErrors');
         else if (k === 'row') v[k] = D[ROW_KEYS[x]];
         else if (k === 'n' || k === 'p') v[k] = String(x);
-        else v[k] = x.toFixed(1);
+        else v[k] = numberText(x.toFixed(1));
       }
       return fill(D[key], v);
-    });
+    };
+    const out = [];
+    for (let i = 0; i < cases.length; i += 1) {
+      const c = cases[i], next = cases[i + 1];
+      if (c.key === 'resNoSlope' && next && next.key === 'resNoSlope') {
+        const rows = [];
+        for (; i < cases.length && cases[i].key === 'resNoSlope'; i += 1) rows.push(fill(D.resRowQuoted, { row: D[ROW_KEYS[cases[i].values.row]] }));
+        i -= 1;
+        out.push(fill(D.resNoSlopeMany, { rows: listText(lang, rows) }));
+      } else if (c.key === 'resErrors' && next && next.key === 'resErrors') {
+        const by = Object.fromEntries([c, next].map((e) => [e.values.search, e.values]));
+        out.push(fill(D.resErrorsBoth, { fn: String(by.feature.n), fp: String(by.feature.p), cn: String(by.conjunction.n),
+          cp: String(by.conjunction.p) }));
+        i += 1;
+      } else {
+        out.push(one(c));
+      }
+    }
+    return out;
+  }
+  // 測った特徴の組（測った探し方だけ。結果のグラフの上の1行）と、2つの探し方で組が違うときの文
+  function resultSetTexts(M, lang, results) {
+    const D = dictionary(M, lang);
+    const measured = ['feature', 'conjunction'].filter((id) => results[id] && results[id].set);
+    if (!measured.length) return [];
+    const items = measured.map((id) => fill(D.resSetItem, { search: searchName(D, id, true),
+      set: D[results[id].set === 'fill' ? 'setFillShort' : 'setColorShort'] }));
+    const out = [fill(D.resSets, { list: listText(lang, items, '、') })];
+    if (measured.length === 2 && results.feature.set !== results.conjunction.set) out.push(D.resSetsDiffer);
+    return out;
   }
   // 実験の枠の題（例「結合探索（色×方向）」）と進み
   function experimentTitle(M, lang, search, set) {
@@ -835,8 +873,10 @@
     const { top, step } = resultTop(Math.max(0, ...rows.flatMap((r) => r.medians.filter((v) => v !== null))));
     const X = (n) => x0 + n / 18 * (x1 - x0), Y = (v) => y1 - v / top * (y1 - y0);
     const shapes = [text(4, 14, t('resAxisY'), 'fig-axisname ta-start'), text(x1, height - 4, t('itemCount'), 'fig-axisname ta-end')];
-    for (let v = 0; v <= top; v += step) shapes.push(line(x0 - 4, Y(v), x0, Y(v), 'fig-axis'), text(x0 - 7, Y(v) + 4, v, 'fig-tick ta-end'));
-    for (const n of Core.SET_SIZES) shapes.push(line(X(n), y1, X(n), y1 + 4, 'fig-axis'), text(X(n), y1 + 16, n, 'fig-tick ta-middle'));
+    for (let v = 0; v <= top; v += step) {
+      shapes.push(line(x0 - 4, Y(v), x0, Y(v), 'fig-axis'), text(x0 - 7, Y(v) + 4, numberText(v), 'fig-tick ta-end'));
+    }
+    for (const n of Core.SET_SIZES) shapes.push(line(X(n), y1, X(n), y1 + 4, 'fig-axis'), text(X(n), y1 + 16, numberText(n), 'fig-tick ta-middle'));
     shapes.push(line(x0, y0, x0, y1, 'fig-axis'), line(x0, y1, x1, y1, 'fig-axis'));
     const ends = [];
     for (const r of rows) {
@@ -896,8 +936,8 @@
   return Object.freeze({
     fill, dictionary, partNames, renderPart, renderMain, renderUse, compose, popoutLayout, asymLayout, findLayout, markShapes, fixationShapes,
     sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, useSettings, linkedLine, linkedText, buildViewModel, readCases,
-    numbersCase, readKeysAll, texts, resultTexts, experimentTitle, messageText, descCase, descText, RESULT_SERIES, resultRows, resultTop,
-    resultChart, resultKey,
+    numbersCase, readKeysAll, texts, resultTexts, resultSetTexts, experimentTitle, messageText, descCase, descText, RESULT_SERIES, resultRows,
+    resultTop, resultChart, resultKey, numberText,
     SIZES: Object.freeze({ square: SQ, cell: CELL, card: [W, H], small: [SW, SH], aspect: [AW, AH] }),
     DIFF, VARIETY, ANGLES, SCALES, JIT_ANGLE, JIT_SCALE,
   });

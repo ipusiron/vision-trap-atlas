@@ -342,6 +342,19 @@ test('D: resultCases: nothing, one search, both searches', () => {
   assert.deepEqual(both[1].values, { d: 42 });
 });
 
+test('D: resultCases: both searches measured, but only one has both slopes (the other stopped early): that one opens the sentences', () => {
+  const stopped = block({ a: null, b: null, aborted: true });
+  const featureOnly = C.resultCases({ feature: block({ a: 3.1, b: 25.1 }), conjunction: stopped });
+  assert.deepEqual(keys(featureOnly), ['resOneFeature', 'resRatioHigh', 'resNoSlope', 'resNoSlope', 'resPartial', 'resDevice', 'resLimits']);
+  assert.deepEqual(featureOnly[0].values, { a: 3.1, b: 25.1 });
+  const conjOnly = C.resultCases({ feature: block({ a: 4, b: null, aborted: true }), conjunction: block({ a: 28.7, b: 67.1 }) });
+  assert.deepEqual(keys(conjOnly), ['resOneConj', 'resRatioTypical', 'resNoSlope', 'resPartial', 'resDevice', 'resLimits']);
+  assert.deepEqual(conjOnly[0].values, { a: 28.7, b: 67.1 });
+  // Neither has both slopes: no opening sentence
+  assert.deepEqual(keys(C.resultCases({ feature: block({ a: 4, b: null }), conjunction: block({ a: null, b: 9 }) })),
+    ['resNoSlope', 'resNoSlope', 'resDevice', 'resLimits']);
+});
+
 test('D: resultCases: the absent-slope difference at 10.0, 9.9, −9.9 and −10.0 (after rounding)', () => {
   const cmp = (fb, cb) => C.resultCases({ feature: block({ a: 2, b: fb }), conjunction: block({ a: 5, b: cb }) })[1];
   assert.deepEqual(cmp(20, 30), { key: 'resCmpLarger', values: { d: 10 } });
@@ -397,8 +410,8 @@ test('D: resultCases follows the order of the screen', () => {
     feature: block({ a: -1, b: 2, errors: 8, answered: 60, mixed: true, aborted: true, granularity: 16.667 }),
     conjunction: block({ a: 12, b: null }),
   });
-  assert.deepEqual(keys(full), ['resRatioNone', 'resNegative', 'resNoSlope', 'resPartial', 'resMixed', 'resErrors', 'resCoarse', 'resDevice',
-    'resLimits']);
+  assert.deepEqual(keys(full), ['resOneFeature', 'resRatioNone', 'resNegative', 'resNoSlope', 'resPartial', 'resMixed', 'resErrors', 'resCoarse',
+    'resDevice', 'resLimits']);
   const order = ['resNone', 'resOneFeature', 'resOneConj', 'resBoth', 'resCmpLarger', 'resCmpSimilar', 'resCmpSmaller', 'resRatioNone', 'resRatioLow',
     'resRatioMid', 'resRatioTypical', 'resRatioHigh', 'resNegative', 'resNoSlope', 'resPartial', 'resMixed', 'resErrors', 'resCoarse', 'resDevice',
     'resLimits'];
@@ -416,6 +429,9 @@ test('D: the summary of a real block goes through resultCases', () => {
   runBlock(clock2, exp2, (trial) => (trial.present ? 450 + 20 * trial.setSize : 500 + 50 * trial.setSize), 'mouse');
   const cases = C.resultCases({ feature, conjunction: exp2.summary() });
   assert.deepEqual(keys(cases), ['resBoth', 'resCmpLarger', 'resRatioHigh', 'resRatioTypical', 'resDevice', 'resLimits']);
+  // The summary keeps the feature pair it was measured with
+  assert.equal(feature.set, 'color');
+  assert.equal(C.summarizeBlock([], {}).set, null);
   assert.deepEqual(cases[0].values, { fa: 3, fb: 10, ca: 20, cb: 50 });
   assert.deepEqual(cases[1].values, { d: 40 });
 });

@@ -623,9 +623,9 @@
   // The sentences of the results in the order of the spec, without the two of the limits
   const resultLines = (results) => View.resultTexts(Messages, state.language, Core.resultCases(results).filter((c) => !LIMIT_KEYS.includes(c.key)));
 
-  // The results: the chart (the names at the line ends from 720px; a legend in words above it on narrower screens), how to read it,
-  // the table (two tables below 720px, never a sideways scrolling one), the sentences and the values of research. A term gets its
-  // explanation once in the results
+  // The results: the feature pair each search was measured with, the chart (the names at the line ends from 720px; a legend in
+  // words above it on narrower screens), how to read it, the table (two tables below 720px, never a sideways scrolling one) and what
+  // its excluded tries are, the sentences and the values of research. A term gets its explanation once in the results
   function buildResults(results) {
     if (!results.feature && !results.conjunction) return [E('p', { class: 'res-none' }, phrases(t('resNone')))];
     const used = new Set(), rows = View.resultRows(results);
@@ -636,14 +636,16 @@
       paintSvg(svg, View.resultChart(results, { wide, t: (key) => t(key) }), t('resChartTitle'), names ? t('resChartDesc', { rows: names }) : null);
       return svg;
     };
-    const out = [E('p', { class: 'res-use' }, richText(t('resChartUse'), TEXT_TERMS.resChartUse, used, 'results'))];
+    const out = [E('div', { class: 'res-sets' }, View.resultSetTexts(Messages, state.language, results).map((line) => E('p', {}, phrases(line)))),
+      E('p', { class: 'res-use' }, richText(t('resChartUse'), TEXT_TERMS.resChartUse, used, 'results'))];
     if (drawn.length) {
       out.push(E('ul', { class: 'res-legend', 'aria-label': t('resLegend') },
         drawn.map((r) => E('li', {}, pictureSvg(View.resultKey(r.id), 'res-key'), E('span', {}, phrases(t(r.labelKey)))))));
     }
     out.push(E('div', { class: 'res-chart' }, chart(true), chart(false)),
       E('p', {}, phrases(t('resChartRead'))), E('p', { class: 'res-axis-note' }, phrases(t('resAxisNote'))),
-      ...resultTables(rows), E('div', { class: 'res-texts' }, resultLines(results).map((line) => E('p', {}, phrases(line)))),
+      ...resultTables(rows), E('p', { class: 'res-excluded-note' }, phrases(t('resExcludedNote'))),
+      E('div', { class: 'res-texts' }, resultLines(results).map((line) => E('p', {}, phrases(line)))),
       ...referenceTable());
     return out;
   }
@@ -725,6 +727,8 @@
     const feedback = s.phase === 'feedback' && s.feedback ? View.messageText(Messages, state.language, s.feedback) : '';
     if (run.feedback.textContent !== feedback) setWords(run.feedback, feedback);
     for (const button of Object.values(ANSWERS)) button.disabled = !trial;
+    // At the end (or once stopped) there is nothing left to stop: Stop goes away, and "See the results" or Esc closes the dialog
+    $('exp-abort').hidden = s.phase === 'done' || s.phase === 'aborted';
     expMessage.hidden = trial;
     const part = trial ? 'trial' : s.phase;
     if (part === run.shownPart) return;

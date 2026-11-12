@@ -783,7 +783,7 @@ EXP_STATE = """() => {
     focus: (document.activeElement.dataset || {}).key || document.activeElement.id,
     t0: qa.shownAt === null ? null : (qa.frames.find(f => f > qa.shownAt) ?? null),
     pressed: qa.presses.length ? qa.presses[qa.presses.length - 1] : null, open: document.getElementById('exp-dialog').open,
-    answersOff: document.getElementById('exp-absent').disabled};
+    answersOff: document.getElementById('exp-absent').disabled, stopShown: document.getElementById('exp-abort').getClientRects().length > 0};
 }"""
 EXP_LAYOUT = """() => {
   const box = el => { const r = el.getBoundingClientRect(); return {left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width,
@@ -803,7 +803,8 @@ RESULTS_STATE = """() => {
   const text = el => { const c = el.cloneNode(true); c.querySelectorAll('.term-tip').forEach(t => t.remove()); return c.textContent.trim(); };
   const card = document.getElementById('search-time');
   const charts = Array.from(card.querySelectorAll('svg.res-chart-svg')).filter(shown);
-  return {none: Array.from(card.querySelectorAll('.res-none'), text),
+  return {none: Array.from(card.querySelectorAll('.res-none'), text), sets: Array.from(card.querySelectorAll('.res-sets p'), text),
+    excluded: Array.from(card.querySelectorAll('.res-excluded-note')).filter(shown).map(text),
     tables: Array.from(card.querySelectorAll('.res-table:not(.res-ref)')).filter(shown).map(t => ({caption: t.caption ? text(t.caption) : null,
       rows: Array.from(t.tBodies[0].rows, r => Array.from(r.cells, c => text(c)))})),
     texts: Array.from(card.querySelectorAll('.res-texts p'), text),
@@ -820,18 +821,19 @@ const [root, input] = [process.argv[1], require('fs').readFileSync(0, 'utf8')];
 const C = require(root + '/atlas-core.js'), V = require(root + '/atlas-view.js'), M = require(root + '/messages.js');
 const q = JSON.parse(input), results = {};
 for (const s of ['feature', 'conjunction']) {
-  results[s] = q[s] ? C.summarizeBlock(q[s].records, { aborted: q[s].aborted, granularity: q[s].granularity }) : null;
+  results[s] = q[s] ? C.summarizeBlock(q[s].records, { aborted: q[s].aborted, granularity: q[s].granularity, set: q[s].set }) : null;
 }
 const cases = C.resultCases(results);
-const out = { keys: cases.map((c) => c.key), texts: {}, rows: {} };
+const out = { keys: cases.map((c) => c.key), texts: {}, rows: {}, sets: {} };
 for (const lang of ['ja', 'en']) {
   out.texts[lang] = V.resultTexts(M, lang, cases);
+  out.sets[lang] = V.resultSetTexts(M, lang, results);
   const none = M[lang].resNoValue;
   out.rows[lang] = [['feature', 'present', 'resRowFeatureYes'], ['feature', 'absent', 'resRowFeatureNo'], ['conjunction', 'present', 'resRowConjYes'],
     ['conjunction', 'absent', 'resRowConjNo']].map(([s, side, key]) => {
     const row = results[s] ? results[s].rows[side] : null;
     const medians = C.SET_SIZES.map((n) => (row && row.cells[n].median !== null ? String(Math.round(row.cells[n].median)) : none));
-    return { name: M[lang][key], medians, slope: row && row.slope !== null ? C.round1(row.slope).toFixed(1) : none,
+    return { name: M[lang][key], medians, slope: row && row.slope !== null ? V.numberText(C.round1(row.slope).toFixed(1)) : none,
       accuracy: row && row.accuracy !== null ? Math.round(row.accuracy * 100) + '%' : none, excluded: row ? String(row.excluded) : none };
   });
 }
@@ -1058,6 +1060,9 @@ def assert_experiment_layout(page, name, layouts, trial=True):
     for key in ("absent", "present"):
         check(m[key]["height"] + 1e-3 >= 64, (name, key, "64px high", m[key]))
     check(m["abort"]["height"] + 1e-3 >= 44 and m["abort"]["width"] + 1e-3 >= 44, (name, "Stop 44px", m["abort"]))
+    # Stop stands by the top right corner of the square: over its right edge (portrait) or just right of it (landscape)
+    gap = m["abort"]["left"] - m["stage"]["right"]
+    check(abs(m["abort"]["right"] - m["stage"]["right"]) <= 1 if portrait else 0 <= gap <= 24, (name, "Stop by the square", gap, m["abort"], m["stage"]))
     if portrait:
         # Under the square: no on the left, yes on the right, half the width each
         check(m["absent"]["top"] >= m["stage"]["bottom"] and m["absent"]["right"] <= m["present"]["left"] + 0.5
@@ -1093,6 +1098,8 @@ def assert_results(page, width, language, blocks, name):
     check(got["texts"] == texts[:-2], (name, "the sentences", got["texts"], texts[:-2]))
     check(got["limits"] == texts[-2:], (name, "the limits", got["limits"]))
     check(got["help"] == [fill(L["termHelpLabel"], term=L["slopeWord"])], (name, "the ? of the slope", got["help"]))
+    check(got["sets"] == expected["sets"][language] and got["sets"], (name, "the feature pairs", got["sets"], expected["sets"][language]))
+    check(got["excluded"] == [L["resExcludedNote"]], (name, "what the excluded tries are", got["excluded"]))
     drawn = sum(1 for r in rows if any(v != none for v in r["medians"]))
     medians = sum(1 for r in rows for v in r["medians"] if v != none)
     check(got["charts"] == 1, (name, "one chart", got["charts"]))
@@ -1161,6 +1168,8 @@ def experiment_case(browser, browser_name, url, width, height, language, theme, 
         # The cases with two whole runs take the designs in turn, so that each difference of the two searches comes out
         design = DESIGNS[{4: 0, 6: 3, 12: 4, 14: 2}.get(index, index % len(DESIGNS))]
         blocks = {"feature": None, "conjunction": None}
+        # In some cases the second search uses the other feature pair (the results then say that the pairs differ)
+        sets = (set_, "fill" if set_ == "color" else "color") if index % 4 == 1 else (set_, set_)
         # Esc before the start: the dialog closes, nothing is measured
         exp_open(page, searches[0])
         check(page.locator("#exp-title").inner_text().strip() == fill(L["expTitle"], search=L["termFeature" if searches[0] == "feature" else "termConjunction"],
@@ -1177,6 +1186,7 @@ def experiment_case(browser, browser_name, url, width, height, language, theme, 
         # The first search, whole
         for n, search in enumerate(searches):
             whole = whole_first if n == 0 else both
+            page.locator(f'[data-key="exp:set:{sets[n]}"]').click()
             exp_open(page, search)
             run = Experiment(page, language, touch)
             run.practice(seen=lambda s: (assert_experiment_layout(page, "practice", layouts), shoot("practice")) if n == 0 else None)
@@ -1192,11 +1202,13 @@ def experiment_case(browser, browser_name, url, width, height, language, theme, 
                     page.locator("#exp-abort").click()
                 else:
                     page.keyboard.press("Escape")
-            blocks[search] = {"records": run.records, "aborted": not whole, "granularity": None}
+            blocks[search] = {"records": run.records, "aborted": not whole, "granularity": None, "set": sets[n]}
             expected = expected_results(blocks)
             s = run.state()
             check(s["message"] and L["expDone" if whole else "expAborted"] in s["message"] and s["focus"] == "exp:expShowResults",
                   ("the end of the run", s["message"], s["focus"]))
+            # Nothing is left to stop: no Stop button at the end or once stopped
+            check(not s["stopShown"], ("no Stop at the end", s))
             check(s["results"] == expected["texts"][language][:-2], ("the sentences in the dialog", s["results"]))
             if n == 0 or not whole:
                 shoot("done" if whole else "stopped")
@@ -1296,6 +1308,10 @@ def address_case(browser, browser_name, url, width, height, output):
                 check(at_top(page, place), (value, "moved to", place, page.locator(place).bounding_box()["y"]))
             else:
                 check(page.evaluate("() => scrollY") == 0, (value, "an unknown id is ignored"))
+            # An element that is not pressed (a card) shows no focus line when the browser moves the focus to it
+            ring = page.evaluate("""() => { const a = document.activeElement;
+              return a && a.matches('[tabindex="-1"]:not(button, a)') ? [a.id, getComputedStyle(a).outlineStyle] : null; }""")
+            check(ring is None or ring[1] == "none", (value, "no focus line on a card", ring))
         open_page(url)
         button = page.locator('[data-key="next:popout"]')
         check(button.inner_text().strip() == fill(M["ja"]["nextTab"], tab=M["ja"]["tabSearch"]), "the next-tab button names the tab")

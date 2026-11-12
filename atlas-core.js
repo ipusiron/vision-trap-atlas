@@ -121,8 +121,9 @@
   const isValid = (r) => r.outcome === 'correct' && r.rt >= EARLY_MS && r.rt < TIMEOUT_MS;
   const isError = (r) => r.outcome === 'miss' || r.outcome === 'falseAlarm';
 
-  // records＝本番の回の記録 { setSize, present, outcome, rt, input }。outcome が hidden の回（ページが隠れた）は数えない
-  function summarizeBlock(records, { aborted = false, granularity = null } = {}) {
+  // records＝本番の回の記録 { setSize, present, outcome, rt, input }。outcome が hidden の回（ページが隠れた）は数えない。
+  // set＝測った特徴の組（color・fill。結果に書くため、そのまま持たせる）
+  function summarizeBlock(records, { aborted = false, granularity = null, set = null } = {}) {
     const counted = records.filter((r) => r.outcome !== 'hidden');
     const rows = {};
     for (const present of [true, false]) {
@@ -156,7 +157,7 @@
     const inputs = new Set(counted.filter((r) => r.input).map((r) => (r.input === 'key' ? 'key' : 'pointer')));
     const errors = rows.present.errors + rows.absent.errors, answered = rows.present.answered + rows.absent.answered;
     return {
-      rows, ratio, ratioState, errors, answered, mixedInput: inputs.size > 1, aborted: !!aborted, granularity,
+      rows, ratio, ratioState, errors, answered, mixedInput: inputs.size > 1, aborted: !!aborted, granularity, set,
       measured: counted.length,
     };
   }
@@ -169,9 +170,11 @@
     const out = [];
     const slopes = (b) => (b && b.rows.present.slope !== null && b.rows.absent.slope !== null
       ? { a: round1(b.rows.present.slope), b: round1(b.rows.absent.slope) } : null);
+    // 文の頭（resBoth・resOne*）は、「ある」と「ない」の傾きがそろった探し方で選ぶ。両方を測っても、片方が途中で止まって
+    // 傾きがそろわなければ、そろった側の resOne* を出す
     const fs = slopes(f), cs = slopes(c);
-    if (f && c) { if (fs && cs) out.push({ key: 'resBoth', values: { fa: fs.a, fb: fs.b, ca: cs.a, cb: cs.b } }); }
-    else if (f) { if (fs) out.push({ key: 'resOneFeature', values: { a: fs.a, b: fs.b } }); }
+    if (fs && cs) out.push({ key: 'resBoth', values: { fa: fs.a, fb: fs.b, ca: cs.a, cb: cs.b } });
+    else if (fs) out.push({ key: 'resOneFeature', values: { a: fs.a, b: fs.b } });
     else if (cs) out.push({ key: 'resOneConj', values: { a: cs.a, b: cs.b } });
     if (f && c && f.rows.absent.slope !== null && c.rows.absent.slope !== null) {
       const d = round1(round1(c.rows.absent.slope) - round1(f.rows.absent.slope));
