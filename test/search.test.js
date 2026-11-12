@@ -142,7 +142,7 @@ function runBlock(clock, exp, rtFn, input = 'key') {
   for (let i = 0; i < 8; i += 1) runTry(clock, exp, { rt: rtFn, input });
   assert.equal(exp.state().phase, 'practiceDone');
   exp.proceed();
-  for (let i = 0; i < 64; i += 1) runTry(clock, exp, { rt: rtFn, input });
+  for (let i = 0; i < 32; i += 1) runTry(clock, exp, { rt: rtFn, input });
   assert.equal(exp.state().phase, 'done');
 }
 
@@ -220,23 +220,28 @@ test('D: wrong answers give fbMiss and fbFalse', () => {
   assert.deepEqual([...new Set(outcomes)].sort(), ['falseAlarm', 'miss']);
 });
 
-test('D: a full block gives the known slopes; the 8 practice tries are not in the summary', () => {
+test('D: a full block (8 practice and 32 recorded tries) gives the known slopes; the practice tries are not in the summary', () => {
   const clock = fakeTime(), exp = createExp(clock);
   runBlock(clock, exp, (trial) => (trial.present ? 450 + 10 * trial.setSize : 500 + 25 * trial.setSize));
   const st = exp.state();
   assert.equal(st.practiceRecords.length, 8);
-  assert.equal(st.records.length, 64);
+  assert.equal(st.records.length, 32);
+  assert.equal(st.mainTotal, 32);
+  // Four recorded tries for each number of items with the bar there and not there
+  for (const n of C.SET_SIZES) for (const present of [true, false]) {
+    assert.equal(st.records.filter((r) => r.setSize === n && r.present === present).length, 4, `${n} ${present}`);
+  }
   const s = exp.summary();
   assert.ok(Math.abs(s.rows.present.slope - 10) < 1e-9);
   assert.ok(Math.abs(s.rows.present.intercept - 450) < 1e-9);
   assert.ok(Math.abs(s.rows.absent.slope - 25) < 1e-9);
   assert.equal(s.ratio, 2.5);
-  assert.equal(s.answered, 64);
+  assert.equal(s.answered, 32);
   assert.equal(s.aborted, false);
   assert.equal(s.mixedInput, false);
 });
 
-test('D: an early try in the recorded block is moved to the end once, so the block still ends with 64 counted tries', () => {
+test('D: an early try in the recorded block is moved to the end once, so the block still ends with 32 counted tries', () => {
   const clock = fakeTime(), exp = createExp(clock);
   exp.start();
   for (let i = 0; i < 8; i += 1) runTry(clock, exp, { rt: () => 600 });
@@ -249,9 +254,9 @@ test('D: an early try in the recorded block is moved to the end once, so the blo
   clock.frame(clock.now() + 300);
   let tries = 0;
   while (exp.state().phase !== 'done') { runTry(clock, exp, { rt: () => 600 }); tries += 1; }
-  assert.equal(tries, 64, 'the early try comes back at the end');
+  assert.equal(tries, 32, 'the early try comes back at the end');
   const st = exp.state();
-  assert.equal(st.records.length, 65);
+  assert.equal(st.records.length, 33);
   assert.equal(st.records[0].outcome, 'early');
   assert.deepEqual([st.records.at(-1).setSize, st.records.at(-1).present, st.records.at(-1).requeued], [first.setSize, first.present, true]);
 });
@@ -277,7 +282,7 @@ test('D: a hidden page stops the try without counting it, then "Resume" goes on;
   assert.equal(exp.state().phase, 'paused', 'coming back shows "Resume" and waits');
   exp.resume();
   assert.equal(exp.state().phase, 'fixation');
-  assert.deepEqual(exp.state().progress, { block: 'main', i: 4, total: 64 });
+  assert.deepEqual(exp.state().progress, { block: 'main', i: 4, total: 32 });
   runTry(clock, exp, { rt: () => 600 });
   exp.abort();
   const st = exp.state();
@@ -319,7 +324,7 @@ test('D: the same seed gives the same order of tries; the color and fill sets ke
 
 // ----- result sentences -----
 // A block summary with given slopes (null = not measured), error counts and marks
-function block({ a = null, b = null, errors = 0, answered = 64, aborted = false, mixed = false, granularity = 0.1 } = {}) {
+function block({ a = null, b = null, errors = 0, answered = 32, aborted = false, mixed = false, granularity = 0.1 } = {}) {
   const ratioState = a === null || b === null ? null : C.round1(a) < 1 ? 'below1' : 'ok';
   return {
     rows: { present: { slope: a }, absent: { slope: b } }, ratioState,
@@ -355,15 +360,19 @@ test('D: resultCases: both searches measured, but only one has both slopes (the 
     ['resNoSlope', 'resNoSlope', 'resDevice', 'resLimits']);
 });
 
-test('D: resultCases: the absent-slope difference at 10.0, 9.9, −9.9 and −10.0 (after rounding)', () => {
+test('D: resultCases: the absent-slope difference at 15.0, 14.9, −14.9 and −15.0 (after rounding)', () => {
+  assert.equal(C.CMP_STEP, 15);
   const cmp = (fb, cb) => C.resultCases({ feature: block({ a: 2, b: fb }), conjunction: block({ a: 5, b: cb }) })[1];
-  assert.deepEqual(cmp(20, 30), { key: 'resCmpLarger', values: { d: 10 } });
-  assert.equal(cmp(20, 29.9).key, 'resCmpSimilar');
-  assert.equal(cmp(20, 10.1).key, 'resCmpSimilar');
-  assert.equal(cmp(20, 10).key, 'resCmpSmaller');
-  // The comparison uses the shown values: 10.04 and 20.0 are shown as 10.0 and 20.0, a difference of 10.0
-  assert.equal(cmp(10.04, 20).key, 'resCmpLarger');
-  assert.equal(cmp(10.05, 20).key, 'resCmpSimilar', '10.05 is shown as 10.1');
+  assert.deepEqual(cmp(20, 35), { key: 'resCmpLarger', values: { d: 15 } });
+  assert.equal(cmp(20, 34.9).key, 'resCmpSimilar');
+  assert.equal(cmp(20, 20).key, 'resCmpSimilar');
+  assert.equal(cmp(20, 5.1).key, 'resCmpSimilar');
+  assert.equal(cmp(20, 5).key, 'resCmpSmaller');
+  // The comparison uses the shown values: 10.04 and 25.0 are shown as 10.0 and 25.0, a difference of 15.0
+  assert.equal(cmp(10.04, 25).key, 'resCmpLarger');
+  assert.equal(cmp(10.05, 25).key, 'resCmpSimilar', '10.05 is shown as 10.1');
+  assert.equal(cmp(25, 10.04).key, 'resCmpSmaller', 'a difference of −15.0');
+  assert.equal(cmp(25, 10.05).key, 'resCmpSimilar', 'a difference of −14.9');
   // No comparison when one absent slope is missing
   assert.ok(!keys(C.resultCases({ feature: block({ a: 2, b: 20 }), conjunction: block({ a: 5, b: null }) })).some((k) => k.startsWith('resCmp')));
 });

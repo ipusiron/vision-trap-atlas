@@ -834,7 +834,7 @@
     { id: 'conjunction.present', search: 'conjunction', side: 'present', color: 'seriesOthers-0', marker: 'triangle', open: false },
     { id: 'conjunction.absent', search: 'conjunction', side: 'absent', color: 'seriesOthers-0', marker: 'triangle', open: true },
   ]);
-  // 表の値（表示と同じ丸め）：本数ごとの真ん中の値は整数のミリ秒、傾きは小数1桁の文字、正答率は整数の%、除いた回数。出せない値は null。
+  // 表の値（表示と同じ丸め）：図形の数ごとの真ん中の値は整数のミリ秒、傾きは小数1桁の文字、正答率は整数の%、除いた回数。出せない値は null。
   // results＝{ feature: summarizeBlock の結果か null, conjunction: 同じ }
   function resultRows(results) {
     return RESULT_SERIES.map((sr) => {
@@ -864,7 +864,7 @@
     const sr = RESULT_SERIES.find((s) => s.id === id);
     return { width: 32, height: 14, shapes: [line(2, 7, 30, 7, `stroke-${sr.color} fig-series${sr.open ? ' line-dashed' : ''}`), resultMarker(sr, 16, 7)] };
   }
-  // 結果のグラフ：横軸＝本数（0〜18）、縦軸＝見つけるまでの時間（0から）。点は真ん中の値で、線はその点を本数の順に結ぶ。
+  // 結果のグラフ：横軸＝図形の数（0〜18）、縦軸＝見つけるまでの時間（0から）。点は真ん中の値で、線はその点を図形の数の順に結ぶ。
   // wide のときは線の右端の高さに名前を書き、重なるときは13ずつずらして、端の点から名前へ短い線を引く（印は重ねない）。
   // 狭い画面では名前を書かず、凡例を文字で置く
   function resultChart(results, { wide = false, t }) {

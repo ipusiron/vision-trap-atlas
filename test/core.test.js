@@ -47,13 +47,15 @@ test('A: gridLayout picks distinct cells inside the frame with centers within ±
   assert.throws(() => C.gridLayout({ n: -1, size, rng: C.xorshift32(1) }), RangeError);
 });
 
-test('A: makeSearchTrials gives 8 practice and 64 recorded tries with fixed counts per condition', () => {
+test('A: makeSearchTrials gives 8 practice and 32 recorded tries: 1 and 4 for each number of items with the bar there and not there', () => {
+  assert.equal(C.MAIN_REPS, 4);
+  assert.equal(C.PRACTICE_REPS, 1);
   for (const search of ['feature', 'conjunction']) {
     for (const set of ['color', 'fill']) {
       const t = C.makeSearchTrials({ search, set, rng: C.xorshift32(42) });
       assert.equal(t.practice.length, 8);
-      assert.equal(t.main.length, 64);
-      for (const [list, per] of [[t.practice, 1], [t.main, 8]]) {
+      assert.equal(t.main.length, 32);
+      for (const [list, per] of [[t.practice, 1], [t.main, 4]]) {
         for (const n of [3, 6, 12, 18]) {
           for (const present of [true, false]) {
             assert.equal(list.filter((x) => x.setSize === n && x.present === present).length, per, `${search} ${n} ${present}`);
@@ -123,8 +125,8 @@ test('A: median and fitLine give the known values', () => {
   assert.equal(C.fitLine([{ x: 3, y: 500 }, { x: 6, y: 530 }]), null);
 });
 
-// Records for summarizeBlock: valid tries with rt = a + b × setSize
-function records({ present = true, sizes = [3, 6, 12, 18], count = 8, a = 500, b = 10, input = 'key' } = {}) {
+// Records for summarizeBlock: valid tries with rt = a + b × setSize (4 per number of items, as in a recorded block)
+function records({ present = true, sizes = [3, 6, 12, 18], count = 4, a = 500, b = 10, input = 'key' } = {}) {
   const out = [];
   for (const setSize of sizes) for (let i = 0; i < count; i += 1) out.push({ setSize, present, outcome: 'correct', rt: a + b * setSize, input });
   return out;
@@ -139,22 +141,30 @@ test('A: summarizeBlock gives medians, slopes and the ratio, and leaves out trie
   close(s.rows.absent.slope, 25);
   assert.equal(s.ratio, 2.5);
   assert.equal(s.ratioState, 'ok');
-  assert.equal(s.rows.present.cells[3].n, 8, 'the hidden try is not counted');
+  assert.equal(s.rows.present.cells[3].n, 4, 'the hidden try is not counted');
   assert.equal(s.rows.present.cells[3].median, 530);
   assert.equal(s.mixedInput, false);
   assert.equal(s.aborted, false);
   assert.equal(s.granularity, 0.1);
-  assert.equal(s.answered, 64);
+  assert.equal(s.answered, 32);
   assert.equal(s.errors, 0);
   assert.equal(s.rows.present.accuracy, 1);
 });
 
-test('A: summarizeBlock needs 4 valid tries for a median and 3 set sizes for a slope', () => {
-  const three = records({ sizes: [3], count: 3 });
-  const s1 = C.summarizeBlock([...three, ...records({ sizes: [6, 12, 18] })]);
-  assert.equal(s1.rows.present.cells[3].valid, 3);
-  assert.equal(s1.rows.present.cells[3].median, null);
-  assert.notEqual(s1.rows.present.slope, null, 'three set sizes still give a slope');
+test('A: summarizeBlock gives a middle value from 3 valid tries but not from 2, and needs 3 numbers of items for a slope', () => {
+  assert.equal(C.MIN_VALID, 3);
+  // Four tries of one condition with one wrong answer: three valid tries still give the middle value
+  const wrong = (setSize, rt = 900) => ({ setSize, present: true, outcome: 'miss', rt, input: 'key' });
+  const three = C.summarizeBlock([...records({ sizes: [3], count: 3 }), wrong(3), ...records({ sizes: [6, 12, 18] })]);
+  assert.equal(three.rows.present.cells[3].n, 4);
+  assert.equal(three.rows.present.cells[3].valid, 3);
+  assert.equal(three.rows.present.cells[3].median, 530);
+  assert.equal(three.rows.present.cells[3].errors, 1);
+  // Two wrong answers: two valid tries give no middle value; the other three numbers of items still give a slope
+  const two = C.summarizeBlock([...records({ sizes: [3], count: 2 }), wrong(3), wrong(3), ...records({ sizes: [6, 12, 18] })]);
+  assert.equal(two.rows.present.cells[3].valid, 2);
+  assert.equal(two.rows.present.cells[3].median, null);
+  assert.notEqual(two.rows.present.slope, null, 'three numbers of items still give a slope');
   const s2 = C.summarizeBlock(records({ sizes: [3, 6] }));
   assert.equal(s2.rows.present.slope, null);
   assert.equal(s2.ratio, null);
@@ -172,7 +182,7 @@ test('A: summarizeBlock counts early, timeout and wrong tries as excluded, and n
   assert.equal(s.rows.present.early, 1);
   assert.equal(s.rows.present.timeout, 1);
   assert.equal(s.rows.present.errors, 1);
-  assert.equal(s.rows.present.cells[6].valid, 8, 'a correct answer under 200 ms is not valid');
+  assert.equal(s.rows.present.cells[6].valid, 4, 'a correct answer under 200 ms is not valid');
   assert.equal(s.mixedInput, true);
   assert.equal(s.aborted, true);
   assert.equal(s.rows.absent.slope, null);

@@ -99,11 +99,12 @@
   // ===== 探す実験 =====
   // 段：ready → fixation → stimulus → feedback → gap → （次の回）… → practiceDone → … → done。ほかに paused（ページが隠れた）・aborted
   const FEEDBACK = { correct: 'fbCorrect', miss: 'fbMiss', falseAlarm: 'fbFalse', early: 'fbEarly', timeout: 'fbTimeout' };
-  function createExperiment({ now, raf, seed32, search, set = 'color', onChange = () => {}, timing = {}, granularity, reps, practiceReps }) {
+  // 1回の実験＝練習8回と本番32回（段ごと・ある／ないごとに練習1回・本番4回。AtlasCoreの既定値）
+  function createExperiment({ now, raf, seed32, search, set = 'color', onChange = () => {}, timing = {}, granularity,
+    reps = Core.MAIN_REPS, practiceReps = Core.PRACTICE_REPS }) {
     const T = { ...TIMING, ...timing };
     const seed = seed32() >>> 0 || 1;
-    const trials = Core.makeSearchTrials({ search, set, rng: Core.xorshift32(seed), ...(reps ? { reps } : {}),
-      ...(practiceReps ? { practiceReps } : {}) });
+    const trials = Core.makeSearchTrials({ search, set, rng: Core.xorshift32(seed), reps, practiceReps });
     const s = {
       search, set, phase: 'ready', block: 'practice', list: trials.practice.slice(), index: 0, resolved: 0, total: trials.practice.length,
       progress: null, trial: null, visible: false, fixStart: null, shownAt: null, t0: null, fbStart: null, gapStart: null, feedback: null,

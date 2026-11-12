@@ -13,9 +13,14 @@
   const SET_SIZES = Object.freeze([3, 6, 12, 18]);
   const EARLY_MS = 200;     // これより速い反応は早すぎとして数えない
   const TIMEOUT_MS = 4000;  // 表示の上限と集計の上限を同じ値にする
-  const MIN_VALID = 4;      // 中央値を出すのに要る有効な回の数
+  const MAIN_REPS = 4;      // 本番の回数：段（図形の数）ごと・ある／ないごとに4回（4段×2×4＝32回）
+  const PRACTICE_REPS = 1;  // 練習の回数：段ごと・ある／ないごとに1回（8回）
+  // 中央値を出すのに要る有効な回の数。1つの条件は4回なので、押し間違いが1回あっても中央値が出るように3回にする
+  const MIN_VALID = 3;
   const MIN_POINTS = 3;     // 傾きを出すのに要る段の数
-  const CMP_STEP = 10;      // 「ない」の傾きの差で文を選ぶ幅（ミリ秒／項目）。判定の境目ではない
+  // 「ない」の傾きの差で文を選ぶ幅（ミリ秒／項目）。判定の境目ではない。4回の中央値から出した2つの傾きの差のぶれ（約15ミリ秒／項目
+  // と見積もった）の1つ分にそろえる
+  const CMP_STEP = 15;
   const ERROR_PERCENT = 10; // 押し間違いの文を出す割合（答えた回に対する%）
   const COARSE_MS = 5;      // 時刻の細かさの注記を出す値
 
@@ -74,7 +79,7 @@
   }
 
   // 1ブロック＝練習（各段×ある・ない×practiceReps）と本番（各段×ある・ない×reps）。回数を固定して乱数で混ぜる
-  function makeSearchTrials({ search, set = 'color', setSizes = SET_SIZES, reps = 8, practiceReps = 1, rng, size = 360 }) {
+  function makeSearchTrials({ search, set = 'color', setSizes = SET_SIZES, reps = MAIN_REPS, practiceReps = PRACTICE_REPS, rng, size = 360 }) {
     if (search !== 'feature' && search !== 'conjunction') throw new Error('unknown search ' + search);
     if (set !== 'color' && set !== 'fill') throw new Error('unknown set ' + set);
     const build = (k) => shuffle(setSizes.flatMap((setSize) => [true, false].flatMap((present) =>
@@ -388,7 +393,7 @@
   }
 
   return Object.freeze({
-    SET_SIZES, EARLY_MS, TIMEOUT_MS, MIN_VALID, MIN_POINTS, CMP_STEP, ERROR_PERCENT, COARSE_MS,
+    SET_SIZES, EARLY_MS, TIMEOUT_MS, MAIN_REPS, PRACTICE_REPS, MIN_VALID, MIN_POINTS, CMP_STEP, ERROR_PERCENT, COARSE_MS,
     round1, round2, xorshift32, randInt, unit, shuffle, gridLayout, makeSearchTrials, classify, requeue, median, fitLine,
     summarizeBlock, resultCases, timerGranularity, mixHex, relativeLuminance, contrastRatio, barCorners, polygonPath, polylinePath,
     proximityDots, dashForGap, sectorPaths, sectorPath, baselineRatio, areaScales, dualAxisCrossings, niceRange, meanAbsAngle,

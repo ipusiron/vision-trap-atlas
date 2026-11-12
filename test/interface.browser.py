@@ -316,11 +316,43 @@ def assert_heading(page, language):
     check(levels[0] == 1 and all(b - a <= 1 for a, b in zip(levels, levels[1:])), ("heading levels", levels))
 
 
-def assert_first_view(page, language):
-    """The introduction, the contrast table and the tabs are filled in (in the language of the page)."""
+# Each "?" of the table heads and the last character of its heading: the "?" stands on the line of that character
+HEAD_HELP = """() => Array.from(document.querySelectorAll('#contrast-table thead .term-help'), b => {
+  const th = b.closest('th'), rb = b.getBoundingClientRect(), cell = th.getBoundingClientRect(), mid = (rb.top + rb.bottom) / 2;
+  const walker = document.createTreeWalker(th, NodeFilter.SHOW_TEXT); let node, last = null;
+  while ((node = walker.nextNode())) {
+    if (b.contains(node) || node.parentElement.closest('.term-tip')) continue;
+    for (let i = 0; i < node.length; i++) {
+      if (/\\s/.test(node.data[i])) continue;
+      const r = document.createRange(); r.setStart(node, i); r.setEnd(node, i + 1);
+      const x = r.getClientRects()[0]; if (x && x.width > 0) last = {top: x.top, bottom: x.bottom, right: x.right};
+    }
+  }
+  return {key: b.dataset.term, last, top: rb.top, bottom: rb.bottom, mid, left: rb.left, right: rb.right, cellRight: cell.right};
+})"""
+
+
+def assert_first_view(page, language, width):
+    """The introduction (the purpose and what the atlas lets you do), the contrast table and the tabs are filled in (in the language of
+    the page)."""
     assert_language_text(page.locator(".intro-short").inner_text(), language, "introduction")
     check(page.locator(".intro-short").inner_text() == M[language]["introShort"], "introduction text")
     check(not page.locator("#intro-more").evaluate("el => el.open"), "the full introduction starts closed")
+    # What the atlas lets you do: a heading and four items under the purpose, shown from the start (outside "Read more")
+    features = page.locator("#intro-features")
+    check(features.is_visible() and features.evaluate("el => !el.closest('details')"), "the list of what you can do is shown from the start")
+    check(page.locator("#intro-features-heading").inner_text() == M[language]["introFeaturesHeading"], "the heading of the list")
+    items = [t.strip() for t in page.locator(".intro-features-list > li").all_inner_texts()]
+    check(items == [M[language][f"introFeature{n}"] for n in (1, 2, 3, 4)], ("the four items", items))
+    boxes = [page.locator(s).bounding_box() for s in (".intro-short", "#intro-features", "#intro-more")]
+    check(boxes[0]["y"] < boxes[1]["y"] < boxes[2]["y"], ("the purpose, the list, then Read more", boxes))
+    if width >= 1000:
+        # Wide screens: the lines stop at about 46 characters (46rem)
+        check(all(b["width"] <= 736.5 for b in boxes[:2]), ("not spread over the whole width", boxes))
+    # The "?" of a table heading is right after the last character, never alone on the next line, and inside its cell
+    for h in page.evaluate(HEAD_HELP):
+        check(h["last"] and h["last"]["top"] - 2 <= h["mid"] <= h["last"]["bottom"] + 2, ("the ? on the line of its heading", h))
+        check(0 <= h["left"] - h["last"]["right"] <= 8 and h["right"] <= h["cellRight"] + 0.5, ("the ? right after the heading", h))
     check(page.locator("#contrast-line").inner_text() == M[language]["contrastLine"], "contrast line")
     cells = page.locator("#contrast-table tbody th, #contrast-table tbody td").all_inner_texts()
     check(len(cells) == 9 and all(c.strip() for c in cells), ("contrast table", cells))
@@ -362,10 +394,12 @@ def test_tabs(page, width, layouts, language):
         assert_selected(page, group)
         heading = page.locator(f"#heading-{group}").evaluate(VISIBLE_TEXT)
         check(heading == heading_text(group, language), ("panel heading", group, heading))
-        # The tab bar is on the screen: pressing a tab does not move the page; the address ends with the group (no new history)
+        # The tab bar is on the screen: pressing a tab does not move the page; the address ends with the group (no new history).
+        # When the new panel is so short that the page cannot reach the old place, the browser stops at the end of the page
         top = page.locator("#tabs").bounding_box()["y"]
         if top >= 0:
-            check(abs(page.evaluate("() => scrollY") - y) <= 1, ("the page did not move", group))
+            now, end = page.evaluate("() => [scrollY, document.documentElement.scrollHeight - innerHeight]")
+            check(abs(now - y) <= 1 or (now < y and y > end and abs(now - end) <= 1), ("the page did not move", group, y, now, end))
         check(page.url.endswith("#" + group), ("address", page.url))
         assert_layout(page, width, "tab-" + group, layouts)
     check(page.evaluate("() => history.length") == history, "a tab adds no history entry")
@@ -570,7 +604,24 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
     shot(page, screenshot)
 
 
-def test_entry_nav(page, language):
+# The bottom edges of the figure and of the small figures of a card, on the screen
+FIGURE_BOTTOMS = """id => { const c = document.getElementById(id);
+  return {frame: c.querySelector('.figure-frame').getBoundingClientRect().bottom, inner: innerHeight,
+    uses: Array.from(c.querySelectorAll('.use-figure svg'), s => s.getBoundingClientRect().bottom)}; }"""
+
+
+def assert_figure_on_screen(page, card, width, height):
+    """From 720px the square figure is held by the height of the screen too: right after moving to the card, its bottom edge is on
+    the screen (and at 1280x800 the small figures beside it as well)."""
+    if width < 720:
+        return
+    b = page.evaluate(FIGURE_BOTTOMS, card)
+    check(b["frame"] <= b["inner"], (card, "the bottom of the figure on the screen", b))
+    if (width, height) == (1280, 800):
+        check(max(b["uses"]) <= b["inner"], (card, "the small figures on the screen", b))
+
+
+def test_entry_nav(page, language, width, height):
     """"Entries in this tab": a button moves to its card (at the top of the screen), and the button at the end of the card comes back."""
     page.locator("#tab-popout").click()
     hint = page.locator("#nav-popout .section-nav-hint").inner_text()
@@ -579,6 +630,7 @@ def test_entry_nav(page, language):
         page.locator(f'[data-key="nav:{card}"]').click()
         top = page.locator("#" + card).bounding_box()["y"]
         check(abs(top) <= 12, (card, "the card at the top of the screen", top))
+        assert_figure_on_screen(page, card, width, height)
         check(page.evaluate("() => document.activeElement.id") == card, (card, "the card has the focus"))
         page.locator(f'[data-key="back:{card}"]').click()
         top = page.locator("#nav-popout").bounding_box()["y"]
@@ -621,7 +673,7 @@ def matrix_case(browser, browser_name, url, width, height, language, theme, outp
         assert_preference(page, language, theme)
         assert_ready_state(page, language)
         assert_heading(page, language)
-        assert_first_view(page, language)
+        assert_first_view(page, language, width)
         assert_layout(page, width, "initial", layouts)
         shot(page, output / (name + "-initial.png"))
         tabs = test_tab_names(page, width, language)
@@ -630,7 +682,7 @@ def matrix_case(browser, browser_name, url, width, height, language, theme, outp
         test_terms(page, width, language, browser_name == "chromium" and width < 720, output / (name + "-term.png"))
         for card in CARDS:
             test_card_controls(page, width, dict(SIZES)[width], layouts, language, card, output / (name + "-" + card + ".png"))
-        test_entry_nav(page, language)
+        test_entry_nav(page, language, width, height)
         if language == "en":
             text = page.evaluate("() => { const c = document.body.cloneNode(true); c.querySelectorAll('noscript').forEach(n => n.remove()); "
                                  "return c.textContent; }")
@@ -1117,7 +1169,7 @@ def assert_results(page, width, language, blocks, name):
 
 def experiment_case(browser, browser_name, url, width, height, language, theme, output, index):
     """The Search time tab and its experiment with the clock held: the tab before measuring, the feature pair, Esc before the start,
-    a whole block (practice, then 64 recorded tries with keys and buttons, a too early answer, a time-out, a hidden page and wrong
+    a whole block (practice, then 32 recorded tries with keys and buttons, a too early answer, a time-out, a hidden page and wrong
     answers), the other search whole or stopped, Stop during the practice, the results against AtlasCore, and Clear."""
     name = f"{browser_name}-{width}-{language}-{theme}-exp"
     touch = browser_name == "chromium" and width < 720
@@ -1190,12 +1242,13 @@ def experiment_case(browser, browser_name, url, width, height, language, theme, 
             exp_open(page, search)
             run = Experiment(page, language, touch)
             run.practice(seen=lambda s: (assert_experiment_layout(page, "practice", layouts), shoot("practice")) if n == 0 else None)
-            mistakes = range(50, 58) if index % 3 == 0 else (8, 50)
+            # Four wrong answers (about 13% of the 31 answered tries: the sentence of the wrong answers) or two (about 6%: none)
+            mistakes = range(22, 26) if index % 3 == 0 else (8, 24)
             tries = run.recorded(design[search], mistakes=mistakes if whole else (8,), mixed=index % 2 == 1,
                                  stop_after=None if whole else 20 if n == 0 else 6,
                                  seen=lambda s: (assert_experiment_layout(page, "recorded", layouts), shoot("recorded")) if n == 0 else None)
             if whole:
-                check(tries == 67, ("64 recorded tries and the three that came back", tries))
+                check(tries == 35, ("32 recorded tries and the three that came back", tries))
             else:
                 # Stopped: Esc (or the Stop button) keeps what was measured
                 if index % 2:
@@ -1300,14 +1353,17 @@ def address_case(browser, browser_name, url, width, height, output):
         return page
 
     try:
-        for value, tab, place in (("popout-asymmetry", "popout", "#popout-asymmetry"), ("misread", "misread", "#tabs"),
-                                  ("gestalt-contour", "gestalt", "#tabs"), ("search-time", "search", "#search-time"), ("xyz", "popout", None)):
+        for value, tab, place in (("popout-feature", "popout", "#popout-feature"), ("popout-asymmetry", "popout", "#popout-asymmetry"),
+                                  ("misread", "misread", "#tabs"), ("gestalt-contour", "gestalt", "#tabs"), ("search-time", "search", "#search-time"),
+                                  ("xyz", "popout", None)):
             open_page(with_hash(url, value))
             assert_selected(page, tab)
             if place:
                 check(at_top(page, place), (value, "moved to", place, page.locator(place).bounding_box()["y"]))
             else:
                 check(page.evaluate("() => scrollY") == 0, (value, "an unknown id is ignored"))
+            if value in CARDS:
+                assert_figure_on_screen(page, value, width, height)
             # An element that is not pressed (a card) shows no focus line when the browser moves the focus to it
             ring = page.evaluate("""() => { const a = document.activeElement;
               return a && a.matches('[tabindex="-1"]:not(button, a)') ? [a.id, getComputedStyle(a).outlineStyle] : null; }""")

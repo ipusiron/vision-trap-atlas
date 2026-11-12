@@ -74,7 +74,7 @@ test('F: the 35 terms have a word and a meaning in both languages; the first 19 
 
 test('F: the tab names and their specialist words', () => {
   const tabs = ['tabPopout', 'tabSearch', 'tabGestalt', 'tabFigureGround', 'tabMisread'];
-  assert.deepEqual(tabs.map((k) => M.ja[k]), ['浮く', '探す時間', 'まとまる', '図と地', '誤読']);
+  assert.deepEqual(tabs.map((k) => M.ja[k]), ['目立つ', '探す時間', 'まとまる', '図と地', '誤読']);
   assert.deepEqual(tabs.map((k) => M.ja[k + 'Term']), ['前注意の特徴', '視覚探索', 'ゲシュタルトの法則', '図と地の分化', 'グラフ']);
   assert.deepEqual(tabs.map((k) => M.en[k]), ['Pop out', 'Search time', 'Grouping', 'Figure and ground', 'Misreading']);
   assert.deepEqual(tabs.map((k) => M.en[k + 'Term']), ['Preattentive features', 'Visual search', 'Gestalt principles', 'Figure–ground', 'Charts']);
@@ -111,6 +111,22 @@ test('F: index.html uses existing keys, and its first text equals the Japanese d
     const m = html.match(new RegExp(`<h2 id="heading-${g.id}" class="panel-heading">([^<]+)</h2>`));
     assert.equal(m[1], M.ja[g.labelKey] + '（' + M.ja[g.termKey] + '）', g.id);
   }
+});
+
+test('F: the purpose and the four things this atlas lets you do are shown from the start; the line over the short table is a title', () => {
+  const start = html.indexOf('data-i18n="introShort"'), more = html.indexOf('<details id="intro-more"');
+  assert.ok(start > 0 && more > start);
+  const block = html.slice(start, more);
+  assert.match(block, /<section id="intro-features" class="intro-features" aria-labelledby="intro-features-heading">/);
+  assert.match(block, /<h2 id="intro-features-heading" class="intro-features-heading" data-i18n="introFeaturesHeading">/);
+  const list = block.match(/<ul class="intro-features-list">([\s\S]*?)<\/ul>/)[1];
+  assert.deepEqual([...list.matchAll(/<li data-i18n="(\w+)">/g)].map((m) => m[1]), ['introFeature1', 'introFeature2', 'introFeature3', 'introFeature4']);
+  // The order of the tabs and the two uses stay behind "Read more"
+  const details = html.slice(more, html.indexOf('</details>', more));
+  assert.deepEqual([...details.matchAll(/data-i18n="(\w+)"/g)].map((m) => m[1]), ['introMore', 'intro1', 'intro2']);
+  // A title, not a sentence
+  assert.doesNotMatch(M.ja.contrastLine, /。$/);
+  assert.doesNotMatch(M.en.contrastLine, /\.$/);
 });
 
 test('F: the language button shows EN on the Japanese page and JA on the English page, and its name starts with the same letters', () => {

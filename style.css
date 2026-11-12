@@ -125,9 +125,14 @@ h1 span, h2, h3 { color: var(--accent); }
 .startup-note p { margin: 0; }
 .startup-note a { display: inline-flex; min-height: 44px; align-items: center; }
 
-/* Introduction: one sentence at every width, the rest behind "Read more" */
+/* Introduction: the purpose (one paragraph) and what this atlas lets you do (four items) are shown from the start; the order of the
+   tabs and the two uses (charts and camouflage) are behind "Read more". On wide screens a line stops at about 46 characters */
 .intro { margin: .25rem 0; font-size: .9375rem; line-height: 1.5; overflow-wrap: anywhere; }
-.intro-short { margin: .4rem 0 0; }
+.intro-short { max-width: 46rem; margin: .4rem 0 0; }
+.intro-features { max-width: 46rem; margin: .6rem 0 .15rem; }
+.intro-features-heading { margin: 0 0 .15rem; font-size: 1rem; line-height: 1.4; }
+.intro-features-list { margin: 0; padding-left: 1.25rem; font-size: .9375rem; line-height: 1.5; overflow-wrap: anywhere; }
+.intro-features-list li + li { margin-top: .15rem; }
 .intro-more { margin: 0 0 .3rem; padding: 0; border: 0; border-radius: 0; background: none; }
 .intro-more[open] { padding-bottom: 0; }
 .intro-more > summary {
@@ -135,13 +140,23 @@ h1 span, h2, h3 { color: var(--accent); }
 }
 .intro-more[open] > summary { margin-bottom: .2rem; border-bottom: 0; }
 
-/* The contrast line and the short table (the trait, the showing side, the hiding side). The block is where a tooltip of its
-   headings lines up on the right */
+/* The title of the short table (a title, not a sentence: bold, in the letters of the table) and the table (what the eye does, the
+   showing side, the hiding side). The block is where a tooltip of its headings lines up on the right */
 .contrast { position: relative; margin: .4rem 0 .2rem; }
-.contrast-line { margin: 0 0 .35rem; font-weight: 700; font-size: .9375rem; line-height: 1.5; }
+.contrast-line { margin: 0 0 .25rem; font-weight: 700; font-size: .875rem; line-height: 1.45; }
 .contrast-table { table-layout: fixed; background: var(--paper); font-size: .875rem; line-height: 1.45; }
 .contrast-table .col-trait { width: 22%; }
 .contrast-table th[scope="row"] { color: var(--accent); }
+/* The "?" of a heading goes with the last piece of the heading (app.js); nothing follows it in the cell */
+.contrast-table thead .term-help { margin-right: 0; }
+/* The narrowest screens: smaller letters and cell sides (as the tables of the results), so that 「（見せる側）」 and its "?" share
+   a line and a word of the first column (Grouping) stays whole */
+@media (max-width: 379px) {
+  .contrast-line { font-size: .8125rem; }
+  .contrast-table { font-size: .75rem; }
+  .contrast-table .col-trait { width: 23%; }
+  .contrast-table th, .contrast-table td { padding-inline: .3rem; }
+}
 
 /* A piece that app.js keeps on one line (の法則 of ゲシュタルト｜の法則, a short quote such as 「探して押す」) */
 .joined { white-space: nowrap; }
@@ -570,13 +585,21 @@ svg.res-key { display: block; width: 32px; height: 14px; }
   .entry-stage { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-areas: "main uses" "read uses"; align-items: start; }
   .entry-read { align-self: start; }
   .uses-list { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
-  .entry.square .figure-frame { max-width: 27.5rem; }
   .controls { grid-template-columns: repeat(2, minmax(0, 18rem)); }
+  /* 1-1 and 1-2: the side of the square figure, clamp(17rem, 100vh - 28rem, 27.5rem), is held by the height of the screen too, so that
+     right after moving to the entry its bottom edge is on a 1280×800 screen; never under 17rem, where a cell of the 6×6 grid is still
+     44px or more. Its column is as wide as the square (or the 60% of the other cards when that is narrower), and the small figures
+     keep their size to it (0.6 of the side here, 13/27.5 of it from 1000px) */
+  .entry.square .entry-stage {
+    grid-template-columns: minmax(0, min(clamp(17rem, 100vh - 28rem, 27.5rem), (100% - 1rem) * .6)) minmax(0, 1fr);
+  }
+  .entry.square .figure-frame { max-width: clamp(17rem, 100vh - 28rem, 27.5rem); }
+  .entry.square .use-figure { max-width: clamp(17rem * .6, (100vh - 28rem) * .6, 27.5rem * .6); }
 }
-/* Wide screens: the square figure keeps its size, and each small figure has its sentences beside it */
+/* Wide screens: each small figure has its sentences beside it */
 @media (min-width: 1000px) {
-  .entry.square .entry-stage { grid-template-columns: minmax(0, 27.5rem) minmax(0, 1fr); }
   .use { display: grid; grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); grid-template-areas: "label label" "figure texts"; gap: 0 .8rem; }
+  .entry.square .use { grid-template-columns: minmax(0, clamp(17rem * 13 / 27.5, (100vh - 28rem) * 13 / 27.5, 13rem)) minmax(0, 1fr); }
   .use-label { grid-area: label; }
   .use-figure { grid-area: figure; }
   .use-texts { grid-area: texts; }

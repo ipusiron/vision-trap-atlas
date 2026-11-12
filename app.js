@@ -93,8 +93,10 @@
     return element;
   }
   // Japanese words stay together where a box wraps (word-break: keep-all in style.css): a line breaks only at a <wbr>, put
-  // after a particle before the next word, between katakana and kanji, before an opening bracket, after a closing bracket
-  // and after ：・、。, but never before a mark that may not start a line (、。・：）」ー, small kana and the like). A short
+  // after a particle before the next word (after を also before hiragana, since を is always a particle: 輪郭を｜わかりにくく;
+  // after だけ before a word that is not hiragana: ものだけ｜色など), between katakana and kanji, before an opening bracket,
+  // after ） and after 」 before a word that is not hiragana (見つけさせる」｜使い道), and after ：・、。, but never before a mark
+  // that may not start a line (、。・：）」ー, small kana and the like). A short
   // quote (「探して押す」) stays whole, and so do の法則 (ゲシュタルトの法則 breaks only as ゲシュタルト｜の法則) and ミリ秒.
   // Text without Japanese comes back as it is (English breaks at its spaces).
   const PARTICLES = 'のでをにがはとかもへやて';
@@ -102,7 +104,7 @@
   const JOINED = '＋＝／→×';
   const WHOLE = ['の法則', 'ミリ秒'];
   const SHORT_QUOTE = /「[^「」]{1,10}」/g;
-  const SPLITS = ['ゲシュタルト|の法則', '項目|あたり', '除いた|回数'];
+  const SPLITS = ['ゲシュタルト|の法則', '図形1つ|あたり', '除いた|回数'];
   const scriptOf = (ch) => (/[゠-ヿ]/.test(ch) ? 'katakana' : /[㐀-䶿一-鿿]/.test(ch) ? 'kanji'
     : /[぀-ゟ]/.test(ch) ? 'hiragana' : 'other');
   function phrases(text) {
@@ -138,8 +140,10 @@
       const next = chars[i + 1];
       if (next === undefined || NO_LINE_START.includes(next) || JOINED.includes(next) || inside.has(i)) return;
       const pair = scriptOf(ch) + '>' + scriptOf(next);
-      if ((PARTICLES.includes(ch) && scriptOf(next) !== 'hiragana') || pair === 'katakana>kanji' || pair === 'kanji>katakana'
-        || ((next === '（' || next === '「') && ch !== ' ') || ch === '）' || '：・、。'.includes(ch) || split.has(i)) {
+      const dake = ch === 'け' && chars[i - 1] === 'だ' && scriptOf(next) !== 'hiragana';
+      if ((PARTICLES.includes(ch) && scriptOf(next) !== 'hiragana') || ch === 'を' || dake || pair === 'katakana>kanji' || pair === 'kanji>katakana'
+        || ((next === '（' || next === '「') && ch !== ' ') || ch === '）' || (ch === '」' && scriptOf(next) !== 'hiragana')
+        || '：・、。'.includes(ch) || split.has(i)) {
         flush();
         out.push(E('wbr'));
       }
@@ -288,8 +292,23 @@
     setWords($('theme-label'), t(state.theme === 'dark' ? 'themeLight' : 'themeDark'));
     $('language').textContent = state.language === 'ja' ? 'EN' : 'JA';
   }
+  // The "?" right after a heading of the contrast table: the last piece of the heading moves into one box with the "?", so that the
+  // "?" never goes to the next line alone (when the line is too short for both, they go to the next line together)
   function renderContrastTerms() {
-    for (const slot of document.querySelectorAll('.term-slot[data-term-help]')) slot.replaceChildren(termHelp(slot.dataset.termHelp, 'contrast'));
+    for (const slot of document.querySelectorAll('.term-slot[data-term-help]')) {
+      const word = slot.previousElementSibling, text = t(word.dataset.i18n);
+      // Japanese: the last of the pieces of phrases(); English: the last word (after the last space)
+      let before, last;
+      if (/[぀-ヿ㐀-䶿一-鿿]/.test(text)) {
+        before = phrases(text);
+        last = before.pop();
+      } else {
+        const at = text.lastIndexOf(' ');
+        [before, last] = [[text.slice(0, at + 1)], text.slice(at + 1)];
+      }
+      word.replaceChildren(...before);
+      slot.replaceChildren(glued(last, termHelp(slot.dataset.termHelp, 'contrast'), null));
+    }
   }
   function renderTabs() {
     for (const tab of VM.tabs) {

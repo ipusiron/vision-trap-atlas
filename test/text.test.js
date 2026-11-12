@@ -45,10 +45,10 @@ test('E: the known sentences of the spec', () => {
   const [raised] = read('ja', 'misread-baseline', { bottom: 50, chart: 'bar', mark: 'none' });
   assert.equal(raised, '縦軸を50から始めたので、下端からの高さの比は4.00倍になり、値の比の1.12倍より大きく見えます。');
   const [cross] = read('ja', 'misread-dual-axis', { rightTop: 300 });
-  assert.equal(cross, '右の縦軸の上端を300mmにすると、2本の線は3回交わります。交わる所に意味はありません。軸の範囲を変えるだけで変わる見え方です。');
+  assert.equal(cross, '右の縦軸の上端を300mmにすると、2本の線は3回交わります。交わる所に意味はありません。軸の範囲を変えただけで、見え方が変わります。');
   const [steep] = read('ja', 'misread-aspect-range', { aspect: 0.5, range: 'all' });
   assert.equal(steep, '線の傾きの平均は67.3度で、線は急に見えます。');
-  assert.equal(V.messageText(M, 'ja', { key: 'findTime', values: { t: '0.7' } }), '0.7秒で見つかりました。1回だけの時間は目安です。');
+  assert.equal(V.messageText(M, 'ja', { key: 'findTime', values: { t: '0.7' } }), '0.7秒で見つかりました。1回だけの時間なので、目安として見てください。');
   assert.equal(V.messageText(M, 'en', { key: 'findTime', values: { t: '0.7' } }), 'Found in 0.7 s. A single time is only a rough guide.');
   assert.equal(read('en', 'misread-baseline', { bottom: 50, chart: 'bar', mark: 'none' })[0],
     'The vertical axis now starts at 50, so the height ratio above the bottom is 4.00×, which looks larger than the value ratio of 1.12×.');
@@ -61,7 +61,7 @@ test('E: the known sentences of the spec', () => {
   assert.equal(read('ja', 'misread-area', { ratio: 1, stretch: 'both' })[0], '値の比が1倍なので、2つの絵は同じ大きさです。');
   assert.equal(numbers('ja', 'misread-dual-axis', { rightTop: 400 }), '2本の線が交わる回数：0回');
   assert.equal(read('ja', 'misread-dual-axis', { rightTop: 600 })[0],
-    '右の縦軸の上端を600mmにすると、2本の線は交わりません。気温の線が雨の線よりいつも上にあるように見えます。軸の範囲を変えるだけで変わる見え方です。');
+    '右の縦軸の上端を600mmにすると、2本の線は交わりません。気温の線が、雨の線よりいつも上にあるように見えます。軸の範囲を変えただけで、見え方が変わります。');
   assert.equal(numbers('en', 'misread-aspect-range', { aspect: 4, range: 'last6' }), 'Average slope of the line: 11.3°');
 });
 
@@ -88,13 +88,17 @@ test('E: the reading sentences of 1-2 put the two times side by side', () => {
     '線のある丸は0.7秒、線のない丸は2.1秒でした。']);
   assert.equal(read('en', 'popout-asymmetry', { target: 'withLine', count: 6 }, { times: { withLine: 0.66, noLine: null } })[1],
     'Find and tap the other one too to compare the times side by side.');
-  assert.equal(read('ja', 'popout-asymmetry', { target: 'withLine', count: 6 })[1], '「探して押す」で時間を測ると、ここに並べて出します。');
+  assert.equal(read('ja', 'popout-asymmetry', { target: 'withLine', count: 6 })[1], '「探して押す」で測った時間を、ここに並べて出します。');
+  assert.equal(read('ja', 'popout-asymmetry', { target: 'withLine', count: 6 }, { times: { withLine: 0.66, noLine: null } })[1],
+    'もう一方も測ると、2つの時間を比べられます。');
 });
 
 test('E: the contour sentences put the gap in percent', () => {
   assert.deepEqual(read('ja', 'gestalt-contour', { gap: 0.3, crossing: 'corner' }), [
-    '輪郭が30%途切れていても、丸と四角の形に見えやすい状態です（閉合）。',
-    '交わる所で2本とも折れています。目はなめらかに続くほうへ線をたどりやすいので、折れた線を別の組み合わせでたどってしまうことがあります（よい連続）。']);
+    '輪郭の30%が途切れていても、丸と四角に見えやすい状態です（閉合）。',
+    '2本とも交わる所で折れています。目はなめらかに続くほうへ線をたどるので、実際とは別の組み合わせで線をつないで見てしまうことがあります（よい連続）。']);
+  assert.equal(read('ja', 'gestalt-contour', { gap: 0.6, crossing: 'smooth' })[0],
+    '輪郭の60%が途切れています。まだ丸と四角に見えるか、ばらばらの線に見えるかを比べてください。');
   assert.equal(read('en', 'gestalt-contour', { gap: 0.6, crossing: 'smooth' })[0],
     '60% of the outline is now missing. Compare whether you still see a circle and a square, or just pieces of line.');
 });
@@ -103,7 +107,7 @@ test('E: every result sentence is filled in, with the search names and the row n
   const block = (a, b, extra = {}) => ({ rows: { present: { slope: a }, absent: { slope: b } },
     ratioState: a === null || b === null ? null : C.round1(a) < 1 ? 'below1' : 'ok',
     ratio: a !== null && b !== null && C.round1(a) >= 1 ? C.round1(C.round1(b) / C.round1(a)) : null,
-    errors: 0, answered: 64, aborted: false, mixedInput: false, granularity: 0.1, ...extra });
+    errors: 0, answered: 32, aborted: false, mixedInput: false, granularity: 0.1, ...extra });
   const scenarios = [
     {},
     { feature: block(3.1, 25.1) },
@@ -124,17 +128,18 @@ test('E: every result sentence is filled in, with the search names and the row n
   }
   assert.equal(seen.size, 20, [...seen].join(', '));
   const t = (lang, sc) => V.resultTexts(M, lang, C.resultCases(sc));
-  assert.equal(t('ja', { feature: block(3.1, 25.1) })[0], '特徴探索の傾きは、「ある」で1項目あたり3.1ミリ秒、「ない」で25.1ミリ秒でした。結合探索も測ると、傾きを比べられます。');
+  assert.equal(t('ja', { feature: block(3.1, 25.1) })[0],
+    '特徴探索の傾き（図形1つあたりに増えた時間）は、「ある」で3.1ミリ秒、「ない」で25.1ミリ秒でした。結合探索も測ると、2つを比べられます。');
   assert.equal(t('ja', { feature: block(3.1, 25.1) })[1], '特徴探索では、「ない」の傾きが「ある」の8.1倍で、研究でよく見られる2〜3倍より大きくなりました。');
   assert.equal(t('en', { feature: block(3.1, 25.1) })[1],
     'For feature search, the slope with the bar absent was 8.1× the slope with it present, larger than the 2× to 3× often seen in research.');
   const errors = t('en', { conjunction: block(28.7, 67.1, { errors: 8, answered: 60 }) });
   assert.ok(errors.includes('Wrong answers in conjunction search: 8 (13%). Rushing adds mistakes; answer at a pace that keeps you accurate.'));
   const both = t('ja', { feature: block(3, 20), conjunction: block(4, 25) });
-  assert.equal(both[0], '1項目あたりの傾きは、特徴探索が「ある」3.0ミリ秒・「ない」20.0ミリ秒、結合探索が「ある」4.0ミリ秒・「ない」25.0ミリ秒でした。');
+  assert.equal(both[0], '図形1つあたりの傾きは、特徴探索が「ある」3.0ミリ秒・「ない」20.0ミリ秒、結合探索が「ある」4.0ミリ秒・「ない」25.0ミリ秒でした。');
   assert.equal(both[1], '「ない」の傾きは、2つの探し方で同じくらいでした。回数が少ないと結果はぶれます。もう一度測ると変わることがあります。');
   const odd = t('ja', { feature: block(-1.24, 5, { aborted: true, mixedInput: true, granularity: 16.667 }), conjunction: block(10, null) });
-  assert.ok(odd.includes('「結合・ない」は、測れた段が3つ未満なので、傾きを出しません。'));
+  assert.ok(odd.includes('「結合・ない」は、真ん中の値を出せた図形の数が3つ未満なので、傾きを出しません。'));
   assert.ok(odd.includes('このブラウザーは、時刻を約16.7ミリ秒単位で丸めています。傾きは出せますが、ぶれが大きくなります。'));
   assert.ok(t('en', { feature: block(-1.24, 5), conjunction: block(10, null) }).includes(
     '"Conjunction, not there" has fewer than three measured numbers of items, so no slope is given.'));
@@ -144,37 +149,37 @@ test('E: repeated result sentences are joined into one, and a negative value has
   const block = (a, b, extra = {}) => ({ rows: { present: { slope: a }, absent: { slope: b } },
     ratioState: a === null || b === null ? null : C.round1(a) < 1 ? 'below1' : 'ok',
     ratio: a !== null && b !== null && C.round1(a) >= 1 ? C.round1(C.round1(b) / C.round1(a)) : null,
-    errors: 0, answered: 64, aborted: false, mixedInput: false, granularity: 0.1, ...extra });
+    errors: 0, answered: 32, aborted: false, mixedInput: false, granularity: 0.1, ...extra });
   const t = (lang, sc) => V.resultTexts(M, lang, C.resultCases(sc));
-  // Wrong answers in both searches: one sentence with both counts
-  const errors = { feature: block(3, 20, { errors: 8, answered: 61 }), conjunction: block(20, 50, { errors: 8, answered: 62 }) };
+  // Wrong answers in both searches: one sentence with both counts (4 of 31 and 4 of 30 answered tries in a block of 32)
+  const errors = { feature: block(3, 20, { errors: 4, answered: 31 }), conjunction: block(20, 50, { errors: 4, answered: 30 }) };
   assert.deepEqual(t('ja', errors).filter((x) => x.includes('押し間違い')),
-    ['押し間違いは、特徴探索が8回（13%）、結合探索が8回（13%）でした。急ぐと間違いが増えます。正確さを保てる速さで答えてください。']);
+    ['押し間違いは、特徴探索が4回（13%）、結合探索が4回（13%）でした。急ぐと間違いが増えるので、間違えない程度の速さで答えてください。']);
   assert.deepEqual(t('en', errors).filter((x) => x.includes('wrong answers') || x.includes('Wrong answers')),
-    ['Wrong answers: 8 (13%) in feature search and 8 (13%) in conjunction search. Rushing adds mistakes; answer at a pace that keeps you accurate.']);
+    ['Wrong answers: 4 (13%) in feature search and 4 (13%) in conjunction search. Rushing adds mistakes; answer at a pace that keeps you accurate.']);
   // In one search only: the sentence of that search, as before
-  const oneError = { feature: block(3, 20, { errors: 8, answered: 61 }), conjunction: block(20, 50) };
+  const oneError = { feature: block(3, 20, { errors: 4, answered: 31 }), conjunction: block(20, 50) };
   assert.deepEqual(t('ja', oneError).filter((x) => x.includes('押し間違い')),
-    ['特徴探索の押し間違いは8回（13%）でした。急ぐと間違いが増えます。正確さを保てる速さで答えてください。']);
+    ['特徴探索の押し間違いは4回（13%）でした。急ぐと間違いが増えるので、間違えない程度の速さで答えてください。']);
   // One wrong answer in a short, stopped run: the English sentence does not depend on singular or plural
   assert.deepEqual(t('en', { feature: block(3, 20, { errors: 1, answered: 5, aborted: true }) }).filter((x) => x.includes('Wrong answers')),
     ['Wrong answers in feature search: 1 (20%). Rushing adds mistakes; answer at a pace that keeps you accurate.']);
   // Rows without a slope: one sentence naming them (two or more), the sentence of the row (one)
   const three = { feature: block(3, null), conjunction: block(null, null, { aborted: true }) };
-  assert.ok(t('ja', three).includes('「特徴・ない」「結合・ある」「結合・ない」は、測れた段が3つ未満なので、傾きを出しません。'));
+  assert.ok(t('ja', three).includes('「特徴・ない」「結合・ある」「結合・ない」は、真ん中の値を出せた図形の数が3つ未満なので、傾きを出しません。'));
   assert.ok(t('en', three).includes('"Feature, not there", "Conjunction, there" and "Conjunction, not there" have fewer than three measured numbers of '
     + 'items, so no slopes are given.'));
   const two = { feature: block(3, 20), conjunction: block(null, null, { aborted: true }) };
-  assert.ok(t('ja', two).includes('「結合・ある」「結合・ない」は、測れた段が3つ未満なので、傾きを出しません。'));
+  assert.ok(t('ja', two).includes('「結合・ある」「結合・ない」は、真ん中の値を出せた図形の数が3つ未満なので、傾きを出しません。'));
   assert.ok(t('en', two).includes('"Conjunction, there" and "Conjunction, not there" have fewer than three measured numbers of items, so no slopes '
     + 'are given.'));
   assert.equal(t('ja', two).filter((x) => x.includes('傾きを出しません')).length, 1);
-  assert.ok(t('ja', { feature: block(3, null) }).includes('「特徴・ない」は、測れた段が3つ未満なので、傾きを出しません。'));
+  assert.ok(t('ja', { feature: block(3, null) }).includes('「特徴・ない」は、真ん中の値を出せた図形の数が3つ未満なので、傾きを出しません。'));
   // The one search with both slopes opens the sentences even when the other search was measured too
-  assert.equal(t('ja', two)[0], '特徴探索の傾きは、「ある」で1項目あたり3.0ミリ秒、「ない」で20.0ミリ秒でした。結合探索も測ると、傾きを比べられます。');
+  assert.equal(t('ja', two)[0], '特徴探索の傾き（図形1つあたりに増えた時間）は、「ある」で3.0ミリ秒、「ない」で20.0ミリ秒でした。結合探索も測ると、2つを比べられます。');
   // Negative values: the minus sign (U+2212) in both languages, also in a ratio
   assert.equal(t('ja', { feature: block(-2.74, 7) })[0],
-    '特徴探索の傾きは、「ある」で1項目あたり\u22122.7ミリ秒、「ない」で7.0ミリ秒でした。結合探索も測ると、傾きを比べられます。');
+    '特徴探索の傾き（図形1つあたりに増えた時間）は、「ある」で\u22122.7ミリ秒、「ない」で7.0ミリ秒でした。結合探索も測ると、2つを比べられます。');
   assert.equal(t('en', { feature: block(-2.74, 7) })[0],
     'For feature search, the slope was \u22122.7 ms per item when the bar was there and 7.0 ms when it was not. Measure conjunction search too to '
     + 'compare the slopes.');
@@ -213,10 +218,15 @@ test('E: the experiment texts: the title, the feedback and the progress', () => 
   assert.equal(V.messageText(M, 'ja', { key: 'fbCorrect', values: { t: '0.62' } }), '○ 0.62秒');
   // The end of a run, without the word for a block of tries
   assert.equal(M.ja.expDone, '測定が終わりました。');
-  assert.equal(V.messageText(M, 'en', { key: 'expMain', values: { i: 12 } }), 'Recorded 12 / 64');
+  assert.equal(V.messageText(M, 'en', { key: 'expMain', values: { i: 12 } }), 'Recorded 12 / 32');
   // No space between Japanese and the number put in (the rule of the Japanese texts)
   assert.equal(V.messageText(M, 'ja', { key: 'expPractice', values: { i: 3 } }), '練習3／8');
-  assert.equal(V.messageText(M, 'ja', { key: 'expMain', values: { i: 12 } }), '本番12／64');
+  assert.equal(V.messageText(M, 'ja', { key: 'expMain', values: { i: 12 } }), '本番12／32');
+  // The length of a run said on the tab matches the numbers of tries made by the calculation (8 practice and 32 recorded)
+  assert.equal(M.ja.expDuration, '1回は練習8回と本番32回で、約1分半かかります。');
+  assert.equal(M.en.expDuration, 'Each run has 8 practice tries and 32 recorded tries and takes about a minute and a half.');
+  assert.equal(C.SET_SIZES.length * 2 * C.MAIN_REPS, 32);
+  assert.equal(C.SET_SIZES.length * 2 * C.PRACTICE_REPS, 8);
   // The feedback keys of the experiment all exist
   for (const key of ['fbCorrect', 'fbMiss', 'fbFalse', 'fbEarly', 'fbTimeout', 'expHidden', 'expAborted']) {
     assert.ok(typeof M.ja[key] === 'string' && typeof M.en[key] === 'string', key);
@@ -265,8 +275,8 @@ test('E: the descriptions of the figures of 1-1 and 1-2 (the <desc> of each SVG)
   assert.equal(V.descText(M, 'ja', entry('gestalt-contour'), V.controlValues(entry('gestalt-contour')), 'main'), null);
 });
 
-test('E: the texts of the results area: the column of each number of bars, the approximate research values and the chart description', () => {
-  assert.deepEqual(C.SET_SIZES.map((n) => V.fill(M.ja.resColItems, { n })), ['3本', '6本', '12本', '18本']);
+test('E: the texts of the results area: the column of each number of items, the approximate research values and the chart description', () => {
+  assert.deepEqual(C.SET_SIZES.map((n) => V.fill(M.ja.resColItems, { n })), ['3個', '6個', '12個', '18個']);
   assert.deepEqual(C.SET_SIZES.map((n) => V.fill(M.en.resColItems, { n })), ['3 items', '6 items', '12 items', '18 items']);
   assert.equal(V.fill(M.ja.resApprox, { v: 27 }), '約27');
   assert.equal(V.fill(M.en.resApprox, { v: 27 }), 'about 27');

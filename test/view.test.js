@@ -336,7 +336,7 @@ test('C: the linked line of 1-1 for each of the five kinds, and of the other ent
     for (const u of pf.uses) {
       const ja = V.linkedText(M, 'ja', pf, u, { ...d1, kind }), en = V.linkedText(M, 'en', pf, u, { ...d1, kind });
       if (['color', 'lightness', 'size'].includes(kind)) {
-        assert.equal(ja, 'この図が変わる操作：違いの種類・違いの大きさ・周りのばらつき');
+        assert.equal(ja, 'この図を変える操作：違いの種類・違いの大きさ・周りのばらつき');
         assert.equal(en, 'Changes with: Kind of difference, Size of the difference, Variety around it');
       } else {
         assert.equal(ja, 'いまの設定では、この図は変わりません。');
@@ -345,13 +345,13 @@ test('C: the linked line of 1-1 for each of the five kinds, and of the other ent
     }
   }
   const line = (id, side) => { const e = entry(id); return V.linkedText(M, 'ja', e, e.uses.find((u) => u.side === side), V.controlValues(e)); };
-  assert.equal(line('gestalt-proximity-similarity', 'show'), 'この図が変わる操作：近さ・似かた');
-  assert.equal(line('gestalt-proximity-similarity', 'hide'), 'この図が変わる操作：似かた');
-  assert.equal(line('gestalt-contour', 'show'), 'この図が変わる操作：輪郭の途切れ・交わり方');
-  assert.equal(line('gestalt-contour', 'hide'), 'この図が変わる操作：輪郭の途切れ');
-  assert.equal(line('figure-ground-symmetry', 'hide'), 'この図が変わる操作：手がかり');
+  assert.equal(line('gestalt-proximity-similarity', 'show'), 'この図を変える操作：近さ・形の変え方');
+  assert.equal(line('gestalt-proximity-similarity', 'hide'), 'この図を変える操作：形の変え方');
+  assert.equal(line('gestalt-contour', 'show'), 'この図を変える操作：輪郭の途切れ・交わり方');
+  assert.equal(line('gestalt-contour', 'hide'), 'この図を変える操作：輪郭の途切れ');
+  assert.equal(line('figure-ground-symmetry', 'hide'), 'この図を変える操作：手がかり');
   assert.equal(line('misread-baseline', 'readable'), 'いまの設定では、この図は変わりません。');
-  assert.equal(line('misread-area', 'readable'), 'この図が変わる操作：値の比');
+  assert.equal(line('misread-area', 'readable'), 'この図を変える操作：値の比');
 });
 
 test('C: each title contains its underlined terms in both languages, and each term has a meaning', () => {

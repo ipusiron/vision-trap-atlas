@@ -381,7 +381,7 @@
     scatter12: [[12, 20], [20, 46], [28, 30], [36, 64], [44, 40], [52, 76], [60, 52], [68, 28], [76, 62], [84, 44], [88, 80], [94, 58]], // 3-2
   };
 
-  // 研究の値（参考の表。1項目あたりのミリ秒）
+  // 研究の値（参考の表。図形1つあたりのミリ秒）
   const references = {
     treisman1980: { featurePresent: 3.1, featureAbsent: 25.1, conjPresent: 28.7, conjAbsent: 67.1 },
     wolfe1998: { featurePresent: 3, featureAbsent: 6, conjPresent: 10, conjAbsent: 27, approx: true },

@@ -27,8 +27,8 @@ PREFIX = "vision-trap-atlas."
 SOURCES = ("index.html", "style.css", "theme-init.js", "atlas-core.js", "atlas-data.js", "atlas-view.js", "atlas-search.js", "messages.js",
            "app.js", "test/startup.browser.py")
 SCRIPTS = ["theme-init.js", "atlas-core.js", "atlas-data.js", "atlas-view.js", "atlas-search.js", "messages.js", "app.js"]
-TABS_JA = ["浮く前注意の特徴", "探す時間視覚探索", "まとまるゲシュタルトの法則", "図と地図と地の分化", "誤読グラフ"]
-HEADINGS_JA = ["浮く（前注意の特徴）", "探す時間（視覚探索）", "まとまる（ゲシュタルトの法則）", "図と地（図と地の分化）", "誤読（グラフ）"]
+TABS_JA = ["目立つ前注意の特徴", "探す時間視覚探索", "まとまるゲシュタルトの法則", "図と地図と地の分化", "誤読グラフ"]
+HEADINGS_JA = ["目立つ（前注意の特徴）", "探す時間（視覚探索）", "まとまる（ゲシュタルトの法則）", "図と地（図と地の分化）", "誤読（グラフ）"]
 # The lines of the term of the third tab at 320px before the page is ready (a <wbr> in the page; Firefox has no word-break: auto-phrase)
 GESTALT_LINES = """() => { const el = document.querySelector('#tab-gestalt .tab-term'), chars = [];
   const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node;
