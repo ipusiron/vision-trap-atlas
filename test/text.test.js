@@ -57,7 +57,13 @@ test('E: the known sentences of the spec', () => {
   assert.equal(numbers('ja', 'misread-baseline', { bottom: 25, chart: 'bar', mark: 'none' }), '値の比：58÷52＝1.12倍／下端からの高さの比：1.22倍');
   assert.equal(numbers('ja', 'misread-area', { ratio: 2, stretch: 'both' }), '値の比：2.00倍／高さの比：2.00倍／面積の比：4.00倍');
   assert.equal(read('ja', 'misread-area', { ratio: 2, stretch: 'area' })[0],
-    '面積を値の比と同じ2.00倍にしました（高さは1.41倍）。それでも、面積は長さより読み取りにくいことが知られています。');
+    '面積を値の比と同じ2.00倍にしました（高さは1.41倍）。それでも、面積は長さより比べにくい、という報告があります。');
+  assert.equal(read('en', 'misread-area', { ratio: 2, stretch: 'area' })[0],
+    'The area now matches the value ratio of 2.00× (the height is 1.41×). Even so, studies report that areas are harder to compare than lengths.');
+  // The line chart sentence reads on its own (it follows the sentence of the raised axis, with or without the one of the mark)
+  assert.deepEqual(read('ja', 'misread-baseline', { bottom: 40, chart: 'line', mark: 'none' }), [
+    '縦軸を40から始めたので、下端からの高さの比は1.50倍になり、値の比の1.12倍より大きく見えます。',
+    '折れ線グラフでも、縦軸の下端を上げるほど差が大きく感じられた、と報告されています。']);
   assert.equal(read('ja', 'misread-area', { ratio: 1, stretch: 'both' })[0], '値の比が1倍なので、2つの絵は同じ大きさです。');
   assert.equal(numbers('ja', 'misread-dual-axis', { rightTop: 400 }), '2本の線が交わる回数：0回');
   assert.equal(read('ja', 'misread-dual-axis', { rightTop: 600 })[0],
@@ -68,9 +74,34 @@ test('E: the known sentences of the spec', () => {
 test('E: the start and end values of the time-range sentences come from the data', () => {
   assert.deepEqual(read('ja', 'misread-aspect-range', { aspect: 1, range: 'last6' }), [
     '線の傾きの平均は37.6度です。傾きの平均を45度前後にそろえる方法が提案されています（45度が最もよいとは限らない、という報告もあります）。',
-    '最後の6か月だけを見ると、60から52へ減っているように見えます。24か月では40から52へ増えています。']);
-  assert.equal(read('ja', 'misread-aspect-range', { aspect: 4, range: 'all' })[1], '24か月では、貸出冊数は40から52へ増えています。');
-  assert.equal(read('en', 'misread-aspect-range', { aspect: 4, range: 'all' })[1], 'Over 24 months, loans rose from 40 to 52.');
+    '最後の6か月だけを見ると、6,000冊から5,200冊へ減っているように見えます。24か月では4,000冊から5,200冊へ増えています。']);
+  // The values are in hundreds of books: the sentences give books with a thousands separator (the axis keeps hundreds)
+  assert.equal(read('ja', 'misread-aspect-range', { aspect: 4, range: 'all' })[1], '24か月では、貸出冊数は4,000冊から5,200冊へ増えています。');
+  assert.equal(read('en', 'misread-aspect-range', { aspect: 4, range: 'all' })[1], 'Over 24 months, loans rose from 4,000 to 5,200 books.');
+  assert.equal(read('en', 'misread-aspect-range', { aspect: 1, range: 'last6' })[1],
+    'Looking only at the last 6 months, loans seem to fall from 6,000 to 5,200 books. Over 24 months, they rose from 4,000 to 5,200 books.');
+});
+
+test('E: the line of numbers under each misreading figure gives the known values of the spec', () => {
+  const num = (id, values) => V.numbersCase(D, id, values).values;
+  // The height ratio above the bottom: 1.12, 1.22, 1.50 and 4.00 for the bottom at 0, 25, 40 and 50 (the value ratio 58 ÷ 52 is 1.12)
+  assert.deepEqual([0, 25, 40, 50].map((bottom) => num('misread-baseline', { bottom, chart: 'bar', mark: 'none' }).r), ['1.12', '1.22', '1.50', '4.00']);
+  assert.equal(numbers('ja', 'misread-baseline', { bottom: 50, chart: 'line', mark: 'shown' }), '値の比：58÷52＝1.12倍／下端からの高さの比：4.00倍');
+  // The value ratio 2: both ways gives the area ratio 4.00; matching the area gives the height ratio 1.41
+  assert.equal(num('misread-area', { ratio: 2, stretch: 'both' }).a, '4.00');
+  assert.equal(num('misread-area', { ratio: 2, stretch: 'area' }).h, '1.41');
+  assert.equal(numbers('en', 'misread-area', { ratio: 2, stretch: 'area' }), 'Value ratio: 2.00× / Height ratio: 1.41× / Area ratio: 2.00×');
+  // The crossings: 2, 3, 0 and 0 for the top of the right axis at 200, 300, 400 and 600 mm
+  assert.deepEqual([200, 300, 400, 600].map((rightTop) => num('misread-dual-axis', { rightTop }).n), ['2', '3', '0', '0']);
+  // The average slope in degrees: 24 months and the last 6 months, at the aspect ratios 0.5, 1, 2 and 4
+  assert.deepEqual([0.5, 1, 2, 4].map((aspect) => num('misread-aspect-range', { aspect, range: 'all' }).deg), ['67.3', '51.4', '33.5', '19.0']);
+  assert.deepEqual([0.5, 1, 2, 4].map((aspect) => num('misread-aspect-range', { aspect, range: 'last6' }).deg), ['56.1', '37.6', '21.6', '11.3']);
+  assert.equal(numbers('ja', 'misread-aspect-range', { aspect: 0.5, range: 'last6' }), '線の傾きの平均：56.1度');
+  // What to check when reading: one line per card, in both languages
+  for (const id of ['misread-baseline', 'misread-area', 'misread-dual-axis', 'misread-aspect-range']) {
+    const key = entry(id).checkKey;
+    assert.ok(M.ja[key].startsWith('読むときに確かめること：') && M.en[key].startsWith('When reading, check: '), id);
+  }
 });
 
 test('E: one crossing gets its own sentence ("cross once"), which the data never needs but the function is ready for', () => {

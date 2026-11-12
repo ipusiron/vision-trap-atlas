@@ -76,6 +76,7 @@
       findKeyboard: 'キーボードで時間を測るときは、「探す時間」のタブの実験を使います（F・Jで答えます）。',
       shapeNotUsed: '形を選んだときは使いません',
       cueNeeded: '手がかりが「なし」のときは押せません',
+      bottomNeeded: '縦軸の下端が0のときは押せません',
       itemCount: '図形の数',
       colorHint: '色の違いが見えにくいときは、方向か大きさを選んでください。',
       termHelpLabel: '{term}の解説',
@@ -284,13 +285,13 @@
       'baseRead.zero': '縦軸は0から始まっています。下端からの高さの比は、値の比と同じ1.12倍です。',
       'baseRead.raised': '縦軸を{b}から始めたので、下端からの高さの比は{r}倍になり、値の比の1.12倍より大きく見えます。',
       'baseRead.mark': '軸が切れている印を付けても、差が大きく見える傾向は残った、という実験があります。',
-      'baseRead.line': '同じ研究では、棒グラフでも折れ線グラフでも、縦軸の下端を上げるほど、差が大きく感じられました。',
+      'baseRead.line': '折れ線グラフでも、縦軸の下端を上げるほど差が大きく感じられた、と報告されています。',
       baseCheck: '読むときに確かめること：縦軸がどこから始まっているか',
       areaNumbers: '値の比：{v}倍／高さの比：{h}倍／面積の比：{a}倍',
       'areaMisRead.one': '値の比が1倍なので、2つの絵は同じ大きさです。',
       'areaMisRead.height': '高さだけを{v}倍にしました。面積も{v}倍で値の比と同じですが、絵の形がゆがみます。',
       'areaMisRead.both': '縦も横も{v}倍にしたので、面積は{a}倍（値の比の2乗）になり、値の比より大きく見えます。',
-      'areaMisRead.area': '面積を値の比と同じ{v}倍にしました（高さは{h}倍）。それでも、面積は長さより読み取りにくいことが知られています。',
+      'areaMisRead.area': '面積を値の比と同じ{v}倍にしました（高さは{h}倍）。それでも、面積は長さより比べにくい、という報告があります。',
       areaCheck: '読むときに確かめること：大きさのどこ（高さ・面積）が値を表しているか',
       dualNumbers: '2本の線が交わる回数：{n}回',
       'dualRead.none': '右の縦軸の上端を{m}mmにすると、2本の線は交わりません。気温の線が、雨の線よりいつも上にあるように見えます。軸の範囲を変えただけで、見え方が変わります。',
@@ -301,8 +302,8 @@
       'aspectRead.steep': '線の傾きの平均は{deg}度で、線は急に見えます。',
       'aspectRead.mid': '線の傾きの平均は{deg}度です。傾きの平均を45度前後にそろえる方法が提案されています（45度が最もよいとは限らない、という報告もあります）。',
       'aspectRead.flat': '線の傾きの平均は{deg}度で、線は平らに見えます。',
-      'aspectRead.all': '24か月では、貸出冊数は{start}から{end}へ増えています。',
-      'aspectRead.last6': '最後の6か月だけを見ると、{start6}から{end}へ減っているように見えます。24か月では{start}から{end}へ増えています。',
+      'aspectRead.all': '24か月では、貸出冊数は{start}冊から{end}冊へ増えています。',
+      'aspectRead.last6': '最後の6か月だけを見ると、{start6}冊から{end}冊へ減っているように見えます。24か月では{start}冊から{end}冊へ増えています。',
       aspectCheck: '読むときに確かめること：期間はどこからどこまでか、縦横の比',
 
       // ===== 小さな図の下の文 =====
@@ -648,6 +649,7 @@
       findKeyboard: 'With a keyboard, use the experiment in the Search time tab to measure your time (answer with F and J).',
       shapeNotUsed: 'Not used for shape',
       cueNeeded: 'Not available while the cue is None',
+      bottomNeeded: 'Not available while the axis starts at 0',
       itemCount: 'Number of items',
       colorHint: 'If the colors are hard to tell apart, choose direction or size.',
       termHelpLabel: 'About {term}',
@@ -869,13 +871,14 @@
       'baseRead.raised': 'The vertical axis now starts at {b}, so the height ratio above the bottom is {r}×, which looks larger than the value ratio of '
         + '1.12×.',
       'baseRead.mark': 'In an experiment, marking the axis as broken did not remove the sense of a larger difference.',
-      'baseRead.line': 'The same study found that the more the axis was truncated, the larger the difference felt, for bar charts and line charts alike.',
+      'baseRead.line': 'The same effect has been reported for line charts: the higher the bottom of the axis, the larger the difference feels.',
       baseCheck: 'When reading, check: where the vertical axis starts',
       areaNumbers: 'Value ratio: {v}× / Height ratio: {h}× / Area ratio: {a}×',
       'areaMisRead.one': 'The value ratio is 1×, so the two pictures are the same size.',
       'areaMisRead.height': 'Only the height is {v}×. The area is also {v}×, matching the value ratio, but the picture is distorted.',
       'areaMisRead.both': 'Both height and width are {v}×, so the area is {a}× (the square of the value ratio) and looks larger than the value ratio.',
-      'areaMisRead.area': 'The area now matches the value ratio of {v}× (the height is {h}×). Even so, areas are known to be harder to read than lengths.',
+      'areaMisRead.area': 'The area now matches the value ratio of {v}× (the height is {h}×). Even so, studies report that areas are harder to compare than '
+        + 'lengths.',
       areaCheck: 'When reading, check: which size (height or area) stands for the value',
       dualNumbers: 'Times the two lines cross: {n}',
       'dualRead.none': 'With the top of the right axis at {m} mm, the two lines never cross, and the temperature line seems to stay above the rain line. '
@@ -890,8 +893,9 @@
       'aspectRead.mid': 'The line\'s average slope is {deg}°. One proposal is to set the average slope near 45° (though another study reports that 45° '
         + 'is not always best).',
       'aspectRead.flat': 'The line\'s average slope is {deg}°, so it looks flat.',
-      'aspectRead.all': 'Over 24 months, loans rose from {start} to {end}.',
-      'aspectRead.last6': 'Looking only at the last 6 months, loans seem to fall from {start6} to {end}. Over 24 months, they rose from {start} to {end}.',
+      'aspectRead.all': 'Over 24 months, loans rose from {start} to {end} books.',
+      'aspectRead.last6': 'Looking only at the last 6 months, loans seem to fall from {start6} to {end} books. Over 24 months, they rose from {start} to '
+        + '{end} books.',
       aspectCheck: 'When reading, check: the time range shown and the aspect ratio',
 
       // ===== Text under the small figures =====

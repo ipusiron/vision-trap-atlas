@@ -1,9 +1,9 @@
 """Browser gates for Vision Trap Atlas (Playwright for Python; not part of CI).
 
 Run with a Python that already has Playwright and its Chromium, Firefox and WebKit:
-    python -X utf8 -B test/interface.browser.py --stage 4
-    python -X utf8 -B test/interface.browser.py --stage 4 --output <folder>
-    python -X utf8 -B test/interface.browser.py --stage 4 --browser chromium
+    python -X utf8 -B test/interface.browser.py --stage 5
+    python -X utf8 -B test/interface.browser.py --stage 5 --output <folder>
+    python -X utf8 -B test/interface.browser.py --stage 5 --browser chromium
 Every case runs at 320x568, 390x844, 720x900 and 1280x800, in Japanese and English, light and dark, in the three
 browsers: no console error, no CSP violation, no sideways page scroll, and the checks of the screen (the header, the
 introduction and the contrast table, the tabs and their names, the help, the explanations of the terms, the two cards of
@@ -12,7 +12,9 @@ the Search time tab and its experiment with the clock held and paused: the answe
 and the sentences of the results must be those that AtlasCore computes from the test's own record of the tries. From
 --stage 4, the three cards of the Grouping tab and the two of the Figure and ground tab, with every value of their controls:
 the figure and the small figures change, the sentence under the figure, the line under each small figure and the description of
-each figure follow the settings (the test computes them from the data and the dictionary), and nothing moves. Then the
+each figure follow the settings (the test computes them from the data and the dictionary), and nothing moves. From --stage 5,
+the four cards of the Misreading tab in the same way, with the line of numbers under the figure and the line of what to check
+(the test computes the ratios, the crossings and the slopes from the definitions of the spec). Then the
 addresses with a group or an entry id, the button to the next tab and the browser's back button, the links to other
 sites, the saved preferences, and the page served over HTTP.
 Results and viewport screenshots are written to --output (default: a new folder in the system temporary directory).
@@ -40,15 +42,19 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 PREFIX = "vision-trap-atlas."
-STAGES = ("2", "3", "4")
+STAGES = ("2", "3", "4", "5")
 SIZES = ((320, 568), (390, 844), (720, 900), (1280, 800))
 BROWSERS = ("chromium", "firefox", "webkit")
 GROUPS = ("popout", "search", "gestalt", "figure-ground", "misread")
 # The cards with "Find and tap" (square figures), and the cards with controls drawn at each stage (the search card is apart)
 FIND_CARDS = ("popout-feature", "popout-asymmetry")
 GROUPING_CARDS = ("gestalt-proximity-similarity", "gestalt-region-connection", "gestalt-contour", "figure-ground-area", "figure-ground-symmetry")
-STAGE_CARDS = {"2": FIND_CARDS, "3": FIND_CARDS, "4": FIND_CARDS + GROUPING_CARDS}
-STAGE_GROUPS = {"2": ("popout",), "3": ("popout", "search"), "4": ("popout", "search", "gestalt", "figure-ground")}
+MISREAD_CARDS = ("misread-baseline", "misread-area", "misread-dual-axis", "misread-aspect-range")
+# The cards whose figures, sentences and descriptions the test computes from the data and the dictionary
+CHECKED_CARDS = GROUPING_CARDS + MISREAD_CARDS
+STAGE_CARDS = {"2": FIND_CARDS, "3": FIND_CARDS, "4": FIND_CARDS + GROUPING_CARDS, "5": FIND_CARDS + CHECKED_CARDS}
+STAGE_GROUPS = {"2": ("popout",), "3": ("popout", "search"), "4": ("popout", "search", "gestalt", "figure-ground"),
+                "5": ("popout", "search", "gestalt", "figure-ground", "misread")}
 RUN = {"stage": STAGES[-1]}
 
 
@@ -175,6 +181,99 @@ def expected_read(card, values, language):
         if values["cue"] == "convex":
             return [L["symRead.convex2" if values["regions"] == 2 else "symRead.convex8"]]
         return [L["symRead." + values["cue"]]]
+    if card in MISREAD_CARDS:
+        return expected_misread(card, values, language)
+    raise ValueError(card)
+
+
+def round_fixed(x, digits):
+    """Math.round(x * 10^digits) / 10^digits, then toFixed(digits) (the rounding of the screen)."""
+    f = 10 ** digits
+    return f"{math.floor(x * f + 0.5) / f:.{digits}f}"
+
+
+DS = DATA["datasets"]
+
+
+def baseline_ratio(bottom):
+    values = DS["libraryLoans3"]
+    return (max(values) - bottom) / (min(values) - bottom)
+
+
+def area_scales(v, mode):
+    return {"height": (v, v), "both": (v, v * v), "area": (math.sqrt(v), v)}[mode]
+
+
+def dual_crossings(top):
+    """The sign of (temperature on 0-30) - (rain on 0-top) changes between neighboring months (months with no difference skipped)."""
+    signs = []
+    for t, r in zip(DS["townTemp"], DS["townRain"]):
+        d = t / 30 - r / top
+        if d != 0:
+            signs.append(1 if d > 0 else -1)
+    return sum(1 for a, b in zip(signs, signs[1:]) if a != b)
+
+
+def mean_abs_angle(values, aspect):
+    """The mean of the absolute angles of the segments (degrees), on the axis widened to multiples of 10."""
+    lo, hi = math.floor(min(values) / 10) * 10, math.ceil(max(values) / 10) * 10
+    steps = len(values) - 1
+    return sum(math.degrees(math.atan2(abs(b - a) / (hi - lo), aspect / steps)) for a, b in zip(values, values[1:])) / steps
+
+
+def books(value):
+    """A value in hundreds of books, as books with a thousands separator (4,000)."""
+    return f"{value * 100:,}"
+
+
+def expected_numbers(card, values, language):
+    L = M[language]
+    if card == "misread-baseline":
+        return fill(L["baseNumbers"], r=round_fixed(baseline_ratio(values["bottom"]), 2))
+    if card == "misread-area":
+        h, a = area_scales(values["ratio"], values["stretch"])
+        return fill(L["areaNumbers"], v=round_fixed(values["ratio"], 2), h=round_fixed(h, 2), a=round_fixed(a, 2))
+    if card == "misread-dual-axis":
+        return fill(L["dualNumbers"], n=dual_crossings(values["rightTop"]))
+    if card == "misread-aspect-range":
+        shown = DS["libraryLoans24"][-6:] if values["range"] == "last6" else DS["libraryLoans24"]
+        return fill(L["aspectNumbers"], deg=round_fixed(mean_abs_angle(shown, values["aspect"]), 1))
+    raise ValueError(card)
+
+
+def expected_misread(card, values, language):
+    """The sentences under the figure of the misreading cards, from the cases of the spec."""
+    L = M[language]
+    if card == "misread-baseline":
+        if not values["bottom"]:
+            return [L["baseRead.zero"]]
+        out = [fill(L["baseRead.raised"], b=values["bottom"], r=round_fixed(baseline_ratio(values["bottom"]), 2))]
+        if values["mark"] == "shown":
+            out.append(L["baseRead.mark"])
+        if values["chart"] == "line":
+            out.append(L["baseRead.line"])
+        return out
+    if card == "misread-area":
+        if values["ratio"] == 1:
+            return [L["areaMisRead.one"]]
+        h, a = area_scales(values["ratio"], values["stretch"])
+        return [fill(L["areaMisRead." + values["stretch"]], v=round_fixed(values["ratio"], 2), h=round_fixed(h, 2), a=round_fixed(a, 2))]
+    if card == "misread-dual-axis":
+        n = dual_crossings(values["rightTop"])
+        if n == 0:
+            return [fill(L["dualRead.none"], m=values["rightTop"])]
+        if n == 1:
+            return [fill(L["dualRead.crossOnce"], m=values["rightTop"])]
+        return [fill(L["dualRead.cross"], m=values["rightTop"], n=n)]
+    if card == "misread-aspect-range":
+        loans = DS["libraryLoans24"]
+        shown = loans[-6:] if values["range"] == "last6" else loans
+        deg = math.floor(mean_abs_angle(shown, values["aspect"]) * 10 + 0.5) / 10
+        key = "aspectRead.steep" if deg > 60 else "aspectRead.mid" if deg >= 30 else "aspectRead.flat"
+        first = fill(L[key], deg=f"{deg:.1f}")
+        if values["range"] == "last6":
+            return [first, fill(L["aspectRead.last6"], start6=books(loans[-6]), end=books(loans[-1]), start=books(loans[0]))]
+        return [first, fill(L["aspectRead.all"], start=books(loans[0]), end=books(loans[-1]))]
     raise ValueError(card)
 
 
@@ -246,6 +345,7 @@ CARD_PLACES = """id => { const card = document.getElementById(id), top = el => e
   const frame = card.querySelector('.figure-frame').getBoundingClientRect();
   return {frame: top(card.querySelector('.figure-frame')), frameW: frame.width, frameH: frame.height,
     read: top(card.querySelector('.read-stack')), find: top(card.querySelector('.find-line')),
+    numbers: top(card.querySelector('.numbers-stack')), check: top(card.querySelector('.entry-check')),
     uses: Array.from(card.querySelectorAll('.use-figure svg'), s => top(s)),
     linked: Array.from(card.querySelectorAll('.use-linked'), s => top(s))}; }"""
 # The names of the steps under each slider of a card: their boxes and the box of the slider's control
@@ -255,6 +355,7 @@ TICKS = """id => Array.from(document.querySelectorAll('#' + id + ' .controls .co
 CARD_TEXTS = """id => { const card = document.getElementById(id);
   const text = el => el ? el.textContent.trim() : '';
   return {read: text(card.querySelector('.read-live')), find: text(card.querySelector('.find-live')),
+    numbers: text(card.querySelector('.numbers-live')), check: text(card.querySelector('.entry-check')),
     linked: Array.from(card.querySelectorAll('.use-linked > p:not([aria-hidden])'), p => p.textContent.trim()).filter(Boolean),
     live: Array.from(card.querySelectorAll('.use-linked > p'), p => p.textContent.trim()),
     desc: Array.from(card.querySelectorAll('svg > desc'), d => d.textContent.trim()),
@@ -637,12 +738,16 @@ def test_terms(page, width, language, has_touch, screenshot):
 
 
 def test_card_terms(page, language):
-    """The terms of the Grouping and Figure and ground tabs (the panel headings, the card titles and the sentences beside the small
-    figures): each shows its own explanation, inside the screen, and Esc hides it."""
-    for group in ("gestalt", "figure-ground"):
+    """The terms of the Grouping, Figure and ground and (from --stage 5) Misreading tabs (the panel headings, the lead of the
+    Misreading tab, the card titles and the sentences beside the small figures): each shows its own explanation, inside the screen,
+    and Esc hides it."""
+    groups = ("gestalt", "figure-ground") + (("misread",) if RUN["stage"] >= "5" else ())
+    for group in groups:
         page.locator("#tab-" + group).click()
-        selectors = [f"#heading-{group} .term"]
-        for card in (c for c in GROUPING_CARDS if ENTRY[c]["group"] == group):
+        selectors = [f"#heading-{group} .term"] if group != "misread" else ["#panel-misread .panel-lead .term"]
+        if group == "misread":
+            check(page.locator("#heading-misread .term").count() == 0, "the heading of the Misreading tab has no term")
+        for card in (c for c in CHECKED_CARDS if ENTRY[c]["group"] == group):
             count = page.locator(f"#{card}-title .term").count()
             check(count == len(ENTRY[card]["titleTerms"]), (card, "the terms of the title", count))
             selectors += [f"#{card}-title .term >> nth={i}" for i in range(count)]
@@ -681,9 +786,21 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
         assert_language_text(d, language, card + " desc")
     if card in FIND_CARDS:
         check(abs(before["frameW"] - before["frameH"]) <= 1, (card, "a square figure", before))
+    elif card == "misread-aspect-range":
+        # The aspect-ratio figure keeps its frame of 280×220 whatever the settings; only the plotting area inside changes
+        check(abs(before["frameW"] * 220 / 280 - before["frameH"]) <= 1.5, (card, "a 280:220 figure", before))
     else:
         check(abs(before["frameW"] * 3 / 4 - before["frameH"]) <= 1.5, (card, "a 4:3 figure", before))
-    grouping = card in GROUPING_CARDS
+    grouping = card in CHECKED_CARDS
+    misread = card in MISREAD_CARDS
+    if misread:
+        # Under the figure, in this order: the line of numbers, the sentences, the line of what to check (and below 720px the small
+        # figure after them; from 720px it stands beside them)
+        check(before["frame"] + before["frameH"] - 1 <= before["numbers"] < before["read"] < before["check"],
+              (card, "the order of the lines under the figure", before))
+        check(width >= 720 or before["check"] < before["uses"][0], (card, "the small figure below the lines", before))
+        check(texts["check"] == M[language][entry["checkKey"]], (card, "what to check", texts["check"]))
+        assert_language_text(texts["numbers"], language, card + " numbers")
     values = {c["id"]: c["default"] for c in entry["controls"]}
     controls = {c["id"]: c for c in entry["controls"]}
     drawn = page.evaluate(FIGURE_SHAPES, card)
@@ -710,11 +827,14 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
             check(t["linked"] == [expected_linked(card, u, values, language) for u in entry["uses"]], (card, control_id, value, "linked", t["linked"]))
             sides = ["main"] + [u["side"] for u in entry["uses"]]
             check(t["desc"] == [expected_desc(card, s, values, language) for s in sides], (card, control_id, value, "descriptions", t["desc"]))
+            if misread:
+                check(t["numbers"] == expected_numbers(card, values, language), (card, control_id, value, "the line of numbers", t["numbers"]))
+                check(t["check"] == M[language][entry["checkKey"]], (card, control_id, value, "what to check", t["check"]))
     uses = page.locator(f"#{card} .use-figure svg").evaluate_all("els => els.map(s => { const r = s.getBoundingClientRect(); "
                                                                    "return [r.left, r.top, r.width, r.bottom]; })")
-    if width < 720:
+    if len(uses) == 2 and width < 720:
         check(abs(uses[0][1] - uses[1][1]) <= 1 and uses[1][0] > uses[0][0] + uses[0][2] - 1, (card, "two small figures side by side", uses))
-    else:
+    elif len(uses) == 2:
         check(uses[1][1] >= uses[0][3] - 1, (card, "two small figures one above the other", uses))
     if (width, height) == (390, 844):
         top = page.evaluate("""id => { const card = document.getElementById(id), range = card.querySelector('.controls input[type=range]');
@@ -724,7 +844,7 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
 
     def same_places(name):
         now = page.evaluate(CARD_PLACES, card)
-        for key in ("frame", "frameH", "read", "find"):
+        for key in ("frame", "frameH", "read", "find", "numbers", "check"):
             if before[key] is None:
                 check(now[key] is None, (card, name, key, now[key]))
             else:
@@ -757,12 +877,36 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
             expected = {"disabled": True, "note": "visible", "described": note.get_attribute("id")} if off else {
                 "disabled": False, "note": "hidden", "described": None}
             check(swap_state() == expected, (card, "cue", cue, swap_state()))
+    if card == "misread-baseline":
+        # While the axis starts at 0 there is nothing to break: the two buttons of the mark cannot be pressed and the note under them
+        # says why. Raising the bottom makes them pressable again; nothing below moves meanwhile
+        marks, note = page.locator(f'#{card} [data-key^="ctl:{card}:mark:"]'), page.locator(f"#ctl-{card}-mark-note")
+
+        def mark_state():
+            return {"disabled": marks.evaluate_all("els => els.map(b => b.disabled)"),
+                    "note": note.evaluate("n => getComputedStyle(n).visibility"),
+                    "described": marks.evaluate_all("els => els.map(b => b.getAttribute('aria-describedby'))")}
+        off = {"disabled": [True, True], "note": "visible", "described": [note.get_attribute("id")] * 2}
+        check(note.inner_text().strip() == M[language]["bottomNeeded"], (card, "the note under the mark", note.inner_text()))
+        check(mark_state() == off, (card, "bottom 0", mark_state()))
+        slider = page.locator(f"#ctl-{card}-bottom-input")
+        slider.focus()
+        page.keyboard.press("ArrowRight")
+        follow("bottom", controls["bottom"]["values"][1])
+        same_places("bottom 5")
+        check(mark_state() == {"disabled": [False, False], "note": "hidden", "described": [None, None]}, (card, "bottom 5", mark_state()))
+        page.keyboard.press("Home")
+        follow("bottom", 0)
+        same_places("bottom 0 again")
+        check(mark_state() == off, (card, "bottom 0 again", mark_state()))
     keys = control_buttons(page, card)
     seen_linked = set()
     first = dict(drawn)
+    skipped = []
     for key in keys:
         button = page.locator(f'[data-key="{key}"]')
         if button.is_disabled():
+            skipped.append(key)
             continue
         button.click()
         check(button.get_attribute("aria-pressed") == "true", (key, "pressed"))
@@ -797,6 +941,17 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
                       (card, control_id, "the step in words", slider.get_attribute("aria-valuetext")))
             page.keyboard.press("ArrowRight")
             follow(control_id, options[int(slider.input_value())])
+    for key in skipped:
+        # After the sliders (each ends at its last value): the buttons that could not be pressed before
+        button = page.locator(f'[data-key="{key}"]')
+        if button.is_disabled():
+            continue
+        button.click()
+        parts = key.split(":")
+        control = controls[parts[2]]
+        follow(parts[2], not values[parts[2]] if control["type"] == "toggle"
+               else next(v for v in control_options(control) if js_str(v) == parts[3]))
+        same_places(key)
     if card == "popout-feature":
         # The line under the small figures: the three operations for color, lightness and size, none for direction and shape
         names = M[language]["linkedTo"].replace("{names}", ("・" if language == "ja" else ", ").join(
@@ -1614,6 +1769,7 @@ def address_case(browser, browser_name, url, width, height, output, stage):
                                   ("misread", "misread", "#tabs"), ("gestalt-contour", "gestalt", to("gestalt-contour")),
                                   ("gestalt-proximity-similarity", "gestalt", to("gestalt-proximity-similarity")),
                                   ("figure-ground", "figure-ground", "#tabs"), ("figure-ground-symmetry", "figure-ground", to("figure-ground-symmetry")),
+                                  ("misread-aspect-range", "misread", to("misread-aspect-range")),
                                   ("search-time", "search", "#search-time"), ("xyz", "popout", None)):
             open_page(with_hash(url, value))
             assert_selected(page, tab)

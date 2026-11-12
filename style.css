@@ -248,9 +248,10 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 .tick-note { margin: 0; }
 .control-note { grid-column: 1 / -1; margin: -.2rem 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
 .control-note.off { visibility: hidden; }
-/* Why a switch cannot be pressed now (3-2: no cue to swap): under the switch, its line kept while it is not shown */
-.toggle-note { flex: 1 0 100%; margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
-.toggle-note.off { visibility: hidden; }
+/* Why a switch cannot be pressed now (3-2: no cue to swap; 4-1: no break while the axis starts at 0): under the switch, its line
+   kept while it is not shown */
+.switch-note { flex: 1 0 100%; margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
+.switch-note.off { visibility: hidden; }
 .actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem; }
 .actions button { padding-inline: .9rem; }
 
@@ -279,6 +280,11 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 .find-line p { margin: 0; }
 .find-live { font-weight: 700; }
 .find-reveal { justify-self: start; align-self: start; font-weight: 700; }
+/* The misreading cards: the line of numbers right under the figure (stacked like the sentences, so that it keeps its height), and
+   the line of what to check when reading after the sentences */
+.numbers-stack { margin: .1rem 0 .3rem; font-size: .9375rem; font-weight: 700; line-height: 1.5; }
+.numbers-stack p { margin: 0; }
+.entry-check { margin: .45rem 0 0; padding: .1rem 0 .1rem .6rem; border-left: 4px solid var(--accent); font-size: .875rem; line-height: 1.5; }
 
 /* Same controls, showing and hiding: two small figures side by side below 720px */
 .uses-heading { margin: .2rem 0 .3rem; font-size: 1rem; line-height: 1.4; }
@@ -587,7 +593,17 @@ svg.res-key { display: block; width: 32px; height: 14px; }
 @media (max-width: 719px) {
   /* A card with a single slider: the slider takes the whole row, so that the names of its steps stay on one line */
   .control.range.sole { grid-column: 1 / -1; }
-  .read-stack, .find-line { font-size: .875rem; }
+  .read-stack, .find-line, .numbers-stack { font-size: .875rem; }
+  /* The one small figure of a misreading card: as wide as one of two small figures, with its sentences beside it (as from 1000px),
+     so that the controls, the figure and the small figure fit the height of a phone together */
+  .uses-list.single.readable { max-width: none; }
+  .uses-list.readable .use {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "label label" "figure texts"; gap: 0 .6rem;
+  }
+  .uses-list.readable .use-label { grid-area: label; }
+  .uses-list.readable .use-figure { grid-area: figure; }
+  .uses-list.readable .use-texts { grid-area: texts; }
+  .uses-list.readable .use-linked { margin-top: 0; }
   .entry-stage { row-gap: .4rem; }
   .uses-heading { margin-top: .1rem; }
 }

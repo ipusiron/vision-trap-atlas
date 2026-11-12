@@ -20,7 +20,7 @@
   const TABS = VM.tabs.map((tab) => tab.id);
   const ENTRIES = new Map(Data.entries.map((e) => [e.id, e]));
   // The groups whose entry cards are drawn (the other tabs show their heading and the way to the next tab)
-  const CARD_GROUPS = ['popout', 'search', 'gestalt', 'figure-ground'];
+  const CARD_GROUPS = ['popout', 'search', 'gestalt', 'figure-ground', 'misread'];
   const drawnEntries = (tab) => (CARD_GROUPS.includes(tab.id) ? tab.entries : []);
   // The entries with "Find and tap"
   const FIND_ENTRIES = Data.entries.filter((e) => (e.actions || []).includes('find')).map((e) => e.id);
@@ -96,12 +96,13 @@
   // after だけ before a word that is not hiragana: ものだけ｜色など), between katakana and kanji, before an opening bracket,
   // after ） and after 」 before a word that is not hiragana (見つけさせる」｜使い道), and after ：・、。, but never before a mark
   // that may not start a line (、。・：）」ー, small kana and the like). A short
-  // quote (「探して押す」) stays whole, and so do の法則 (ゲシュタルトの法則 breaks only as ゲシュタルト｜の法則) and ミリ秒.
+  // quote (「探して押す」) stays whole, and so do の法則 (ゲシュタルトの法則 breaks only as ゲシュタルト｜の法則), ミリ秒 and の比
+  // (値の比・高さの比・縦横の比 never break as 縦横の｜比).
   // Text without Japanese comes back as it is (English breaks at its spaces).
   const PARTICLES = 'のでをにがはとかもへやて';
   const NO_LINE_START = '、。，．・：；？！ー）」』】〕ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ';
   const JOINED = '＋＝／→×';
-  const WHOLE = ['の法則', 'ミリ秒'];
+  const WHOLE = ['の法則', 'ミリ秒', 'の比'];
   const SHORT_QUOTE = /「[^「」]{1,10}」/g;
   const SPLITS = ['ゲシュタルト|の法則', '図形1つ|あたり', '除いた|回数'];
   const scriptOf = (ch) => (/[゠-ヿ]/.test(ch) ? 'katakana' : /[㐀-䶿一-鿿]/.test(ch) ? 'kanji'
@@ -358,13 +359,7 @@
       button.addEventListener('click', () => setControl(id, control.id, !state.items[id].values[control.id]));
       buttons.push([true, button]);
       parts.choices.set(control.id, buttons);
-      // A switch that can be off (3-2: swapping needs a cue) says why under it. The line is kept while it is not shown, so that the
-      // figure and the sentences below never move
-      if (!control.disabledNoteKey) return E('div', { class: 'control' }, E('div', { class: 'choice' }, button));
-      const note = E('p', { class: 'toggle-note off', id: nameId + '-note' }, phrases(t(control.disabledNoteKey)));
-      parts.toggleNotes = parts.toggleNotes || new Map();
-      parts.toggleNotes.set(control.id, note);
-      return E('div', { class: 'control' }, E('div', { class: 'choice' }, button), note);
+      return E('div', { class: 'control' }, E('div', { class: 'choice' }, button), switchNote(control, nameId, parts));
     }
     View.controlOptions(control).forEach((value) => {
       const label = stepText(entry, control, value);
@@ -375,7 +370,15 @@
     parts.choices.set(control.id, buttons);
     return E('div', { class: 'control', role: 'group', 'aria-labelledby': nameId },
       E('span', { class: 'control-name', id: nameId }, phrases(controlLabel(entry, control))),
-      E('div', { class: 'choice' }, buttons.map(([, b]) => b)));
+      E('div', { class: 'choice' }, buttons.map(([, b]) => b)), switchNote(control, nameId, parts));
+  }
+  // A switch that can be off says why under it (3-2: swapping needs a cue; 4-1: the axis-break mark needs a raised bottom). The
+  // line is kept while it is not shown, so that the figure and the sentences below never move
+  function switchNote(control, nameId, parts) {
+    if (!control.disabledNoteKey) return null;
+    const note = E('p', { class: 'switch-note off', id: nameId + '-note' }, phrases(t(control.disabledNoteKey)));
+    parts.switchNotes.set(control.id, note);
+    return note;
   }
 
   // Every case of the reading sentences, each in the same cell (only the current one is shown): the height is that of the longest
@@ -400,6 +403,17 @@
     walk(0, {});
     return all;
   }
+  // Every line of numbers of a misreading card, over every combination of its controls (stacked like the sentences)
+  function numberTexts(entry) {
+    const all = new Set();
+    const walk = (i, values) => {
+      if (i === entry.controls.length) { all.add(View.messageText(Messages, state.language, View.numbersCase(Data, entry.id, values))); return; }
+      const c = entry.controls[i];
+      for (const v of View.controlOptions(c)) walk(i + 1, { ...values, [c.id]: v });
+    };
+    walk(0, {});
+    return [...all];
+  }
   function stackOf(texts, live, className) {
     const sizers = texts.map((lines) => E('div', { class: 'off', 'aria-hidden': 'true' }, lines.map((line) => E('p', {}, phrases(line)))));
     return E('div', { class: 'stack ' + className }, ...sizers, live);
@@ -418,7 +432,7 @@
   function buildCard(model) {
     const entry = ENTRIES.get(model.id), id = entry.id, used = new Set();
     const square = entry.figure && ['popoutGrid', 'asymGrid'].includes(entry.figure.part);
-    const parts = { choices: new Map(), ranges: new Map(), uses: [] };
+    const parts = { choices: new Map(), ranges: new Map(), switchNotes: new Map(), uses: [] };
     // Title (with its terms), what it is, how to use it
     const title = E('h3', { id: id + '-title', class: 'entry-title' }, richText(t(model.titleKey), model.titleTerms.map((tt) => ({ term: tt.term,
       ja: tt.ja, en: tt.en })), used, id));
@@ -457,10 +471,17 @@
     parts.frame = frame;
     parts.mainSvg = mainSvg;
 
-    // How to read, then the line of "Find and tap"
+    // How to read, then the line of "Find and tap". The misreading cards put the line of numbers (the value ratio and the ratio as
+    // drawn, the crossings or the slope) before the sentences and the line of what to check after them
     parts.readSigs = readSignatures(entry);
     parts.readLive = E('div', { class: 'read-live' });
-    const read = E('div', { class: 'entry-read' }, stackOf([...parts.readSigs.values()], parts.readLive, 'read-stack'));
+    const read = E('div', { class: 'entry-read' });
+    if (model.numbers) {
+      parts.numbersLive = E('p', { class: 'numbers-live' });
+      read.append(stackOf(numberTexts(entry).map((line) => [line]), parts.numbersLive, 'numbers-stack'));
+    }
+    read.append(stackOf([...parts.readSigs.values()], parts.readLive, 'read-stack'));
+    if (model.checkKey) read.append(E('p', { class: 'entry-check' }, phrases(t(model.checkKey))));
     if (FIND_ENTRIES.includes(id)) {
       const sample = (key, values) => [t(key, values)];
       const sizers = [sample('findTime', { t: SAMPLE_TIME.toFixed(1) }), sample('findWrong'), sample('findShown'), sample('findKeyboard')];
@@ -493,7 +514,9 @@
     const id = entry.id;
     const uses = E('section', { class: 'entry-uses', 'aria-labelledby': id + '-uses' },
       E('h4', { id: id + '-uses', class: 'uses-heading' }, phrases(t(model.usesHeadingKey))), ...before);
-    const list = E('div', { class: 'uses-list' + (model.uses.length === 1 ? ' single' : '') });
+    // The misreading cards have one small figure (the easier-to-read form): below 720px its sentences stand beside it
+    const readable = model.uses.length > 0 && model.uses.every((u) => u.side === 'readable');
+    const list = E('div', { class: 'uses-list' + (model.uses.length === 1 ? ' single' : '') + (readable ? ' readable' : '') });
     model.uses.forEach((um, index) => {
       const use = entry.uses[index];
       const svg = svgFor('use-svg', `use-${id}-${um.side}`);
@@ -873,11 +896,12 @@
           button.setAttribute('aria-pressed', String(control.type === 'toggle' ? !!values[control.id] : value === values[control.id]));
           button.disabled = !enabled;
         }
-        const note = parts.toggleNotes && parts.toggleNotes.get(control.id);
+        const note = parts.switchNotes && parts.switchNotes.get(control.id);
         if (note) {
           note.classList.toggle('off', enabled);
-          const button = parts.choices.get(control.id)[0][1];
-          if (enabled) button.removeAttribute('aria-describedby'); else button.setAttribute('aria-describedby', note.id);
+          for (const [, button] of parts.choices.get(control.id)) {
+            if (enabled) button.removeAttribute('aria-describedby'); else button.setAttribute('aria-describedby', note.id);
+          }
         }
       }
     }
@@ -896,7 +920,11 @@
       if (parts.cover) parts.cover.hidden = !covered;
       parts.frame.classList.toggle('finding', !!find && ['shown', 'timing'].includes(find.phase));
     }
-    // How to read
+    // The line of numbers and how to read
+    if (parts.numbersLive) {
+      const text = View.messageText(Messages, state.language, View.numbersCase(Data, id, values));
+      if (parts.numbersLive.textContent !== text) setWords(parts.numbersLive, text);
+    }
     if (parts.readLive) {
       const cases = View.readCases(Data, id, values, { times: item.times });
       parts.readLive.replaceChildren(...View.texts(Messages, state.language, cases).map((line) => E('p', {}, phrases(line))));

@@ -31,6 +31,8 @@
 
   // ===== 形の部品 =====
   const r2 = (x) => Math.round(x * 100) / 100;
+  // 百冊単位の値を、桁区切りの冊数にする（40→4,000）。数字は日英で同じで、単位（冊・books）は文の側に書く。図の縦軸は百冊のまま
+  const books = (v) => String(v * 100).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   function el(type, attrs, cls = '') {
     const a = {};
     for (const [k, v] of Object.entries(attrs)) a[k] = typeof v === 'number' ? r2(v) : v;
@@ -744,7 +746,7 @@
         const all = ds.libraryLoans24, shown = values.range === 'last6' ? all.slice(-6) : all;
         const deg = Core.round1(Core.meanAbsAngle(shown, values.aspect));
         const key = deg > 60 ? 'aspectRead.steep' : deg >= 30 ? 'aspectRead.mid' : 'aspectRead.flat';
-        const ends = { start: String(all[0]), end: String(all[all.length - 1]), start6: String(all[all.length - 6]) };
+        const ends = { start: books(all[0]), end: books(all[all.length - 1]), start6: books(all[all.length - 6]) };
         return [{ key, values: { deg: deg.toFixed(1) } },
           values.range === 'last6' ? { key: 'aspectRead.last6', values: ends } : { key: 'aspectRead.all', values: { start: ends.start, end: ends.end } }];
       }

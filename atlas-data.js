@@ -203,7 +203,8 @@
       controls: [
         { id: 'bottom', type: 'range', values: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50], default: 0 },
         { id: 'chart', type: 'choice', options: ['bar', 'line'], default: 'bar' },
-        { id: 'mark', type: 'choice', options: ['none', 'shown'], default: 'none', disabledWhen: { bottom: [0] } },
+        // 縦軸が0から始まるときは切れていないので、印を押せない（押せない理由を下に書く）
+        { id: 'mark', type: 'choice', options: ['none', 'shown'], default: 'none', disabledWhen: { bottom: [0] }, disabledNoteKey: 'bottomNeeded' },
       ],
       actions: [],
       read: { cases: 'baseline' },
