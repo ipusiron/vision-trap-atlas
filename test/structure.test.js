@@ -190,12 +190,23 @@ test('F: the header has no decorative Day line, and the footer has the GitHub li
   assert.equal(M.en.footerGitHub, 'GitHub (ipusiron/vision-trap-atlas)');
 });
 
-test('F: the help has, in order, the first steps, the controls, the 35 terms and the note on this atlas', () => {
-  const body = html.match(/<div class="help-body"[^>]*>([\s\S]*?)<\/div>\s*<\/dialog>/)[1];
-  const order = [...body.matchAll(/<h3 id="([^"]+)" tabindex="-1" data-i18n="(\w+)"|<p data-i18n="(\w+)"|<dl id="help-terms"/g)]
-    .map((m) => m[2] || m[3] || 'terms');
-  assert.deepEqual(order, ['helpFirst', 'helpFirstText', 'helpKeysHeading', 'helpKeys', 'helpTermsHeading', 'terms', 'helpAboutHeading', 'helpAbout']);
+test('F: the help has two tabs, help and glossary; the help panel has the first steps, the controls as a list and the note on this atlas', () => {
+  const dialog = html.match(/<dialog id="help-dialog" aria-labelledby="help-title">([\s\S]*?)<\/dialog>/)[1];
+  assert.match(dialog, /<div class="help-tabs" role="tablist" aria-labelledby="help-title">/);
+  const tab = new RegExp('<button id="help-tab-(\\w+)" class="help-tab" type="button" role="tab" aria-selected="(true|false)" '
+    + 'aria-controls="help-panel-\\1"', 'g');
+  const tabs = [...dialog.matchAll(tab)];
+  assert.deepEqual(tabs.map((m) => [m[1], m[2]]), [['help', 'true'], ['glossary', 'false']]);
+  const panels = [...dialog.matchAll(/<div id="help-panel-(\w+)" class="help-body" role="tabpanel" aria-labelledby="help-tab-\1" tabindex="0"( hidden)?>/g)];
+  assert.deepEqual(panels.map((m) => [m[1], !!m[2]]), [['help', false], ['glossary', true]]);
+  const help = dialog.match(/<div id="help-panel-help"[^>]*>([\s\S]*?)<\/div>/)[1];
+  const order = [...help.matchAll(/<h3 id="[^"]+" tabindex="-1" data-i18n="(\w+)"|<p data-i18n="(\w+)"|<li data-i18n="([\w.]+)"/g)]
+    .map((m) => m[1] || m[2] || m[3]);
+  assert.deepEqual(order, ['helpFirst', 'helpFirstText', 'helpKeysHeading', 'helpKey.tabs', 'helpKey.slider', 'helpKey.experiment',
+    'helpAboutHeading', 'helpAbout']);
   assert.match(html, /<button id="close-help" type="button" data-i18n="close">閉じる<\/button>/);
+  // No lessons: the help and the glossary only
+  assert.doesNotMatch(html, /座学/);
 });
 
 test('F: the contrast table has the three rows of the spec, with "?" beside the showing and hiding sides', () => {

@@ -32,6 +32,7 @@
   --c-camoObjLight-0: #c9c1a5; --c-camoObjLight-1: #afa890; --c-camoObjLight-2: #958f7a; --c-camoObjLight-3: #7b7665;
   --c-camoSpotsLight-0: #8a9a5b; --c-camoSpotsLight-1: #9ca974; --c-camoSpotsLight-2: #adb88c;
   --c-camoObjSpots-0: #7b6a96; --c-camoObjSpots-1: #4f7a8f; --c-camoObjSpots-2: #9a6d55;
+  --c-camoMarks-0: #33452f; --c-camoMarks-1: #4d3b5e; --c-camoMarks-2: #4a3424;
 }
 @media screen {
   :root[data-theme="dark"] {
@@ -56,7 +57,7 @@
     --c-groups-0: #56b4e9; --c-groups-1: #e69f00; --c-groups-2: #009e73; --c-groups-3: #cc79a7;
     --c-regionA: #c9d6e2;
     --c-regionB: #2c405a;
-    --c-areaDark: #2c405a;
+    --c-areaDark: #4f6782;
     --c-areaLight: #c9d6e2;
     --c-band: #24384f;
     --c-camoBase: #4a5240;
@@ -66,6 +67,7 @@
     --c-camoObjLight-0: #4a5240; --c-camoObjLight-1: #777d70; --c-camoObjLight-2: #a8aca3; --c-camoObjLight-3: #d9dbd7;
     --c-camoSpotsLight-0: #6e7d4f; --c-camoSpotsLight-1: #5e6a43; --c-camoSpotsLight-2: #4d5837;
     --c-camoObjSpots-0: #9a88b5; --c-camoObjSpots-1: #6f9ab0; --c-camoObjSpots-2: #b88b70;
+    --c-camoMarks-0: #cfe0b4; --c-camoMarks-1: #d9e4f0; --c-camoMarks-2: #f2e2c4;
   }
 }
 *, *::before, *::after { box-sizing: border-box; }
@@ -95,6 +97,13 @@ button, input, select { font: inherit; }
 }
 @media (hover: hover) { button:hover:not(:disabled) { border-color: var(--accent); } }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+/* A slider with the keyboard focus: the frame goes around its name, the slider and the names of its steps, so that its line never
+   runs over the names (a frame around the slider alone crosses the names right under it). Browsers without :has keep the frame of
+   the slider */
+@supports selector(:has(*)) {
+  .control.range:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  .control.range input:focus-visible { outline: none; }
+}
 /* An element that is not pressed but takes the focus from the page (a card opened from the address or the list of entries, a
    heading, the square of the experiment) shows no focus line. Buttons, links and the other controls keep theirs */
 [tabindex="-1"]:not(button, a, input, select, textarea, summary):focus { outline: none; }
@@ -377,14 +386,37 @@ dialog::backdrop { background: #101a2ab0; }
 }
 .help-header h2 { margin: 0; }
 .help-header button { flex: none; }
+/* The help keeps one size on both tabs: the size suits the glossary (the longer text), not the short help. The title, Close and the
+   tabs stay in place and only the text of the tab scrolls; the space of the scroll bar is kept, so the text keeps its width */
+#help-dialog { height: min(90dvh, 56rem); }
+/* The two tabs of the help (help and glossary), drawn like the tab bar: the chosen one is bold with a line under it */
+.help-tabs { flex: none; display: flex; gap: .25rem; padding: 0 1rem; border-bottom: 1px solid var(--line); }
+.help-tab { flex: 1 1 0; min-width: 0; border: 0; border-radius: 0; background: none; color: var(--ink); font-size: 1rem; }
+.help-tab[aria-selected="true"] { color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); font-weight: 700; }
 .help-body { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 1rem 1rem; overflow-wrap: anywhere; }
 .help-body:focus-visible { outline-offset: -3px; }
-.help-body h3 { scroll-margin-top: .75rem; }
-.glossary { margin: .8rem 0 1.2rem; }
-.glossary dt { margin-top: .7rem; font-weight: 700; color: var(--accent); }
-.glossary > dt:first-child { margin-top: 0; }
-.glossary dd { margin: .15rem 0 0; }
-.term-expert { display: block; color: var(--muted); font-size: .8125rem; font-weight: 400; }
+.help-body { scrollbar-gutter: stable; }
+/* The headings of the help and of the groups of the glossary stand apart from the text: larger, bold, with space above and a
+   line under them */
+.help-body h3 {
+  scroll-margin-top: .75rem; margin: 1.6rem 0 .5rem; padding-bottom: .25rem; border-bottom: 1px solid var(--line);
+  color: var(--accent); font-size: 1.125rem; font-weight: 700; line-height: 1.4;
+}
+.help-body > h3:first-child, .help-body > .gloss-lead + .gloss-group > h3 { margin-top: 1rem; }
+.help-body p { margin: .4rem 0; line-height: 1.6; }
+.help-list { margin: .4rem 0; padding-left: 1.3rem; line-height: 1.6; }
+.help-list li + li { margin-top: .3rem; }
+.gloss-lead { color: var(--muted); font-size: .9375rem; }
+/* A term of the glossary: the word of this atlas (bold), the technical term with its label (small), and the meaning (with a line
+   on its left) */
+.glossary { margin: .3rem 0 0; }
+.glossary dt { margin-top: .9rem; font-weight: 700; color: var(--accent); }
+.glossary > dt:first-child { margin-top: .4rem; }
+.glossary dd { margin: .25rem 0 0; padding-left: .6rem; border-left: 3px solid var(--line); line-height: 1.55; }
+.term-expert { display: block; margin-top: .1rem; color: var(--muted); font-size: .8125rem; font-weight: 400; }
+.term-expert-label {
+  display: inline-block; margin-right: .4rem; padding: 0 .3rem; border: 1px solid var(--muted); border-radius: 4px; font-size: .75rem;
+}
 
 /* Figures: the colors come from the palette classes below; these are the lines, dots, marks and letters */
 svg text { font-family: system-ui, sans-serif; }
@@ -465,6 +497,9 @@ svg text { font-family: system-ui, sans-serif; }
 .fill-camoObjSpots-0 { fill: var(--c-camoObjSpots-0); } .stroke-camoObjSpots-0 { stroke: var(--c-camoObjSpots-0); }
 .fill-camoObjSpots-1 { fill: var(--c-camoObjSpots-1); } .stroke-camoObjSpots-1 { stroke: var(--c-camoObjSpots-1); }
 .fill-camoObjSpots-2 { fill: var(--c-camoObjSpots-2); } .stroke-camoObjSpots-2 { stroke: var(--c-camoObjSpots-2); }
+.fill-camoMarks-0 { fill: var(--c-camoMarks-0); } .stroke-camoMarks-0 { stroke: var(--c-camoMarks-0); }
+.fill-camoMarks-1 { fill: var(--c-camoMarks-1); } .stroke-camoMarks-1 { stroke: var(--c-camoMarks-1); }
+.fill-camoMarks-2 { fill: var(--c-camoMarks-2); } .stroke-camoMarks-2 { stroke: var(--c-camoMarks-2); }
 .fig-nofill, svg .fig-nofill { fill: none; }
 /* An open mark of the result chart (the bar was not there): the paper inside, the line of the series around it */
 .res-open { fill: var(--paper); stroke-width: 2; }
@@ -598,9 +633,8 @@ svg.res-key { display: block; width: 32px; height: 14px; }
      so that the controls, the figure and the small figure fit the height of a phone together */
   .uses-list.single.readable { max-width: none; }
   .uses-list.readable .use {
-    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "label label" "figure texts"; gap: 0 .6rem;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "figure texts"; gap: 0 .6rem;
   }
-  .uses-list.readable .use-label { grid-area: label; }
   .uses-list.readable .use-figure { grid-area: figure; }
   .uses-list.readable .use-texts { grid-area: texts; }
   .uses-list.readable .use-linked { margin-top: 0; }

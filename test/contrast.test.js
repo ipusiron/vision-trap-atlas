@@ -122,6 +122,9 @@ test('F: the stimuli, the lines and the parts of the small figures keep at least
     assert.ok(C.relativeLuminance(p.areaDark) < C.relativeLuminance(p.areaLight), theme + ' areaDark is the darker');
     t.diagnostic(`${theme} areaDark / areaLight: ${ratio(p.areaDark, p.areaLight).toFixed(2)}:1`);
     assert.ok(ratio(p.areaDark, p.areaLight) >= 3, theme + ' areaDark / areaLight');
+    // The dark wedge stands apart from the background of the figure as well (2:1 or more), so that it does not look like a hole
+    t.diagnostic(`${theme} areaDark / paper: ${ratio(p.areaDark, paper).toFixed(2)}:1`);
+    assert.ok(ratio(p.areaDark, paper) >= 2, theme + ' areaDark / paper');
     // The focus mark against the ground as well
     assert.ok(ratio(theme === 'light' ? light.focus : dark.focus, theme === 'light' ? light.bg : dark.bg) >= 3, theme + ' focus on the ground');
   }

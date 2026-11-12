@@ -88,7 +88,7 @@ SNAPSHOT = """() => {
     lang: document.documentElement.lang, theme: document.documentElement.dataset.theme || null,
     h1: text('h1'), intro: text('.intro-short'), contrast: text('#contrast-line'),
     table: Array.from(document.querySelectorAll('#contrast-table tbody th, #contrast-table tbody td'), c => c.textContent),
-    tabs: Array.from(document.querySelectorAll('[role="tab"]'), tab => tab.textContent.replace(/\\s+/g, '')),
+    tabs: Array.from(document.querySelectorAll('#tabs [role="tab"]'), tab => tab.textContent.replace(/\\s+/g, '')),
     headings: Array.from(document.querySelectorAll('.panel-heading'), h => { const c = h.cloneNode(true);
       c.querySelectorAll('.term-tip').forEach(t => t.remove()); return c.textContent; }),
     note: note ? note.innerText : '', noteVisible: !!note && note.getClientRects().length > 0,

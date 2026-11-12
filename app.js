@@ -201,6 +201,17 @@
     out.push(...phrases(text.slice(last)));
     return out.filter((part) => part !== '' && part !== null);
   }
+  // A text of several sentences shown one sentence per line (the short introduction and the leads of the tabs): a <br> after every
+  // sentence but the last, so that a line is forced to end only where a sentence ends (a long sentence still wraps at its words)
+  const SENTENCE_END = /(?<=。)|(?<=\.)\s+/;
+  function sentenceLines(text, terms = [], used = new Set(), scope = 'x') {
+    const out = [];
+    text.split(SENTENCE_END).filter(Boolean).forEach((sentence, i) => {
+      if (i) out.push(E('br'));
+      out.push(...richText(sentence, terms, used, scope));
+    });
+    return out;
+  }
   const GLUE_BEFORE = '（「(“"';
   const GLUE_AFTER = NO_LINE_START + ')”".,;:';
   const glued = (pre, widget, post) => E('span', { class: 'term-glue' }, pre || null, widget, post || null);
@@ -532,8 +543,9 @@
         stackOf([...linkedTexts.values()].map((s) => [s]), linkedLive, 'use-linked'));
       if (um.textKey) texts.append(E('p', { class: 'use-text' }, richText(t(um.textKey), TEXT_TERMS[um.textKey], used, id)));
       if (um.noteKey) texts.append(E('p', { class: 'use-note' }, noteText(um)));
-      list.append(E('figure', { class: 'use use-' + um.side },
-        E('figcaption', { class: 'use-label' }, phrases(t(um.labelKey))), E('div', { class: 'use-figure' }, svg), texts));
+      // With one small figure, the heading above says what it is, so the figure has no label of its own (the label would repeat it)
+      const label = model.uses.length > 1 ? E('figcaption', { class: 'use-label' }, phrases(t(um.labelKey))) : null;
+      list.append(E('figure', { class: 'use use-' + um.side }, label, E('div', { class: 'use-figure' }, svg), texts));
       parts.uses.push({ use, model: um, svg, linkedLive });
     });
     uses.append(list);
@@ -892,8 +904,11 @@
         r.ticks.classList.toggle('off', !enabled && !!r.note);
         if (r.note) r.note.classList.toggle('off', enabled);
       } else {
+        // While it cannot be pressed, a switch shows the value that the figure uses (4-1: no mark; 3-2: not swapped). The choice stays
+        // in the state and comes back once the switch can be pressed again
+        const shown = View.shownValue(control, values);
         for (const [value, button] of parts.choices.get(control.id)) {
-          button.setAttribute('aria-pressed', String(control.type === 'toggle' ? !!values[control.id] : value === values[control.id]));
+          button.setAttribute('aria-pressed', String(control.type === 'toggle' ? !!shown : value === shown));
           button.disabled = !enabled;
         }
         const note = parts.switchNotes && parts.switchNotes.get(control.id);
@@ -991,7 +1006,7 @@
     for (const tab of VM.tabs) {
       panelHeading(tab);
       const body = $('body-' + tab.id), used = new Set(), children = [];
-      for (const key of tab.leadKeys) children.push(E('p', { class: 'panel-lead' }, richText(t(key), TEXT_TERMS[key], used, 'panel-' + tab.id)));
+      for (const key of tab.leadKeys) children.push(E('p', { class: 'panel-lead' }, sentenceLines(t(key), TEXT_TERMS[key], used, 'panel-' + tab.id)));
       const entries = drawnEntries(tab);
       const nav = entries.length >= 2 ? E('nav', { class: 'section-nav', id: 'nav-' + tab.id, 'aria-labelledby': 'nav-label-' + tab.id, tabindex: '-1' },
         E('p', { class: 'section-nav-label', id: 'nav-label-' + tab.id }, phrases(t('tabNavHeading'))),
@@ -1086,6 +1101,7 @@
     document.documentElement.lang = state.language;
     document.documentElement.dataset.theme = state.theme;
     document.querySelectorAll('[data-i18n]').forEach((el) => { setWords(el, t(el.dataset.i18n)); });
+    document.querySelectorAll('[data-i18n-lines]').forEach((el) => { el.replaceChildren(...sentenceLines(t(el.dataset.i18nLines))); });
     document.querySelectorAll('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
     renderHeader();
     renderContrastTerms();
@@ -1117,13 +1133,40 @@
     saveLanguage();
     render();
   });
-  // The help opens where it was left; only after the language changed does it open at the top
-  let helpLanguage = null;
+  // The help has two tabs, the help and the glossary, and shows one panel at a time; ←→ (and Home, End) switch them as in the tab
+  // bar. It opens on the tab and at the place where it was left (each panel keeps its place); after a language change it opens on
+  // the help tab at its top
+  const HELP_TABS = ['help', 'glossary'];
+  const help = { tab: 'help', scroll: { help: 0, glossary: 0 }, language: null };
+  function selectHelpTab(name) {
+    help.tab = name;
+    for (const n of HELP_TABS) {
+      const selected = n === name, tab = $('help-tab-' + n);
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      $('help-panel-' + n).hidden = !selected;
+    }
+    $('help-panel-' + name).scrollTop = help.scroll[name];
+  }
+  HELP_TABS.forEach((name, index) => {
+    const tab = $('help-tab-' + name), panel = $('help-panel-' + name);
+    tab.addEventListener('click', () => selectHelpTab(name));
+    tab.addEventListener('keydown', (event) => {
+      const move = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+      if (!move && event.key !== 'Home' && event.key !== 'End') return;
+      event.preventDefault();
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? HELP_TABS.length - 1 : (index + move + HELP_TABS.length) % HELP_TABS.length;
+      selectHelpTab(HELP_TABS[next]);
+      $('help-tab-' + HELP_TABS[next]).focus();
+    });
+    // The place of each panel, kept while it is shown (a hidden or closed panel reads 0)
+    panel.addEventListener('scroll', () => { if ($('help-dialog').open && !panel.hidden) help.scroll[name] = panel.scrollTop; });
+  });
   $('help').addEventListener('click', () => {
     hideTip();
+    if (help.language !== state.language) Object.assign(help, { tab: 'help', scroll: { help: 0, glossary: 0 }, language: state.language });
     $('help-dialog').showModal();
-    if (helpLanguage !== state.language) $('help-dialog').querySelector('.help-body').scrollTop = 0;
-    helpLanguage = state.language;
+    selectHelpTab(help.tab);
   });
   $('close-help').addEventListener('click', () => $('help-dialog').close());
   // Both ends of a pointer gesture must be on the backdrop; a drag from the help text keeps it open.

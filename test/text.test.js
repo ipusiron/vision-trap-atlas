@@ -74,12 +74,38 @@ test('E: the known sentences of the spec', () => {
 test('E: the start and end values of the time-range sentences come from the data', () => {
   assert.deepEqual(read('ja', 'misread-aspect-range', { aspect: 1, range: 'last6' }), [
     '線の傾きの平均は37.6度です。傾きの平均を45度前後にそろえる方法が提案されています（45度が最もよいとは限らない、という報告もあります）。',
-    '最後の6か月だけを見ると、6,000冊から5,200冊へ減っているように見えます。24か月では4,000冊から5,200冊へ増えています。']);
+    '最後の6か月だけを見ると、6,000冊から5,200冊へ減っています。24か月で見ると、4,000冊から5,200冊へ増えています。'
+      + 'どの期間を見せるかで、受ける印象が逆になります。']);
   // The values are in hundreds of books: the sentences give books with a thousands separator (the axis keeps hundreds)
   assert.equal(read('ja', 'misread-aspect-range', { aspect: 4, range: 'all' })[1], '24か月では、貸出冊数は4,000冊から5,200冊へ増えています。');
-  assert.equal(read('en', 'misread-aspect-range', { aspect: 4, range: 'all' })[1], 'Over 24 months, loans rose from 4,000 to 5,200 books.');
-  assert.equal(read('en', 'misread-aspect-range', { aspect: 1, range: 'last6' })[1],
-    'Looking only at the last 6 months, loans seem to fall from 6,000 to 5,200 books. Over 24 months, they rose from 4,000 to 5,200 books.');
+  assert.equal(read('en', 'misread-aspect-range', { aspect: 4, range: 'all' })[1], 'Over 24 months, the number of books lent rose from 4,000 to 5,200.');
+  assert.equal(read('en', 'misread-aspect-range', { aspect: 1, range: 'last6' })[1], 'Looking only at the last 6 months, the number of books lent fell '
+    + 'from 6,000 to 5,200. Over all 24 months, it rose from 4,000 to 5,200. The time range you show can reverse the impression.');
+  // The scale of the figure: the first and last month in words
+  assert.deepEqual([1, 19, 24].map((n) => V.fill(M.ja['fig.misread-aspect-range.main.month'], { n })), ['1か月目', '19か月目', '24か月目']);
+  assert.deepEqual([1, 24].map((n) => V.fill(M.en['fig.misread-aspect-range.main.month'], { n })), ['Month 1', 'Month 24']);
+});
+
+test('E: the misreading cards: titles without a second "fictional", the easier-to-read forms each with a sentence, and the defaults', () => {
+  for (const id of ['misread-baseline', 'misread-area', 'misread-dual-axis', 'misread-aspect-range']) {
+    // The title says 架空 once (the tab says that every value is fictional)
+    assert.equal((M.ja[`fig.${id}.main.title`].match(/架空/g) || []).length, 1, id);
+    assert.doesNotMatch(M.en[`fig.${id}.main.title`], /fictional data/, id);
+    const key = entry(id).uses[0].textKey;
+    assert.ok(key && M.ja[key] && M.en[key], `${id} says what is easier to read`);
+  }
+  assert.deepEqual(entry('misread-area').uses[0].textKey, 'areaReadable');
+  assert.deepEqual(entry('misread-dual-axis').uses[0].textKey, 'dualReadable');
+  assert.deepEqual(entry('misread-aspect-range').uses[0].textKey, 'aspectReadable');
+  // The defaults mislead, so that right after opening the figure and the easier-to-read form differ: the axis from 40 (1.50 times)
+  // and the last 6 months (aspect ratio 1)
+  assert.deepEqual(V.controlValues(entry('misread-baseline')), { bottom: 40, chart: 'bar', mark: 'none' });
+  assert.deepEqual(V.controlValues(entry('misread-aspect-range')), { aspect: 1, range: 'last6' });
+  assert.equal(numbers('ja', 'misread-baseline', V.controlValues(entry('misread-baseline'))), '値の比：58÷52＝1.12倍／下端からの高さの比：1.50倍');
+  assert.equal(numbers('ja', 'misread-aspect-range', V.controlValues(entry('misread-aspect-range'))), '線の傾きの平均：37.6度');
+  // The x-axis of 4-1 has no title (its scale says 4月・5月・6月); the one of 4-3 keeps 月 (its scale is numbers)
+  assert.equal(M.ja['fig.misread-baseline.main.axisX'], undefined);
+  assert.equal(M.ja['fig.misread-dual-axis.main.axisX'], '月');
 });
 
 test('E: the line of numbers under each misreading figure gives the known values of the spec', () => {
@@ -102,6 +128,22 @@ test('E: the line of numbers under each misreading figure gives the known values
     const key = entry(id).checkKey;
     assert.ok(M.ja[key].startsWith('読むときに確かめること：') && M.en[key].startsWith('When reading, check: '), id);
   }
+});
+
+test('E: a tab is written 「XXX」タブ, not 「XXX」のタブ (the dictionary and the static texts of index.html)', () => {
+  const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
+  for (const [key, text] of Object.entries(M.ja)) assert.doesNotMatch(text, /」のタブ/, key);
+  assert.doesNotMatch(html, /」のタブ/);
+  assert.equal(M.ja.introFeature3, '「探す時間」タブで、自分が探すのにかかる時間を測り、研究の値と比べる。');
+});
+
+test('E: charts stand for showing and camouflage for hiding: the sentences beside the camouflage figures say 迷彩, not 隠す側', () => {
+  // The headings of the short table, the names of the two terms and the labels of the small figures keep 見せる側・隠す側
+  const kept = ['contrastLine', 'contrastHead.show', 'contrastHead.hide', 'termShowSide', 'termHideSide'];
+  for (const [key, text] of Object.entries(M.ja)) if (!kept.includes(key)) assert.doesNotMatch(text, /隠す側|見せる側/, key);
+  assert.match(M.ja.intro2, /^見せることを目的とする代表例がグラフ、隠すことを目的とする代表例が迷彩です。/);
+  assert.equal(M.ja.termHideSideMeaning, '隠すことを目的とする使い方。代表例は迷彩');
+  assert.doesNotMatch(M.en.helpFirstText, /showing and hiding/);
 });
 
 test('E: one crossing gets its own sentence ("cross once"), which the data never needs but the function is ready for', () => {

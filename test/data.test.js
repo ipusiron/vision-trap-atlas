@@ -46,6 +46,11 @@ test('B: controls have a known type, a default among their values, and messages 
           values.forEach((v, i) => assert.ok(inBoth(`ctl.${e.id}.${c.id}.${c.steps ? c.steps[i] : String(v)}`), `step ${e.id}.${c.id}.${v}`));
         }
       }
+      // offValue: the value a control shows while it cannot be pressed (one of its values; only on a control that can be off)
+      if (c.offValue !== undefined) {
+        assert.ok(c.enabledWhen || c.disabledWhen, `${e.id}.${c.id} offValue needs a condition`);
+        assert.ok(V.controlOptions(c).includes(c.offValue), `${e.id}.${c.id} offValue among its values`);
+      }
       // A switch can be off as well (3-2: swapping needs a cue)
       for (const cond of [c.enabledWhen, c.disabledWhen].filter(Boolean)) {
         for (const [k, list] of Object.entries(cond)) {

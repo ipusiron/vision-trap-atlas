@@ -51,6 +51,9 @@
   const W = 320, H = 240;              // ほかの上の図（4:3）
   const SW = 200, SH = 150;            // 小さな図（4:3）
   const AW = 280, AH = 220;            // 縦横の比の図（枠は固定し、中の描く面だけを変える）
+  // 縦横の比の図の描く面の最大（幅×高さ）と置く範囲。比が ASPECT_EDGE（＝最大の幅÷高さ＝1.3）以上なら幅を、未満なら高さを最大にする。
+  // 上に題と縦軸の題、左に縦軸の目盛り、下に横軸の目盛りを置くため、枠より小さくする
+  const AMAXW = 182, AMAXH = 140, ASPECT_EDGE = AMAXW / AMAXH, AX0 = 56, AY0 = 48;
 
   // ===== 1-1・1-2 の配置（「探して押す」もこの配置を使う） =====
   const DIFF = ['same', 'small', 'medium', 'large'];
@@ -266,7 +269,7 @@
   });
 
   // ===== 誤読の上の図 =====
-  // 4-1：縦軸の始まり。縦軸の上端は60、下端はつまみ
+  // 4-1：縦軸の始まり。縦軸の上端は60、下端はつまみ。横軸の目盛りが「4月・5月・6月」なので、横軸の題は置かない
   register('baselineChart', (s, ctx) => {
     const t = ctx.t, values = ctx.data.datasets.libraryLoans3, bottom = s.bottom || 0, top = 60;
     const x0 = 64, x1 = 304, y0 = 44, y1 = 196, slot = (x1 - x0) / values.length;
@@ -274,7 +277,6 @@
     const shapes = [
       text(W / 2, 18, t('fig.misread-baseline.main.title'), 'fig-title ta-middle'),
       text(8, 34, t('fig.misread-baseline.main.axisY'), 'fig-axisname ta-start'),
-      text(x1, 234, t('fig.misread-baseline.main.axisX'), 'fig-axisname ta-end'),
     ];
     const ticks = [bottom, ...[10, 20, 30, 40, 50, 60].filter((v) => v > bottom)];
     for (const v of ticks) shapes.push(line(x0 - 4, yv(v), x0, yv(v), 'fig-axis'), text(x0 - 7, yv(v) + 4, v, 'fig-tick ta-end'));
@@ -329,18 +331,30 @@
     return { width: W, height: H, shapes };
   });
 
-  // 4-4：縦横の比と期間。枠（viewBox 280×220）は変えず、中の描く面だけを変える
+  // 4-4：縦横の比と期間。枠（viewBox 280×220）は変えず、中の描く面だけを変える。描く面は置く範囲（AX0・AY0から最大の幅×高さ）の
+  // 中央に置く。線の傾きの角度は、描く面の幅÷高さ（＝比）とデータだけで決まる
   function aspectPlot(aspect) {
-    const pw = aspect >= 1.3 ? 260 : 200 * aspect, ph = aspect >= 1.3 ? 260 / aspect : 200;
-    return { px: (AW - pw) / 2, py: (AH - ph) / 2, pw, ph };
+    const pw = aspect >= ASPECT_EDGE ? AMAXW : AMAXH * aspect, ph = aspect >= ASPECT_EDGE ? AMAXW / aspect : AMAXH;
+    return { px: AX0 + (AMAXW - pw) / 2, py: AY0 + (AMAXH - ph) / 2, pw, ph };
   }
   register('aspectChart', (s, ctx) => {
-    const all = ctx.data.datasets.libraryLoans24, values = (s.range || 'all') === 'last6' ? all.slice(-6) : all;
+    const t = ctx.t, all = ctx.data.datasets.libraryLoans24, last6 = (s.range || 'all') === 'last6', values = last6 ? all.slice(-6) : all;
     const { px, py, pw, ph } = aspectPlot(s.aspect || 1), [lo, hi] = Core.niceRange(values);
     const p = values.map((v, i) => [px + i / (values.length - 1) * pw, py + ph - (v - lo) / (hi - lo) * ph]);
+    const first = last6 ? all.length - 5 : 1, month = (n) => fill(t('fig.misread-aspect-range.main.month'), { n: String(n) });
     return {
       width: AW, height: AH,
-      shapes: [line(px, py, px, py + ph, 'fig-axis'), line(px, py + ph, px + pw, py + ph, 'fig-axis'), path(pts(p), 'stroke-seriesTarget fig-series')],
+      shapes: [
+        line(px, py, px, py + ph, 'fig-axis'), line(px, py + ph, px + pw, py + ph, 'fig-axis'), path(pts(p), 'stroke-seriesTarget fig-series'),
+        text(AW / 2, 16, t('fig.misread-aspect-range.main.title'), 'fig-title ta-middle'),
+        // 縦軸の題は描く面の上に置き、縦軸の目盛りは下端と上端だけを冊・桁区切りで書く
+        text(px - 33, py - 14, t('fig.misread-aspect-range.main.axisY'), 'fig-axisname ta-start'),
+        line(px - 3, py, px, py, 'fig-axis'), line(px - 3, py + ph, px, py + ph, 'fig-axis'),
+        text(px - 6, py + 4, books(hi), 'fig-tick ta-end'), text(px - 6, py + ph + 4, books(lo), 'fig-tick ta-end'),
+        // 横軸の最初と最後の月（縦軸の下端の目盛りと重ならないよう、少し下げる）
+        line(px, py + ph, px, py + ph + 3, 'fig-axis'), line(px + pw, py + ph, px + pw, py + ph + 3, 'fig-axis'),
+        text(px, py + ph + 21, month(first), 'fig-tick ta-middle'), text(px + pw, py + ph + 21, month(all.length), 'fig-tick ta-middle'),
+      ],
     };
   });
 
@@ -527,6 +541,41 @@
     }
     return out;
   }
+  // 2-1・3-2 の大きな物（big）：場面の幅の58%（高さの51%）の物に、半径7以上の斑点を置く。小さな図の大きさでも、模様の違いが一目で
+  // わかるようにする。halves（3-2）は左右に4つずつ置き、symmetric なら右を左の鏡写し（同じ色・大きさ・高さ）にし、そうでなければ
+  // 右の4つを別の並びに置く（左は同じ。数・大きさ・色の組も同じ）。halves でない物（2-1）は、物全体に8つを置き、色の組だけを変える
+  // （背景の斑点と同じ組か、別の組か）
+  const BIG = { rx: 58, ry: 38, radii: [9, 8, 8, 7], colors: [0, 1, 2, 0], gap: 3 };
+  function placeSpots(rng, cx, cy, rx, ry, radii, ok = () => true) {
+    const out = [];
+    radii.forEach((r, i) => {
+      for (let k = 0; k < 2000; k += 1) {
+        const x = cx - rx + Core.unit(rng) * 2 * rx, y = cy - ry + Core.unit(rng) * 2 * ry;
+        // 物の中（縁から2以上内側）で、ほかの斑点と重ならない所
+        if (((x - cx) / (rx - r - 2)) ** 2 + ((y - cy) / (ry - r - 2)) ** 2 > 1) continue;
+        if (out.some((o) => Math.hypot(o.x - x, o.y - y) < o.r + r + BIG.gap) || !ok(x, y, r, i)) continue;
+        out.push({ x, y, r });
+        return;
+      }
+      throw new Error('no room for a spot');
+    });
+    return out;
+  }
+  function bigSpots(s, rng, cx, cy, spotCls) {
+    const { rx, ry } = BIG;
+    if (!s.halves) {
+      const radii = [...BIG.radii, ...BIG.radii], colors = [...BIG.colors, 1, 2, 0, 1];
+      const match = s.matchSpots !== false;
+      return placeSpots(rng, cx, cy, rx, ry, radii).map((o, i) => circle(o.x, o.y, o.r,
+        match ? spotCls(colors[i]) : `fill-camoObjSpots-${colors[i]}`));
+    }
+    const left = placeSpots(rng, cx, cy, rx, ry, BIG.radii, (x, y, r) => x + r <= cx - BIG.gap);
+    const mirror = left.map((o) => ({ x: 2 * cx - o.x, y: o.y, r: o.r }));
+    // そうでないとき：右の斑点 i は、左の斑点 i の鏡写しの位置から離して置く（並びが変わったことが見えるように）
+    const right = s.symmetric ? mirror : placeSpots(rng, cx, cy, rx, ry, BIG.radii,
+      (x, y, r, i) => x - r >= cx + BIG.gap && Math.hypot(x - mirror[i].x, y - mirror[i].y) >= 2 * r);
+    return [...left, ...right].map((o, i) => circle(o.x, o.y, o.r, `fill-camoMarks-${BIG.colors[i % BIG.radii.length]}`));
+  }
   register('camoScene', (s) => {
     const rng = Core.xorshift32(s.seed || 1);
     let mode = 'color', level = s.objLevel ?? 0, colors = 3, scale = 1, jitter = 0.2;
@@ -543,14 +592,16 @@
       shapes.push(circle(r + Core.unit(rng) * (SW - 2 * r), r + Core.unit(rng) * (SH - 2 * r), r, spotCls(Core.randInt(rng, colors))));
     }
     const cx = SW / 2, cy = SH / 2;
-    const rx = s.objectShare !== undefined ? SW / 2 * s.objectShare : 32 * scale, ry = s.objectShare !== undefined ? 24 : 20 * scale;
+    const rx = s.big ? BIG.rx : s.objectShare !== undefined ? SW / 2 * s.objectShare : 32 * scale;
+    const ry = s.big ? BIG.ry : s.objectShare !== undefined ? 24 : 20 * scale;
     const outline = blobPoints(cx, cy, rx, ry);
     shapes.push(path(Core.polygonPath(outline), `fill-${mode === 'light' ? 'camoObjLight' : 'camoObj'}-${level}`));
     // 物の斑点：背景と同じ色の組（似ている）か、別の色の組
     const match = s.matchSpots !== false, sr = Math.max(3, Math.min(7, Math.min(rx, ry) * 0.25));
     const objCls = () => (match ? spotCls(Core.randInt(rng, colors)) : `fill-camoObjSpots-${Core.randInt(rng, 3)}`);
     const inner = () => { const a = Core.unit(rng) * 2 * Math.PI, rho = Math.sqrt(Core.unit(rng)) * 0.55; return [Math.cos(a) * rho, Math.sin(a) * rho]; };
-    if (s.symmetric) {
+    if (s.big) shapes.push(...bigSpots(s, rng, cx, cy, spotCls));
+    else if (s.symmetric) {
       for (let i = 0; i < 5; i += 1) {
         const [u, v] = inner(), cls = objCls();
         shapes.push(circle(cx + Math.abs(u) * rx, cy + v * ry, sr, cls), circle(cx - Math.abs(u) * rx, cy + v * ry, sr, cls));
@@ -602,6 +653,11 @@
     if (control.disabledWhen && hit(control.disabledWhen)) return false;
     return true;
   }
+  // 切り替えのボタンが押された形で見せる値：押せる間は選んだ値、押せない間は図が使っている値（offValue があれば）。
+  // 選んだ値は values に残るので、押せるようになると前の選択に戻る
+  function shownValue(control, values) {
+    return controlEnabled(control, values) || control.offValue === undefined ? values[control.id] : control.offValue;
+  }
   const bindActive = (use, values) => !use.bindWhen || Object.entries(use.bindWhen).every(([k, list]) => list.includes(values[k]));
   // 小さな図の設定（params に、いまつながるつまみの値を重ねる）と、つながったつまみ
   function useSettings(use, values) {
@@ -625,15 +681,17 @@
     if (control.unit === 'percent') return Math.round(value * 100) + '%';
     return String(value);
   }
-  // 小さな図の下の行：linkedTo（つながる操作の名前を controls の順に）か linkedNone
+  // 小さな図の下の行：linkedTo（つながる操作の名前を controls の順に）か linkedNone（いまの設定ではつながらない）。
+  // つながる操作が1つもない図（bind が空）は linkedNever（操作しても変わらない）
   function linkedLine(entry, use, values) {
+    if (!Object.keys(use.bind || {}).length) return { key: 'linkedNever', controls: [] };
     const { linked } = useSettings(use, values);
     const ids = entry.controls.map((c) => c.id).filter((id) => linked.includes(id));
     return ids.length ? { key: 'linkedTo', controls: ids } : { key: 'linkedNone', controls: [] };
   }
   function linkedText(M, lang, entry, use, values) {
     const D = dictionary(M, lang), l = linkedLine(entry, use, values);
-    if (l.key === 'linkedNone') return D.linkedNone;
+    if (l.key !== 'linkedTo') return D[l.key];
     return fill(D.linkedTo, { names: l.controls.map((id) => D[`ctl.${entry.id}.${id}`]).join(lang === 'ja' ? '・' : ', ') });
   }
   function renderMain(entry, values, ctx, seed) {
@@ -978,10 +1036,11 @@
 
   return Object.freeze({
     fill, dictionary, partNames, renderPart, renderMain, renderUse, compose, popoutLayout, asymLayout, findLayout, markShapes, fixationShapes,
-    sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, useSettings, linkedLine, linkedText, buildViewModel, readCases,
+    sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, shownValue, useSettings, linkedLine, linkedText, buildViewModel, readCases,
     numbersCase, readKeysAll, texts, resultTexts, resultSetTexts, experimentTitle, messageText, descCase, descText, RESULT_SERIES, resultRows,
     resultTop, resultChart, resultChartDesc, resultKey, numberText, stepLabel,
-    SIZES: Object.freeze({ square: SQ, cell: CELL, card: [W, H], small: [SW, SH], aspect: [AW, AH] }),
+    SIZES: Object.freeze({ square: SQ, cell: CELL, card: [W, H], small: [SW, SH], aspect: [AW, AH], aspectPlot: [AMAXW, AMAXH] }),
+    ASPECT_EDGE,
     DIFF, VARIETY, ANGLES, SCALES, JIT_ANGLE, JIT_SCALE,
   });
 }));

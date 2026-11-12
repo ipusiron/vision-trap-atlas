@@ -132,6 +132,8 @@ def linked_ids(card, use, values):
 
 def expected_linked(card, use, values, language):
     L, ids = M[language], linked_ids(card, use, values)
+    if not use.get("bind"):
+        return L["linkedNever"]
     if not ids:
         return L["linkedNone"]
     return fill(L["linkedTo"], names=("・" if language == "ja" else ", ").join(L[f"ctl.{card}.{cid}"] for cid in ids))
@@ -277,6 +279,28 @@ def expected_misread(card, values, language):
     raise ValueError(card)
 
 
+def sentences(text):
+    """The sentences of a text, as app.js splits them to show one per line (after 。, or after a period and a space)."""
+    return [x for x in re.split(r"(?<=。)|(?<=\.)\s+", text) if x]
+
+
+# The lines of a text, split at its <br> elements (the explanations of the terms left out)
+LINES = """sel => { const el = document.querySelector(sel), lines = [''];
+  for (const n of el.childNodes) {
+    if (n.nodeName === 'BR') { lines.push(''); continue; }
+    const c = n.cloneNode(true);
+    if (c.querySelectorAll) c.querySelectorAll('.term-tip').forEach(t => t.remove());
+    lines[lines.length - 1] += c.textContent;
+  }
+  return {lines, breaks: el.querySelectorAll('br').length}; }"""
+
+
+def assert_sentence_lines(page, selector, key, language):
+    """One sentence per line: a forced break after every sentence but the last, and nowhere inside a sentence."""
+    r = page.evaluate(LINES, selector)
+    check(r["lines"] == sentences(M[language][key]) and r["breaks"] == len(r["lines"]) - 1, (selector, "one sentence per line", r))
+
+
 def heading_text(group, language):
     g = next(x for x in DATA["groups"] if x["id"] == group)
     name, term = M[language][g["labelKey"]], M[language][g["termKey"]]
@@ -307,7 +331,7 @@ PROBE = """() => {
 }"""
 # Each tab: the lines of its word and of its term, and whether every line starts at a place where a break is allowed (after a <wbr>
 # or a space); the font sizes
-TAB_LINES = """() => Array.from(document.querySelectorAll('[role="tab"]'), tab => {
+TAB_LINES = """() => Array.from(document.querySelectorAll('#tabs [role="tab"]'), tab => {
   const part = el => {
     let text = ''; const allowed = new Set(), chars = [];
     const walk = node => {
@@ -352,6 +376,20 @@ CARD_PLACES = """id => { const card = document.getElementById(id), top = el => e
 TICKS = """id => Array.from(document.querySelectorAll('#' + id + ' .controls .control.range'), c => { const b = c.getBoundingClientRect();
   return {key: c.querySelector('input').dataset.key, left: b.left, right: b.right,
     spans: Array.from(c.querySelectorAll('.ticks > span'), s => { const r = s.getBoundingClientRect(); return [r.left, r.right]; })}; })"""
+# The frame of the keyboard focus of a slider (drawn by the slider or by its control) and the boxes of the names of its steps
+FOCUS_RING = """id => { const input = document.getElementById(id), control = input.closest('.control');
+  const box = el => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; };
+  const ringOf = el => { const s = getComputedStyle(el), w = parseFloat(s.outlineWidth) || 0;
+    if (s.outlineStyle === 'none' || w === 0) return null;
+    const o = parseFloat(s.outlineOffset) || 0, b = box(el);
+    return {by: el === input ? 'slider' : 'control', outer: [b[0] - o - w, b[1] - o - w, b[2] + o + w, b[3] + o + w],
+      inner: [b[0] - o, b[1] - o, b[2] + o, b[3] + o]}; };
+  return {focused: document.activeElement === input, visible: input.matches(':focus-visible'), ring: ringOf(input) || ringOf(control),
+    spans: Array.from(control.querySelectorAll('.ticks > span'), box)}; }"""
+# The boxes of the texts of a figure and of the figure itself
+FIGURE_TEXTS = """id => { const svg = document.querySelector('#' + id + ' .figure-frame svg'), f = svg.getBoundingClientRect();
+  return {frame: [f.left, f.top, f.right, f.bottom], texts: Array.from(svg.querySelectorAll('text'), t => {
+    const r = t.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom, t.textContent]; })}; }"""
 CARD_TEXTS = """id => { const card = document.getElementById(id);
   const text = el => el ? el.textContent.trim() : '';
   return {read: text(card.querySelector('.read-live')), find: text(card.querySelector('.find-live')),
@@ -553,7 +591,8 @@ def assert_first_view(page, language, width):
     """The introduction (the purpose and what the atlas lets you do), the contrast table and the tabs are filled in (in the language of
     the page)."""
     assert_language_text(page.locator(".intro-short").inner_text(), language, "introduction")
-    check(page.locator(".intro-short").inner_text() == M[language]["introShort"], "introduction text")
+    lines = page.locator(".intro-short").inner_text().split("\n")
+    check(lines == sentences(M[language]["introShort"]), ("introduction text, one sentence per line", lines))
     check(not page.locator("#intro-more").evaluate("el => el.open"), "the full introduction starts closed")
     # What the atlas lets you do: a heading and four items under the purpose, shown from the start (outside "Read more")
     features = page.locator("#intro-features")
@@ -601,7 +640,8 @@ def test_tab_names(page, width, language):
 
 
 def test_tabs(page, width, layouts, language):
-    check(page.locator('[role="tablist"]').count() == 1 and page.locator('[role="tab"]').count() == 5, "five tabs")
+    # The tab bar (the help has a tab list of its own, inside its dialog)
+    check(page.locator('main [role="tablist"]').count() == 1 and page.locator('#tabs [role="tab"]').count() == 5, "five tabs")
     assert_selected(page, "popout")
     history = page.evaluate("() => history.length")
     page.locator("#tabs").scroll_into_view_if_needed()
@@ -631,16 +671,105 @@ def test_tabs(page, width, layouts, language):
     check(page.evaluate("() => document.activeElement.id") == "panel-popout", "Tab from the selected tab enters its panel")
 
 
+# The tabs and panels of the help: which tab is chosen, which panel is shown, and where each panel is scrolled to
+HELP_STATE = """() => ({tabs: Array.from(document.querySelectorAll('#help-dialog [role=tab]'), t => [t.id, t.getAttribute('aria-selected'), t.tabIndex]),
+  shown: Array.from(document.querySelectorAll('#help-dialog [role=tabpanel]')).filter(p => !p.hidden && p.getClientRects().length).map(p => p.id),
+  places: Object.fromEntries(Array.from(document.querySelectorAll('#help-dialog [role=tabpanel]'), p => [p.id, p.scrollTop])),
+  active: document.activeElement.id})"""
+TWO_FRAMES = "() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))"
+# The box of the help and the top of its tab strip, with the height it should have (90% of the screen, at most 56rem)
+HELP_BOX = """() => { const d = document.getElementById('help-dialog').getBoundingClientRect();
+  const strip = document.querySelector('#help-dialog .help-tabs').getBoundingClientRect(), rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  return {width: d.width, height: d.height, top: d.top, left: d.left, right: d.right, bottom: d.bottom, strip: strip.top,
+    expected: Math.min(0.9 * innerHeight, 56 * rem), innerWidth, innerHeight}; }"""
+
+
+def same_help_box(page, first, name):
+    """The help keeps its size and place on every tab: the width, the height, the top and the tab strip within 1px."""
+    now = page.evaluate(HELP_BOX)
+    check(all(abs(now[k] - first[k]) < 1 for k in ("width", "height", "top", "strip")), (name, "the help keeps its size", first, now))
+GLOSS_GROUPS = ("all", "popout", "search", "gestalt", "figure-ground", "misread")
+TERM_KEYS = sorted(k for k in M["ja"] if re.match(r"^term[A-Z]", k) and not re.search(r"(Meaning|Expert)$", k) and k != "termHelpLabel")
+
+
+def help_tab_state(page, name):
+    """The help shows the tab name: chosen, the only one in the tab order, and its panel the only one shown."""
+    st = page.evaluate(HELP_STATE)
+    other = "glossary" if name == "help" else "help"
+    return st["tabs"] == [[f"help-tab-{n}", "true" if n == name else "false", 0 if n == name else -1] for n in ("help", "glossary")] and \
+        st["shown"] == [f"help-panel-{name}"], st, other
+
+
 def test_help(page, width, layouts, screenshot, language):
+    L = M[language]
     page.locator("#help").focus()
     page.keyboard.press("Enter")
     dialog = page.locator("#help-dialog")
     check(dialog.is_visible() and dialog.evaluate("el => el.open && el.matches(':modal')"), "modal help")
-    check(page.locator("#help-title").inner_text() == M[language]["helpButton"], "help title")
+    check(page.locator("#help-title").inner_text() == L["helpButton"], "help title")
     check(page.evaluate("() => document.activeElement.id") == "close-help", "help opens on the close button")
-    terms = page.locator("#help-terms > dt").count()
-    check(terms == 35 and page.locator("#help-terms > dd").count() == 35, ("35 terms", terms))
-    check(page.locator("#help-first + p").inner_text() == M[language]["helpFirstText"], "first steps")
+    # Two tabs, the help first: one panel shown at a time
+    check([page.locator("#help-tab-help").inner_text().strip(), page.locator("#help-tab-glossary").inner_text().strip()]
+          == [L["helpTabHelp"], L["helpTabGlossary"]], "the names of the two tabs")
+    ok, st, _ = help_tab_state(page, "help")
+    check(ok, ("the help tab first", st))
+    # One size for both tabs, the size of the glossary: on the help tab the help is not shrunk to its short text
+    size = page.evaluate(HELP_BOX)
+    check(abs(size["height"] - size["expected"]) < 1, ("the height of the help", size))
+    check(size["left"] >= 0 and size["top"] >= 0 and size["right"] <= size["innerWidth"] + 0.5 and size["bottom"] <= size["innerHeight"] + 0.5,
+          ("the help inside the screen", size))
+    # The help: the first steps, the controls as a list, the note on this atlas; the headings stand apart from the text
+    check(page.locator("#help-panel-help h3").all_inner_texts() == [L["helpFirst"], L["helpKeysHeading"], L["helpAboutHeading"]], "help headings")
+    check(page.locator("#help-panel-help .help-list li").all_inner_texts() == [L["helpKey.tabs"], L["helpKey.slider"], L["helpKey.experiment"]],
+          "the controls as a list")
+    check(page.locator("#help-first + p").inner_text() == L["helpFirstText"], "first steps")
+    look = page.evaluate("""() => { const h = getComputedStyle(document.querySelector('#help-ops')), p = getComputedStyle(document.querySelector('#help-first + p'));
+      return {h: parseFloat(h.fontSize), p: parseFloat(p.fontSize), weight: Number(h.fontWeight), gap: parseFloat(h.marginTop)}; }""")
+    check(look["h"] > look["p"] and look["weight"] >= 700 and look["gap"] >= look["p"], ("the headings stand apart", look))
+    # ←→, Home and End switch the tabs as in the tab bar (and the focus goes with them)
+    page.locator("#help-tab-help").focus()
+    for key, name in (("ArrowRight", "glossary"), ("ArrowLeft", "help"), ("ArrowLeft", "glossary"), ("Home", "help"), ("End", "glossary")):
+        page.keyboard.press(key)
+        ok, st, _ = help_tab_state(page, name)
+        check(ok and st["active"] == f"help-tab-{name}", (key, name, st))
+        same_help_box(page, size, key)
+    # The glossary: the groups by tab, the 35 terms once each
+    check(page.locator("#help-panel-glossary .gloss-group h3").all_inner_texts() == [L["glossGroup." + g] for g in GLOSS_GROUPS], "glossary groups")
+    keys = page.locator("#help-panel-glossary dt > span:first-child").evaluate_all("els => els.map(e => e.dataset.i18n)")
+    check(len(keys) == 35 and sorted(keys) == TERM_KEYS, ("35 terms once each", keys))
+    check(page.locator("#help-panel-glossary dd").count() == 35, "35 meanings")
+    assert_layout(page, width, "help-glossary", layouts)
+    shot(page, screenshot.with_name(screenshot.stem + "-glossary.png"))
+    # Closed and opened again: the same tab at the same place
+    place = page.evaluate("() => { const p = document.getElementById('help-panel-glossary'); p.scrollTop = Math.min(300, p.scrollHeight - p.clientHeight); "
+                          "return p.scrollTop; }")
+    page.evaluate(TWO_FRAMES)
+    page.keyboard.press("Escape")
+    page.wait_for_function("() => !document.querySelector('#help-dialog').open && document.activeElement.id === 'help'", timeout=3000)
+    page.locator("#help").click()
+    ok, st, _ = help_tab_state(page, "glossary")
+    check(ok and place > 0 and abs(st["places"]["help-panel-glossary"] - place) <= 1, ("reopened on the glossary at its place", place, st))
+    page.locator("#help-tab-help").click()
+    # After a language change the help opens on the help tab at its top (then the language is set back)
+    for _ in range(2):
+        # Down the glossary, closed, the language changed, opened again
+        page.locator("#help-tab-glossary").click()
+        page.evaluate("() => { document.getElementById('help-panel-glossary').scrollTop = 200; }")
+        page.evaluate(TWO_FRAMES)
+        page.keyboard.press("Escape")
+        page.wait_for_function("() => !document.querySelector('#help-dialog').open", timeout=3000)
+        page.locator("#language").click()
+        page.locator("#help").click()
+        ok, st, _ = help_tab_state(page, "help")
+        check(ok and st["places"]["help-panel-help"] == 0, ("after a language change: the help tab at its top", st))
+        page.locator("#help-tab-glossary").click()
+        check(page.evaluate("() => document.getElementById('help-panel-glossary').scrollTop") == 0, "the glossary from its top as well")
+    page.locator("#help-tab-help").click()
+    same_help_box(page, size, "help tab, clicked")
+    page.locator("#help-tab-glossary").click()
+    same_help_box(page, size, "glossary tab, clicked")
+    page.locator("#help-tab-help").click()
+    check(page.locator("html").get_attribute("lang") == language, "the language is back")
     text = dialog.evaluate("el => el.textContent")
     if language == "en":
         check(not JAPANESE.search(text), ("Japanese in the English help", JAPANESE.findall(text)[:10]))
@@ -662,6 +791,7 @@ def test_help(page, width, layouts, screenshot, language):
     page.wait_for_function(closed, timeout=3000)
     check(not dialog.is_visible(), "the close button closes help")
     check(page.evaluate("() => document.activeElement.id") == "help", "focus back on the help button after Close")
+    return {k: round(size[k], 2) for k in ("width", "height", "top", "strip", "expected")}
 
 
 def tips_open(page):
@@ -766,6 +896,37 @@ def test_card_terms(page, language):
             check(page.locator("#panel-gestalt .use-text .term").count() == 2, "分断色 in the two hiding sentences of the Grouping tab")
 
 
+def keyboard_focus(page, locator):
+    """The keyboard focus on an element: from the element before it with Shift+Tab and back with Tab (a focus set by a script does
+    not always count as a keyboard focus)."""
+    locator.focus()
+    page.keyboard.press("Shift+Tab")
+    page.keyboard.press("Tab")
+
+
+def crosses_band(rect, ring):
+    """Whether a box runs into the line of a frame (the band between its inner and outer edges), with half a pixel of tolerance."""
+    outer, inner = ring["outer"], ring["inner"]
+    meets_outer = rect[0] < outer[2] - 0.5 and rect[2] > outer[0] + 0.5 and rect[1] < outer[3] - 0.5 and rect[3] > outer[1] + 0.5
+    inside_inner = rect[0] >= inner[0] - 0.5 and rect[2] <= inner[2] + 0.5 and rect[1] >= inner[1] - 0.5 and rect[3] <= inner[3] + 0.5
+    return meets_outer and not inside_inner
+
+
+def assert_texts_apart(page, card, name):
+    """The texts of a figure stay inside it and do not overlap one another (the aspect-ratio figure puts its title, axis title and
+    scale around a plotting area whose size changes)."""
+    f = page.evaluate(FIGURE_TEXTS, card)
+    frame, texts = f["frame"], f["texts"]
+    check(len(texts) >= 6, (card, name, "the texts of the figure", texts))
+    for t in texts:
+        check(t[0] >= frame[0] - 0.5 and t[2] <= frame[2] + 0.5 and t[1] >= frame[1] - 0.5 and t[3] <= frame[3] + 0.5,
+              (card, name, "a text inside the figure", t, frame))
+    for i, a in enumerate(texts):
+        for b in texts[i + 1:]:
+            apart = a[2] <= b[0] + 0.5 or b[2] <= a[0] + 0.5 or a[3] <= b[1] + 0.5 or b[3] <= a[1] + 0.5
+            check(apart, (card, name, "two texts of the figure overlap", a, b))
+
+
 def control_buttons(page, card):
     return page.locator(f"#{card} .controls .choice button").evaluate_all("els => els.map(b => b.dataset.key)")
 
@@ -830,8 +991,14 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
             if misread:
                 check(t["numbers"] == expected_numbers(card, values, language), (card, control_id, value, "the line of numbers", t["numbers"]))
                 check(t["check"] == M[language][entry["checkKey"]], (card, control_id, value, "what to check", t["check"]))
+        if card == "misread-aspect-range":
+            assert_texts_apart(page, card, (control_id, value))
     uses = page.locator(f"#{card} .use-figure svg").evaluate_all("els => els.map(s => { const r = s.getBoundingClientRect(); "
                                                                    "return [r.left, r.top, r.width, r.bottom]; })")
+    labels = page.locator(f"#{card} .use-label").count()
+    check(labels == (len(uses) if len(uses) > 1 else 0), (card, "a label above each small figure only when there are two", labels))
+    if card == "misread-aspect-range":
+        assert_texts_apart(page, card, "first values")
     if len(uses) == 2 and width < 720:
         check(abs(uses[0][1] - uses[1][1]) <= 1 and uses[1][0] > uses[0][0] + uses[0][2] - 1, (card, "two small figures side by side", uses))
     elif len(uses) == 2:
@@ -860,45 +1027,79 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
         spans = ticks["spans"]
         check(spans[0][0] >= ticks["left"] - 0.5 and spans[-1][1] <= ticks["right"] + 0.5, (card, ticks["key"], "step names inside", ticks))
         check(all(a[1] <= b[0] + 0.5 for a, b in zip(spans, spans[1:])), (card, ticks["key"], "step names apart", spans))
+    # The frame of the keyboard focus of each slider never runs over the names of its steps (it goes around them, or stays off them)
+    for slider in page.locator(f"#{card} .controls input[type=range]").all():
+        if slider.is_disabled():
+            continue
+        keyboard_focus(page, slider)
+        ring = page.evaluate(FOCUS_RING, slider.get_attribute("id"))
+        check(ring["focused"] and ring["visible"] and ring["ring"], (card, slider.get_attribute("id"), "a frame of the keyboard focus", ring))
+        for span in ring["spans"]:
+            check(not crosses_band(span, ring["ring"]), (card, slider.get_attribute("id"), "the frame crosses a step name", span, ring["ring"]))
+        page.keyboard.press("Escape")
+
+    def press(key, control_id, value):
+        page.locator(f'[data-key="{key}"]').click()
+        follow(control_id, value)
+        same_places(key)
+
     if card == "figure-ground-symmetry":
-        # While the cue is none there is no cue to swap: the switch cannot be pressed and the note under it says why. Choosing a cue
-        # makes it pressable again; nothing below moves meanwhile
+        # While the cue is none there is no cue to swap: the switch cannot be pressed, shows "off" (the figure is not swapped) and the
+        # note under it says why. Choosing a cue makes it pressable again and brings the choice back: swapped, then the cue none (shown
+        # off), then bulging outward (shown swapped again). Nothing below moves meanwhile
         swap, note = page.locator(f'[data-key="ctl:{card}:swap"]'), page.locator(f"#ctl-{card}-swap-note")
 
         def swap_state():
-            return {"disabled": swap.is_disabled(), "note": note.evaluate("n => getComputedStyle(n).visibility"),
-                    "described": swap.get_attribute("aria-describedby")}
+            return {"disabled": swap.is_disabled(), "pressed": swap.get_attribute("aria-pressed"),
+                    "note": note.evaluate("n => getComputedStyle(n).visibility"), "described": swap.get_attribute("aria-describedby")}
+        off = {"disabled": True, "pressed": "false", "note": "visible", "described": note.get_attribute("id")}
+
+        def on(pressed):
+            return {"disabled": False, "pressed": pressed, "note": "hidden", "described": None}
         check(note.inner_text().strip() == M[language]["cueNeeded"], (card, "the note under the switch", note.inner_text()))
-        check(swap_state() == {"disabled": True, "note": "visible", "described": note.get_attribute("id")}, (card, "cue none", swap_state()))
-        for cue, off in (("symmetric", False), ("convex", False), ("none", True)):
-            page.locator(f'[data-key="ctl:{card}:cue:{cue}"]').click()
-            follow("cue", cue)
-            same_places("cue " + cue)
-            expected = {"disabled": True, "note": "visible", "described": note.get_attribute("id")} if off else {
-                "disabled": False, "note": "hidden", "described": None}
-            check(swap_state() == expected, (card, "cue", cue, swap_state()))
+        check(swap_state() == off, (card, "cue none", swap_state()))
+        press(f"ctl:{card}:cue:convex", "cue", "convex")
+        check(swap_state() == on("false"), (card, "cue convex", swap_state()))
+        press(f"ctl:{card}:swap", "swap", True)
+        check(swap_state() == on("true"), (card, "swapped", swap_state()))
+        press(f"ctl:{card}:cue:none", "cue", "none")
+        check(swap_state() == off, (card, "swapped, then the cue none: shown off", swap_state()))
+        press(f"ctl:{card}:cue:convex", "cue", "convex")
+        check(swap_state() == on("true"), (card, "the cue again: swapped as chosen", swap_state()))
+        press(f"ctl:{card}:swap", "swap", False)
+        press(f"ctl:{card}:cue:none", "cue", "none")
     if card == "misread-baseline":
-        # While the axis starts at 0 there is nothing to break: the two buttons of the mark cannot be pressed and the note under them
-        # says why. Raising the bottom makes them pressable again; nothing below moves meanwhile
+        # The axis-break mark: "On" chosen, then the bottom at 0 (nothing to break: the buttons cannot be pressed, "Off" shows as
+        # pressed because the figure has no mark, and the note says why), then the bottom back at 40: "On" comes back. Nothing below
+        # moves meanwhile
         marks, note = page.locator(f'#{card} [data-key^="ctl:{card}:mark:"]'), page.locator(f"#ctl-{card}-mark-note")
 
         def mark_state():
             return {"disabled": marks.evaluate_all("els => els.map(b => b.disabled)"),
+                    "pressed": marks.evaluate_all("els => els.map(b => b.getAttribute('aria-pressed'))"),
                     "note": note.evaluate("n => getComputedStyle(n).visibility"),
                     "described": marks.evaluate_all("els => els.map(b => b.getAttribute('aria-describedby'))")}
-        off = {"disabled": [True, True], "note": "visible", "described": [note.get_attribute("id")] * 2}
-        check(note.inner_text().strip() == M[language]["bottomNeeded"], (card, "the note under the mark", note.inner_text()))
-        check(mark_state() == off, (card, "bottom 0", mark_state()))
+
+        def on(pressed):
+            return {"disabled": [False, False], "pressed": pressed, "note": "hidden", "described": [None, None]}
+        # The note is not shown while the axis is raised (the first values); its text is there all the same
+        check(note.text_content().strip() == M[language]["bottomNeeded"], (card, "the note under the mark", note.text_content()))
+        check(values["bottom"] == 40 and mark_state() == on(["true", "false"]), (card, "the first values: from 40, no mark", mark_state()))
+        press(f"ctl:{card}:mark:shown", "mark", "shown")
+        check(mark_state() == on(["false", "true"]), (card, "mark on", mark_state()))
         slider = page.locator(f"#ctl-{card}-bottom-input")
         slider.focus()
-        page.keyboard.press("ArrowRight")
-        follow("bottom", controls["bottom"]["values"][1])
-        same_places("bottom 5")
-        check(mark_state() == {"disabled": [False, False], "note": "hidden", "described": [None, None]}, (card, "bottom 5", mark_state()))
         page.keyboard.press("Home")
         follow("bottom", 0)
-        same_places("bottom 0 again")
-        check(mark_state() == off, (card, "bottom 0 again", mark_state()))
+        same_places("bottom 0")
+        check(mark_state() == {"disabled": [True, True], "pressed": ["true", "false"], "note": "visible", "described": [note.get_attribute("id")] * 2},
+              (card, "bottom 0: shown without the mark", mark_state()))
+        for value in controls["bottom"]["values"][1:controls["bottom"]["values"].index(40) + 1]:
+            page.keyboard.press("ArrowRight")
+            follow("bottom", value)
+            same_places(f"bottom {value}")
+        check(mark_state() == on(["false", "true"]), (card, "bottom 40 again: the mark as chosen", mark_state()))
+        press(f"ctl:{card}:mark:none", "mark", "none")
     keys = control_buttons(page, card)
     seen_linked = set()
     first = dict(drawn)
@@ -1049,6 +1250,8 @@ def test_preferences(page, language, theme):
     page.locator("#language").click()
     page.locator("#theme").click()
     assert_preference(page, other_language, other_theme)
+    assert_sentence_lines(page, "#startup-controls .intro-short", "introShort", other_language)
+    assert_sentence_lines(page, "#panel-misread .panel-lead", "misreadLead", other_language)
     assert_ready_state(page, other_language)
     assert_selected(page, "misread")
     saved = page.evaluate("() => Object.fromEntries(Object.entries(localStorage))")
@@ -1078,24 +1281,29 @@ def matrix_case(browser, browser_name, url, width, height, language, theme, outp
         assert_ready_state(page, language)
         assert_heading(page, language)
         assert_first_view(page, language, width)
+        assert_sentence_lines(page, "#startup-controls .intro-short", "introShort", language)
+        assert_sentence_lines(page, "#panel-misread .panel-lead", "misreadLead", language)
         assert_layout(page, width, "initial", layouts)
         shot(page, output / (name + "-initial.png"))
         tabs = test_tab_names(page, width, language)
         test_tabs(page, width, layouts, language)
-        test_help(page, width, layouts, output / (name + "-help.png"), language)
+        help_box = test_help(page, width, layouts, output / (name + "-help.png"), language)
         test_terms(page, width, language, browser_name == "chromium" and width < 720, output / (name + "-term.png"))
         if RUN["stage"] >= "4":
             test_card_terms(page, language)
         for card in cards():
             test_card_controls(page, width, dict(SIZES)[width], layouts, language, card, output / (name + "-" + card + ".png"))
         bottoms = test_entry_nav(page, language, width, height)
+        # A lone small figure (the search card and the misreading cards) has no label of its own: the heading above names it
+        check(page.locator('.uses-list.single .use-label').count() == 0, "no label on a lone small figure")
         if language == "en":
             text = page.evaluate("() => { const c = document.body.cloneNode(true); c.querySelectorAll('noscript').forEach(n => n.remove()); "
                                  "return c.textContent; }")
             check(not JAPANESE.search(text), ("Japanese on the English page", JAPANESE.findall(text)[:10]))
         saved = test_preferences(page, language, theme)
         assert_clean(errors, violations)
-        return {"case": name, "status": "passed", "layouts": len(layouts), "tabs": tabs, "saved": saved, "figure_bottoms": bottoms}
+        return {"case": name, "status": "passed", "layouts": len(layouts), "tabs": tabs, "saved": saved, "figure_bottoms": bottoms,
+                "help_box": help_box}
     except Exception as error:
         try:
             shot(page, output / (name + "-failed.png"))
@@ -1825,7 +2033,7 @@ def links_case(browser, browser_name, url, width, height, language, theme, outpu
     context.route(lambda target: target.startswith(("http://", "https://")) and not target.startswith("http://127.0.0.1"), answer)
     page = context.new_page()
     errors, violations = observe(page, url)
-    state = """() => ({tab: document.querySelector('[role=tab][aria-selected=true]').id,
+    state = """() => ({tab: document.querySelector('#tabs [role=tab][aria-selected=true]').id,
       kind: (document.querySelector('[data-key^="ctl:popout-feature:kind:"][aria-pressed=true]') || {}).dataset.key, y: Math.round(scrollY)})"""
     opened = []
     try:

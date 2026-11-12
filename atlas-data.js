@@ -103,7 +103,8 @@
       read: { cases: 'proximity' },
       uses: [
         { side: 'show', part: 'groupedBars', params: {}, bind: { prox: 'groupGap', sim: 'similarity' }, textKey: 'proxShow' },
-        { side: 'hide', part: 'camoScene', params: { seed: 2192, objLevel: 1 },
+        // 大きな物と大きな斑点で、背景と同じ色の組か別の組かを、小さな図の大きさでも見分けられるようにする
+        { side: 'hide', part: 'camoScene', params: { seed: 2192, objLevel: 1, big: true },
           bind: { sim: { to: 'matchSpots', map: { none: false, rows: true, cols: true } } }, textKey: 'proxHide', noteKey: 'hideNote', link: 'day085' },
       ],
       gapKey: 'proxGap',
@@ -181,13 +182,15 @@
         { id: 'cue', type: 'choice', options: ['none', 'symmetric', 'convex'], default: 'none' },
         { id: 'regions', type: 'choice', options: [2, 8], default: 8 },
         // 手がかりが「なし」の間は、入れ替える手がかりがないので押せない（押せない理由を下に書く）
-        { id: 'swap', type: 'toggle', default: false, disabledWhen: { cue: ['none'] }, disabledNoteKey: 'cueNeeded' },
+        // 押せない間は、図が使っている値（オフ）を押された形で見せる。押せるようになったら前の選択に戻る
+        { id: 'swap', type: 'toggle', default: false, disabledWhen: { cue: ['none'] }, disabledNoteKey: 'cueNeeded', offValue: false },
       ],
       actions: [],
       read: { cases: 'symmetry' },
       uses: [
         { side: 'show', part: 'scatter', params: { mode: 'markers' }, bind: { cue: 'marker' }, textKey: 'symShow', noteKey: 'showNote' },
-        { side: 'hide', part: 'camoScene', params: { seed: 3292, objLevel: 1 },
+        // 大きな物の左右に4つずつの斑点。「左右対称」のときだけ、右が左の鏡写しになる
+        { side: 'hide', part: 'camoScene', params: { seed: 3292, objLevel: 1, big: true, halves: true },
           bind: { cue: { to: 'symmetric', map: { none: false, symmetric: true, convex: false } } }, textKey: 'symHide', noteKey: 'hideNote',
           link: 'day085' },
       ],
@@ -201,10 +204,13 @@
       titleTerms: [{ term: 'termTruncation', ja: '縦軸の途中の省略', en: 'truncated axis' }],
       figure: { part: 'baselineChart', seed: 4101, params: {} },
       controls: [
-        { id: 'bottom', type: 'range', values: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50], default: 0 },
+        // 既定は誤読しやすい設定（下端40＝高さの比1.50倍）。開いた直後に、上の図と読みやすい形の違いが見える
+        { id: 'bottom', type: 'range', values: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50], default: 40 },
         { id: 'chart', type: 'choice', options: ['bar', 'line'], default: 'bar' },
-        // 縦軸が0から始まるときは切れていないので、印を押せない（押せない理由を下に書く）
-        { id: 'mark', type: 'choice', options: ['none', 'shown'], default: 'none', disabledWhen: { bottom: [0] }, disabledNoteKey: 'bottomNeeded' },
+        // 縦軸が0から始まるときは切れていないので、印を押せない（押せない理由を下に書く）。押せない間は、図が使っている値（なし）を
+        // 押された形で見せ、押せるようになったら前の選択に戻る
+        { id: 'mark', type: 'choice', options: ['none', 'shown'], default: 'none', disabledWhen: { bottom: [0] }, disabledNoteKey: 'bottomNeeded',
+          offValue: 'none' },
       ],
       actions: [],
       read: { cases: 'baseline' },
@@ -231,7 +237,7 @@
       numbers: 'area',
       checkKey: 'areaCheck',
       uses: [
-        { side: 'readable', part: 'barChart', params: { mode: 'pair' }, bind: { ratio: 'ratio' }, textKey: null },
+        { side: 'readable', part: 'barChart', params: { mode: 'pair' }, bind: { ratio: 'ratio' }, textKey: 'areaReadable' },
       ],
       gapKey: null,
       safety: still(),
@@ -250,7 +256,7 @@
       numbers: 'dual',
       checkKey: 'dualCheck',
       uses: [
-        { side: 'readable', part: 'lineChart', params: { mode: 'split' }, bind: {}, textKey: null },
+        { side: 'readable', part: 'lineChart', params: { mode: 'split' }, bind: {}, textKey: 'dualReadable' },
       ],
       gapKey: null,
       safety: still(),
@@ -263,14 +269,15 @@
       figure: { part: 'aspectChart', seed: 4404, params: {} },
       controls: [
         { id: 'aspect', type: 'range', values: [0.5, 1, 2, 4], default: 1 },
-        { id: 'range', type: 'choice', options: ['all', 'last6'], default: 'all' },
+        // 既定は誤読しやすい設定（最後の6か月）。読みやすい形（24か月・比1）と、開いた直後から違って見える
+        { id: 'range', type: 'choice', options: ['all', 'last6'], default: 'last6' },
       ],
       actions: [],
       read: { cases: 'aspect' },
       numbers: 'aspect',
       checkKey: 'aspectCheck',
       uses: [
-        { side: 'readable', part: 'lineChart', params: { mode: 'aspect' }, bind: {}, textKey: null },
+        { side: 'readable', part: 'lineChart', params: { mode: 'aspect' }, bind: {}, textKey: 'aspectReadable' },
       ],
       gapKey: null,
       safety: still(),
@@ -392,9 +399,11 @@
   // 図の色（明暗のテーマごと）。図の部品は色を書かず、クラス fill-<名前>[-<添字>]・stroke-<名前>[-<添字>] を付ける。
   // style.css はこの値を CSS の変数に写す（テストで値が一致することを確かめる）。
   // popColor：1-1 の色の4段（ほかの図形の色から探すものの色へ 0・30・60・100% 混ぜる）。popLight：明るさの4段。
+  // camoMarks：3-2 の物の斑点の3色（物の地の色 camoObj-1 と3:1以上離す）。
   // camoSpots：迷彩の絵の背景の斑点の3色（岡部・伊藤の配色から選ばない）。camoObj：物と背景の色の差の4段（camoBase から camoFar へ 0・30・60・100%）
   // regionA・regionB：3-2 の1つおきの帯。areaDark・areaLight：3-1 の色の濃い扇形と薄い扇形（見せる側の棒と背景も同じ2色）。
-  // 文が「色の濃い扇形」と呼ぶので、どちらのテーマでも areaDark のほうを暗くする
+  // 文が「色の濃い扇形」と呼ぶので、どちらのテーマでも areaDark のほうを暗くする。暗いテーマの areaDark は中間の明るさにして、
+  // 図の背景（paper）と2:1以上離す（背景と同じような色だと、扇形が穴のように見える）
   const palette = {
     light: {
       paper: '#fffdf7', ink: '#152b45',
@@ -415,6 +424,7 @@
       camoObjLight: ['#c9c1a5', '#afa890', '#958f7a', '#7b7665'],
       camoSpotsLight: ['#8a9a5b', '#9ca974', '#adb88c'],
       camoObjSpots: ['#7b6a96', '#4f7a8f', '#9a6d55'],
+      camoMarks: ['#33452f', '#4d3b5e', '#4a3424'],
     },
     dark: {
       paper: '#172940', ink: '#eaf1f6',
@@ -427,7 +437,7 @@
       seriesOthers: ['#e69f00', '#009e73', '#cc79a7'],
       groups: ['#56b4e9', '#e69f00', '#009e73', '#cc79a7'],
       regionA: '#c9d6e2', regionB: '#2c405a',
-      areaDark: '#2c405a', areaLight: '#c9d6e2',
+      areaDark: '#4f6782', areaLight: '#c9d6e2',
       band: '#24384f',
       camoBase: '#4a5240', camoFar: '#d08a5c',
       camoSpots: ['#6e7d4f', '#7a6c52', '#3a4535'],
@@ -435,6 +445,7 @@
       camoObjLight: ['#4a5240', '#777d70', '#a8aca3', '#d9dbd7'],
       camoSpotsLight: ['#6e7d4f', '#5e6a43', '#4d5837'],
       camoObjSpots: ['#9a88b5', '#6f9ab0', '#b88b70'],
+      camoMarks: ['#cfe0b4', '#d9e4f0', '#f2e2c4'],
     },
   };
 

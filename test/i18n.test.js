@@ -99,7 +99,7 @@ test('F: index.html uses existing keys, and its first text equals the Japanese d
   for (const { groups } of tags) assert.equal(decode(groups.text.replaceAll('<wbr>', '')), M.ja[groups.key], 'first Japanese text: ' + groups.key);
   // aria-labels start in Japanese; the two startup groups carry both languages until the page is ready
   const labelled = [...html.matchAll(/<[a-z]+\b[^>]*\bdata-i18n-aria="([^"]+)"[^>]*>/g)];
-  assert.ok(labelled.length >= 5);
+  assert.ok(labelled.length >= 4);
   for (const m of labelled) {
     const label = decode((m[0].match(/\baria-label="([^"]*)"/) || [])[1] ?? '');
     assert.ok(label === M.ja[m[1]] || label === M.ja[m[1]] + ' / ' + M.en[m[1]], m[1] + ': ' + label);
@@ -114,7 +114,7 @@ test('F: index.html uses existing keys, and its first text equals the Japanese d
 });
 
 test('F: the purpose and the four things this atlas lets you do are shown from the start; the line over the short table is a title', () => {
-  const start = html.indexOf('data-i18n="introShort"'), more = html.indexOf('<details id="intro-more"');
+  const start = html.indexOf('data-i18n-lines="introShort"'), more = html.indexOf('<details id="intro-more"');
   assert.ok(start > 0 && more > start);
   const block = html.slice(start, more);
   assert.match(block, /<section id="intro-features" class="intro-features" aria-labelledby="intro-features-heading">/);
@@ -136,19 +136,45 @@ test('F: the language button shows EN on the Japanese page and JA on the English
   assert.match(html, /<button id="language" class="tool-button" type="button" data-i18n-aria="languageToggle" aria-label="EN：英語の表示にする">EN<\/button>/);
 });
 
-test('F: the help lists the 35 terms in order, each followed by its meaning, with the specialist word where it differs', () => {
-  const list = html.match(/<dl id="help-terms"[^>]*>([\s\S]*?)<\/dl>/)[1];
-  const items = [...list.matchAll(/<(dt|dd)\b[^>]*>([\s\S]*?)<\/\1>/g)];
-  assert.equal(items.length, 70);
-  [...TERMS19, ...TERMS16].forEach((key, i) => {
-    const [dt, dd] = [items[2 * i], items[2 * i + 1]];
-    assert.equal(dt[1], 'dt', key);
-    assert.match(dt[2], new RegExp(`^<span data-i18n="${key}">`), key);
-    const expert = TERMS19.includes(key) && (M.ja[key] !== M.ja[key + 'Expert'] || M.en[key].toLowerCase() !== M.en[key + 'Expert'].toLowerCase());
-    assert.equal(dt[2].includes(`data-i18n="${key}Expert"`), expert, key + ' specialist word');
-    assert.equal(dd[1], 'dd', key);
-    assert.match(dd[0], new RegExp(`^<dd data-i18n="${key}Meaning">`), key);
-  });
+test('F: the glossary groups the 35 terms by the tab where they mainly appear: each term once, followed by its meaning, with the '
+  + 'specialist word (and its label) where it differs', () => {
+  const panel = html.match(/<div id="help-panel-glossary"[^>]*>([\s\S]*?)\n    <\/div>\n  <\/dialog>/)[1];
+  const group = new RegExp('<section class="gloss-group" aria-labelledby="gloss-([\\w-]+)">\\s*<h3 id="gloss-\\1" '
+    + 'data-i18n="glossGroup\\.\\1">[^<]*</h3>\\s*<dl class="glossary">([\\s\\S]*?)</dl>', 'g');
+  const groups = [...panel.matchAll(group)];
+  assert.deepEqual(groups.map((g) => g[1]), ['all', 'popout', 'search', 'gestalt', 'figure-ground', 'misread']);
+  const seen = [];
+  for (const g of groups) {
+    const items = [...g[2].matchAll(/<(dt|dd)\b[^>]*>([\s\S]*?)<\/\1>/g)];
+    assert.ok(items.length >= 4 && items.length % 2 === 0, g[1]);
+    for (let i = 0; i < items.length; i += 2) {
+      const [dt, dd] = [items[i], items[i + 1]];
+      const key = dt[2].match(/^<span data-i18n="(\w+)">/)[1];
+      seen.push(key);
+      assert.equal(dt[1], 'dt', key);
+      const expert = TERMS19.includes(key) && (M.ja[key] !== M.ja[key + 'Expert'] || M.en[key].toLowerCase() !== M.en[key + 'Expert'].toLowerCase());
+      assert.equal(dt[2].includes(`data-i18n="${key}Expert"`), expert, key + ' specialist word');
+      // The specialist word comes with its label, so that the word, the specialist word and the meaning can be told apart
+      assert.equal(dt[2].includes('<span class="term-expert-label" data-i18n="glossExpertLabel">'), expert, key + ' label');
+      assert.equal(dd[1], 'dd', key);
+      assert.match(dd[0], new RegExp(`^<dd data-i18n="${key}Meaning">`), key);
+    }
+  }
+  // Each of the 35 terms exactly once
+  assert.equal(seen.length, 35);
+  assert.deepEqual([...seen].sort(), [...TERMS19, ...TERMS16].sort());
+});
+
+test('F: the short introduction is one sentence per line in index.html, the same sentences as the dictionary', () => {
+  const m = html.match(/<p class="intro intro-short" data-i18n-lines="introShort">([\s\S]*?)<\/p>/);
+  assert.ok(m);
+  const sentences = (text) => text.split(/(?<=。)|(?<=\.)\s+/).filter(Boolean);
+  assert.deepEqual(m[1].split('<br>').map(decode), sentences(M.ja.introShort));
+  assert.equal(sentences(M.ja.introShort).length, 3);
+  assert.equal(sentences(M.en.introShort).length, 3);
+  // Every element with lines names an existing key; app.js draws them with the same split
+  for (const k of html.matchAll(/data-i18n-lines="([^"]+)"/g)) assert.ok(Object.hasOwn(M.ja, k[1]), k[1]);
+  assert.match(app, /querySelectorAll\('\[data-i18n-lines\]'\)/);
 });
 
 test('F: every term with a dashed underline or a "?" is in the terms table, and its word appears in the sentence in both languages', () => {

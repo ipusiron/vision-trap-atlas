@@ -191,13 +191,31 @@ test('C: the counts of shapes in the main figures', () => {
 });
 
 test('C: the aspect-ratio figure keeps its frame and changes only the plotting area', () => {
-  for (const aspect of [0.5, 1, 2, 4]) {
-    const fig = V.renderMain(entry('misread-aspect-range'), { aspect, range: 'all' }, ctx);
-    assert.deepEqual([fig.width, fig.height], [280, 220]);
-    const [yAxis, xAxis] = fig.shapes;
-    const pw = xAxis.attrs.x2 - xAxis.attrs.x1, ph = yAxis.attrs.y2 - yAxis.attrs.y1;
-    assert.equal(Math.round(pw / ph * 100) / 100, aspect);
-    if (aspect >= 1.3) assert.equal(pw, 260); else assert.equal(ph, 200);
+  // The largest plotting area is 182 × 140 (room for the title and the scale); from the ratio 182 ÷ 140 = 1.3 the width is the
+  // largest, below it the height
+  assert.deepEqual(V.SIZES.aspectPlot, [182, 140]);
+  assert.equal(V.ASPECT_EDGE, 1.3);
+  const known = { all: ['67.3', '51.4', '33.5', '19.0'], last6: ['56.1', '37.6', '21.6', '11.3'] };
+  for (const range of ['all', 'last6']) {
+    [0.5, 1, 2, 4].forEach((aspect, k) => {
+      const fig = V.renderMain(entry('misread-aspect-range'), { aspect, range }, ctx);
+      assert.deepEqual([fig.width, fig.height], [280, 220]);
+      const [yAxis, xAxis, series] = fig.shapes;
+      const pw = xAxis.attrs.x2 - xAxis.attrs.x1, ph = yAxis.attrs.y2 - yAxis.attrs.y1;
+      assert.equal(Math.round(pw / ph * 100) / 100, aspect);
+      if (aspect >= 1.3) assert.equal(pw, 182); else assert.equal(ph, 140);
+      // The average slope stays the known value: the angle depends on the ratio and the data only, and the line as drawn keeps it (within
+      // 0.05 degrees: the points of the path are written with two decimals, which moves 18.95 of the ratio 4 to 18.94)
+      const loans = D.datasets.libraryLoans24, exact = C.meanAbsAngle(range === 'all' ? loans : loans.slice(-6), aspect);
+      assert.equal(C.round1(exact).toFixed(1), known[range][k], `${range} ${aspect}`);
+      const p = pathPoints(series.attrs.d), angles = p.slice(1).map(([x, y], i) => Math.atan2(Math.abs(y - p[i][1]), x - p[i][0]) * 180 / Math.PI);
+      const drawn = angles.reduce((a, b) => a + b, 0) / angles.length;
+      assert.ok(Math.abs(drawn - exact) < 0.05, `${range} ${aspect}: drawn ${drawn}, exact ${exact}`);
+      // The title, the axis title, the bottom and top of the vertical axis in books, and the first and last month
+      const texts = fig.shapes.filter((s) => s.type === 'text').map((s) => s.text);
+      assert.deepEqual(texts, ['架空の図書館の貸出冊数', '貸出冊数（冊）',
+        ...(range === 'all' ? ['7,000', '4,000', '1か月目', '24か月目'] : ['6,000', '5,000', '19か月目', '24か月目'])]);
+    });
   }
 });
 
@@ -241,10 +259,73 @@ test('C: the texts of "Find and tap" exist in both languages', () => {
   assertInside({ width: 360, height: 360, shapes: V.markShapes({ pressed: 0, target: 35 }) }, 'marks');
 });
 
+// The object and its spots in a camouflage scene: the width of the object (from its outline) and the circles drawn on it
+function camoParts(entryId, values) {
+  const use = entry(entryId).uses.find((u) => u.side === 'hide'), fig = V.renderUse(use, values, ctx);
+  const object = fig.shapes.find((x) => x.type === 'path' && /fill-camoObj-/.test(x.cls));
+  const xs = pathPoints(object.attrs.d).map(([x]) => x);
+  const at = fig.shapes.indexOf(object);
+  const spots = fig.shapes.slice(at + 1).filter((x) => x.type === 'circle').map((x) => ({ x: x.attrs.cx, y: x.attrs.cy, r: x.attrs.r, cls: x.cls }));
+  return { fig, width: Math.max(...xs) - Math.min(...xs), spots, background: fig.shapes.slice(0, at) };
+}
+// A spot has a mirror partner: another spot at the mirrored place (about the middle of the scene), of the same size and color
+const partnered = (spots, cx) => spots.filter((o) => spots.some((q) => q !== o && Math.abs(q.x - (2 * cx - o.x)) < 0.02 && Math.abs(q.y - o.y) < 0.02
+  && q.r === o.r && q.cls === o.cls));
+
+test('C: the camouflage figure of 3-2: a large object with four large spots on each side, mirrored only for "symmetric"', () => {
+  const values = (cue) => ({ cue, regions: 8, swap: false });
+  const cx = V.SIZES.small[0] / 2;
+  const none = camoParts('figure-ground-symmetry', values('none')), sym = camoParts('figure-ground-symmetry', values('symmetric'));
+  const convex = camoParts('figure-ground-symmetry', values('convex'));
+  for (const [name, c] of [['none', none], ['symmetric', sym], ['convex', convex]]) {
+    // The object is at least half as wide as the scene; its spots are 4 on each side, of radius 7 or more, in the colors kept apart
+    // from the object (camoMarks)
+    assert.ok(c.width >= V.SIZES.small[0] / 2, `${name}: width ${c.width}`);
+    assert.equal(c.spots.length, 8, name);
+    assert.ok(c.spots.every((o) => o.r >= 7 && /^fill-camoMarks-\d$/.test(o.cls)), name);
+    assert.equal(c.spots.filter((o) => o.x + o.r <= cx).length, 4, `${name}: four on the left`);
+    assert.equal(c.spots.filter((o) => o.x - o.r >= cx).length, 4, `${name}: four on the right`);
+    // The same sizes and colors on both sides
+    const set = (list) => list.map((o) => `${o.r} ${o.cls}`).sort();
+    assert.deepEqual(set(c.spots.filter((o) => o.x < cx)), set(c.spots.filter((o) => o.x > cx)), name);
+  }
+  // Symmetric: every spot has its mirror partner. Otherwise: more than half have none
+  assert.equal(partnered(sym.spots, cx).length, 8);
+  assert.ok(partnered(none.spots, cx).length <= 4, 'none');
+  assert.ok(partnered(convex.spots, cx).length <= 4, 'convex');
+  // Bulging outward has no camouflage counterpart: the same picture as none. Between none and symmetric half the spots or more move
+  assert.deepEqual(convex.fig, none.fig);
+  const moved = sym.spots.filter((o, i) => Math.hypot(o.x - none.spots[i].x, o.y - none.spots[i].y) > 1).length;
+  assert.ok(moved >= 4, `moved ${moved}`);
+  // The outline of the object is symmetric, and the background is the same in every case
+  const outline = pathPoints(none.fig.shapes.find((x) => x.type === 'path' && /fill-camoObj-/.test(x.cls)).attrs.d);
+  for (const [x, y] of outline) assert.ok(outline.some(([u, v]) => Math.abs(u - (2 * cx - x)) < 0.02 && Math.abs(v - y) < 0.02), `${x} ${y}`);
+  assert.deepEqual(sym.background, none.background);
+  // The other camouflage scenes keep their small object (only 2-1 and 3-2 draw the large one)
+  assert.ok(camoParts('gestalt-contour', { gap: 0, crossing: 'smooth' }).width < V.SIZES.small[0] / 2);
+});
+
+test('C: the camouflage figure of 2-1: a large object with eight large spots, in the colors of the background or in other colors', () => {
+  const same = camoParts('gestalt-proximity-similarity', { prox: 0, sim: 'none' });
+  const matched = camoParts('gestalt-proximity-similarity', { prox: 0, sim: 'rows' });
+  for (const c of [same, matched]) {
+    assert.ok(c.width >= V.SIZES.small[0] / 2, `width ${c.width}`);
+    assert.equal(c.spots.length, 8);
+    assert.ok(c.spots.every((o) => o.r >= 7));
+  }
+  // The places stay; only the set of colors changes: the object's own colors, or those of the spots of the background
+  assert.deepEqual(same.spots.map((o) => [o.x, o.y, o.r]), matched.spots.map((o) => [o.x, o.y, o.r]));
+  assert.ok(same.spots.every((o) => /^fill-camoObjSpots-\d$/.test(o.cls)));
+  assert.ok(matched.spots.every((o) => /^fill-camoSpots-\d$/.test(o.cls)));
+  assert.deepEqual(new Set(matched.background.filter((x) => x.type === 'circle').map((x) => x.cls)),
+    new Set(matched.spots.map((o) => o.cls)));
+});
+
 test('C: the colors of the small figures and the camouflage scene meet the spec', () => {
   for (const theme of ['light', 'dark']) {
     const p = D.palette[theme];
     for (const c of p.camoSpots) assert.ok(!OKABE_ITO.includes(c), `${theme} camoSpots ${c}`);
+    for (const c of p.camoMarks) assert.ok(C.contrastRatio(c, p.camoObj[1]) >= 3, `${theme} camoMarks ${c} on the object`);
     assert.ok(!OKABE_ITO.includes(p.camoBase));
     assert.deepEqual(p.camoObj, [0, 0.3, 0.6, 1].map((t) => C.mixHex(p.camoBase, p.camoFar, t)), theme);
     assert.deepEqual(p.popColor, [0, 0.3, 0.6, 1].map((t) => C.mixHex(p.stimCool, p.stimHot, t)), theme);
@@ -370,7 +451,10 @@ test('C: the linked line of 1-1 for each of the five kinds, and of the other ent
   assert.equal(line('gestalt-contour', 'show'), 'この図を変える操作：輪郭の途切れ・交わり方');
   assert.equal(line('gestalt-contour', 'hide'), 'この図を変える操作：輪郭の途切れ');
   assert.equal(line('figure-ground-symmetry', 'hide'), 'この図を変える操作：手がかり');
-  assert.equal(line('misread-baseline', 'readable'), 'いまの設定では、この図は変わりません。');
+  // A small figure that no control is bound to never changes: it says so, not "with the current settings"
+  assert.equal(line('misread-baseline', 'readable'), 'この図は、操作しても変わりません。');
+  assert.equal(line('misread-dual-axis', 'readable'), 'この図は、操作しても変わりません。');
+  assert.equal(line('misread-aspect-range', 'readable'), 'この図は、操作しても変わりません。');
   assert.equal(line('misread-area', 'readable'), 'この図を変える操作：値の比');
 });
 
@@ -427,6 +511,13 @@ test('C: which controls are enabled', () => {
   const swap = entry('figure-ground-symmetry').controls.find((c) => c.id === 'swap');
   assert.deepEqual(['none', 'symmetric', 'convex'].map((cue) => V.controlEnabled(swap, { cue, regions: 8, swap: false })), [false, true, true]);
   assert.equal(swap.disabledNoteKey, 'cueNeeded');
+  // While a switch cannot be pressed it shows the value that the figure uses; the choice itself stays and shows again later
+  assert.equal(V.shownValue(mark, { bottom: 0, chart: 'bar', mark: 'shown' }), 'none');
+  assert.equal(V.shownValue(mark, { bottom: 40, chart: 'bar', mark: 'shown' }), 'shown');
+  assert.equal(V.shownValue(swap, { cue: 'none', regions: 8, swap: true }), false);
+  assert.equal(V.shownValue(swap, { cue: 'convex', regions: 8, swap: true }), true);
+  // A control without offValue shows its value as it is (the shape of 1-1 while another kind is chosen)
+  assert.equal(V.shownValue(ctl('shape'), { ...d1, shape: 'tl' }), 'tl');
 });
 
 test('C: the small figures of the search tab: one blue dashed line among blue solid and other dashed lines, or one blue line', () => {
