@@ -415,3 +415,76 @@ test('C: the small figures of the search tab: one blue dashed line among blue so
   assert.equal(feature.filter((s) => s.cls.includes('stroke-seriesTarget')).length, 1);
   assert.ok(feature.every((s) => !s.cls.includes('line-dashed')));
 });
+
+// ----- The results of the search experiment -----
+// A whole block from known times: 8 right answers per number of bars and presence, each at base + slope × bars
+function knownBlock(present, absent) {
+  const records = [];
+  for (const setSize of C.SET_SIZES) {
+    for (const [isPresent, [base, slope]] of [[true, present], [false, absent]]) {
+      for (let k = 0; k < 8; k += 1) records.push({ setSize, present: isPresent, outcome: 'correct', rt: base + slope * setSize, input: 'key' });
+    }
+  }
+  return C.summarizeBlock(records);
+}
+const CHART_CLASSES = ['fig-axis', 'fig-axisname', 'fig-legend', 'fig-series', 'fig-tick', 'fill-seriesOthers-0', 'fill-seriesTarget', 'line-dashed',
+  'res-leader', 'res-open', 'stroke-seriesOthers-0', 'stroke-seriesTarget', 'ta-end', 'ta-middle', 'ta-start'];
+
+test('C: the rows of the result table: middle values in whole ms, the slope with one decimal, accuracy in %, and none when not measured', () => {
+  const rows = V.resultRows({ feature: knownBlock([500, 2], [500, 5]), conjunction: null });
+  assert.deepEqual(rows.map((r) => r.id), ['feature.present', 'feature.absent', 'conjunction.present', 'conjunction.absent']);
+  assert.deepEqual(rows.map((r) => r.labelKey), ['resRowFeatureYes', 'resRowFeatureNo', 'resRowConjYes', 'resRowConjNo']);
+  assert.deepEqual(rows[0].medians, [506, 512, 524, 536]);
+  assert.deepEqual(rows[1].medians, [515, 530, 560, 590]);
+  assert.deepEqual([rows[0].slope, rows[1].slope, rows[0].accuracy, rows[0].excluded], ['2.0', '5.0', 100, 0]);
+  for (const r of rows.slice(2)) {
+    assert.deepEqual([r.measured, r.medians, r.slope, r.accuracy, r.excluded], [false, [null, null, null, null], null, null, null]);
+  }
+  // There = a solid line and a filled mark, not there = a dashed line and an open mark; feature = circles, conjunction = triangles
+  assert.deepEqual(rows.map((r) => [r.marker, r.open]), [['circle', false], ['circle', true], ['triangle', false], ['triangle', true]]);
+});
+
+test('C: the result chart: the vertical axis from 0, a mark per middle value, the names at the line ends on wide screens only', () => {
+  assert.deepEqual([999, 1000, 1001, 2000, 2001, 3999].map((m) => V.resultTop(m)),
+    [{ top: 1000, step: 250 }, { top: 1000, step: 250 }, { top: 1500, step: 500 }, { top: 2000, step: 500 }, { top: 3000, step: 1000 },
+      { top: 4000, step: 1000 }]);
+  // The two feature rows end close together: their names keep 13 apart
+  const results = { feature: knownBlock([500, 2], [520, 2]), conjunction: knownBlock([600, 20], [620, 50]) };
+  const t = (key) => M.ja[key];
+  for (const wide of [false, true]) {
+    const fig = V.resultChart(results, { wide, t });
+    assertInside({ ...fig, shapes: fig.shapes.filter((s) => s.type !== 'text') }, 'result chart');
+    const shapes = flat(fig.shapes), cls = new Set(classesOf(fig));
+    assert.ok([...cls].every((c) => CHART_CLASSES.includes(c)), [...cls].join(' '));
+    assert.equal(shapes.filter((s) => s.type === 'circle').length, 8, 'feature: 8 middle values');
+    assert.equal(shapes.filter((s) => s.type === 'path' && !s.cls.includes('fig-series')).length, 8, 'conjunction: 8 triangles');
+    assert.equal(shapes.filter((s) => s.cls.includes('fig-series')).length, 4, 'four lines');
+    assert.equal(shapes.filter((s) => s.cls.includes('line-dashed')).length, 2, 'not there = dashed');
+    const names = shapes.filter((s) => s.cls.includes('fig-legend'));
+    assert.equal(names.length, wide ? 4 : 0);
+    assert.equal(shapes.filter((s) => s.cls.includes('res-leader')).length, wide ? 4 : 0);
+    const ys = names.map((s) => s.attrs.y).sort((a, b) => a - b);
+    for (let i = 1; i < ys.length; i += 1) assert.ok(ys[i] - ys[i - 1] >= 13 - 0.01, ys.join(' '));
+    // The axis starts at 0; the longest middle value here is 1,520 ms, so the top is 2,000
+    assert.equal(fig.top, 2000);
+    assert.ok(shapes.some((s) => s.type === 'text' && s.text === '0'));
+  }
+  // A single middle value: a mark and no line
+  const one = V.resultChart({ feature: C.summarizeBlock([3, 3, 3, 3].map((setSize) => ({ setSize, present: true, outcome: 'correct', rt: 600 }))),
+    conjunction: null }, { wide: true, t });
+  assert.equal(flat(one.shapes).filter((s) => s.cls.includes('fig-series')).length, 0);
+  assert.equal(flat(one.shapes).filter((s) => s.type === 'circle').length, 1);
+  const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'style.css'), 'utf8');
+  for (const c of ['res-leader', 'res-open']) assert.ok(css.includes('.' + c + ' {'), c);
+});
+
+test('C: the legend keys of the result chart and the description of the small chart of the search tab', () => {
+  const key = V.resultKey('conjunction.absent');
+  assert.deepEqual(key.shapes.map((s) => s.cls), ['stroke-seriesOthers-0 fig-series line-dashed', 'stroke-seriesOthers-0 res-open']);
+  assert.deepEqual(V.resultKey('feature.present').shapes.map((s) => s.type), ['line', 'circle']);
+  const st = entry('search-time');
+  for (const view of ['feature', 'conjunction']) {
+    for (const lang of ['ja', 'en']) assert.ok(V.descText(M, lang, st, { view }, 'show').length > 10, view);
+  }
+  assert.equal(V.descCase(st, { view: 'feature' }, 'main'), null);
+});

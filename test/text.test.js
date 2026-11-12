@@ -145,7 +145,9 @@ test('E: the experiment texts: the title, the feedback and the progress', () => 
   assert.equal(V.experimentTitle(M, 'en', 'feature', 'fill'), 'Feature search (fill × direction)');
   assert.equal(V.messageText(M, 'ja', { key: 'fbCorrect', values: { t: '0.62' } }), '○ 0.62秒');
   assert.equal(V.messageText(M, 'en', { key: 'expMain', values: { i: 12 } }), 'Recorded 12 / 64');
-  assert.equal(V.messageText(M, 'ja', { key: 'expPractice', values: { i: 3 } }), '練習 3／8');
+  // No space between Japanese and the number put in (the rule of the Japanese texts)
+  assert.equal(V.messageText(M, 'ja', { key: 'expPractice', values: { i: 3 } }), '練習3／8');
+  assert.equal(V.messageText(M, 'ja', { key: 'expMain', values: { i: 12 } }), '本番12／64');
   // The feedback keys of the experiment all exist
   for (const key of ['fbCorrect', 'fbMiss', 'fbFalse', 'fbEarly', 'fbTimeout', 'expHidden', 'expAborted']) {
     assert.ok(typeof M.ja[key] === 'string' && typeof M.en[key] === 'string', key);
@@ -192,4 +194,19 @@ test('E: the descriptions of the figures of 1-1 and 1-2 (the <desc> of each SVG)
     'Camouflage scene: an object on a spotted background, with one straight line added');
   // An entry without its own descriptions yet gives null (the figure then has its title only)
   assert.equal(V.descText(M, 'ja', entry('gestalt-contour'), V.controlValues(entry('gestalt-contour')), 'main'), null);
+});
+
+test('E: the texts of the results area: the column of each number of bars, the approximate research values and the chart description', () => {
+  assert.deepEqual(C.SET_SIZES.map((n) => V.fill(M.ja.resColItems, { n })), ['3本', '6本', '12本', '18本']);
+  assert.deepEqual(C.SET_SIZES.map((n) => V.fill(M.en.resColItems, { n })), ['3 items', '6 items', '12 items', '18 items']);
+  assert.equal(V.fill(M.ja.resApprox, { v: 27 }), '約27');
+  assert.equal(V.fill(M.en.resApprox, { v: 27 }), 'about 27');
+  assert.equal(V.fill(M.ja.termHelpLabel, { term: M.ja.slopeWord }), '傾きの解説');
+  assert.equal(V.fill(M.en.termHelpLabel, { term: M.en.slopeWord }), 'About slope');
+  for (const lang of ['ja', 'en']) {
+    const rows = ['resRowFeatureYes', 'resRowConjNo'].map((k) => M[lang][k]).join(lang === 'ja' ? '・' : ', ');
+    assert.doesNotMatch(V.fill(M[lang].resChartDesc, { rows }), /\{|\}/);
+    // The research values named in the table come with their note (stimuli and how the values were read)
+    assert.ok(M[lang].resRefNote.includes(M[lang].resRefTreisman) && M[lang].resRefNote.includes(M[lang].resRefWolfe), lang);
+  }
 });

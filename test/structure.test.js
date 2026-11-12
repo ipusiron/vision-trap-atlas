@@ -206,3 +206,20 @@ test('F: the contrast table has the three rows of the spec, with "?" beside the 
   assert.deepEqual([...table.matchAll(/data-term-help="(\w+)"/g)].map((m) => m[1]), ['termShowSide', 'termHideSide']);
   assert.match(table, /aria-labelledby="contrast-line"/);
 });
+
+test('F: the experiment dialog: the title, Stop, the square, the result line and the two answers; no theme or language button inside', () => {
+  const dialog = html.match(/<dialog id="exp-dialog" class="exp-dialog" aria-labelledby="exp-title">([\s\S]*?)<\/dialog>/)[1];
+  assert.deepEqual([...dialog.matchAll(/\bid="([\w-]+)"/g)].map((m) => m[1]),
+    ['exp-title', 'exp-progress', 'exp-abort', 'exp-stage', 'exp-feedback', 'exp-absent', 'exp-present']);
+  assert.doesNotMatch(dialog, /id="(?:theme|language|help)"/);
+  assert.match(dialog, /<button id="exp-abort" class="exp-abort" type="button" data-i18n="expAbort">中断<\/button>/);
+  const app = read('app.js');
+  // The answers: pointerdown on the buttons and keydown, each with event.timeStamp; the display changes inside requestAnimationFrame
+  assert.match(app, /button\.addEventListener\('pointerdown', \(event\) => \{[\s\S]{0,200}timeStamp: event\.timeStamp/);
+  assert.match(app, /run\.exp\.respond\(\{ answer, timeStamp: event\.timeStamp, input: 'key', repeat: event\.repeat \}\)/);
+  assert.match(app, /raf: \(callback\) => requestAnimationFrame\(callback\)/);
+  assert.match(app, /addEventListener\('visibilitychange', \(\) => \{\s*if \(run\.exp\) run\.exp\.setHidden\(document\.hidden\);/);
+  // The answer buttons and the square take a tap at once (no double-tap zoom)
+  assert.match(css, /\.exp-answer \{[^}]*touch-action: manipulation/);
+  assert.match(css, /\.exp-stage \{[^}]*touch-action: manipulation/);
+});

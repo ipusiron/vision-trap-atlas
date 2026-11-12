@@ -35,10 +35,14 @@ test('F: English values contain no Japanese characters or full-width marks', () 
   assert.ok(M.en.languageToggle.startsWith('JA: '));
 });
 
-test('F: no half-width space between Japanese and Latin letters or digits in Japanese values', () => {
+test('F: no half-width space between Japanese and Latin letters or digits in Japanese values (also around a number put in)', () => {
   const ja = '[\\u3040-\\u30ff\\u3400-\\u4dbf\\u4e00-\\u9fff]';
   const pattern = new RegExp(`${ja} [A-Za-z0-9]|[A-Za-z0-9] ${ja}`);
-  for (const [key, value] of Object.entries(M.ja)) assert.doesNotMatch(value.replace(/\{[a-zA-Z0-9_]+\}/g, '\u0000'), pattern, key);
+  for (const [key, value] of Object.entries(M.ja)) {
+    assert.doesNotMatch(value.replace(/\{[a-zA-Z0-9_]+\}/g, '\u0000'), pattern, key);
+    // A placeholder is filled with a number or a word; the filled text keeps the rule too
+    assert.doesNotMatch(value.replace(/\{[a-zA-Z0-9_]+\}/g, '0'), pattern, key);
+  }
 });
 
 test('F: Japanese values are not made of Latin letters alone, and avoid the listed words', () => {
@@ -137,12 +141,22 @@ test('F: every term with a dashed underline or a "?" is in the terms table, and 
   for (const g of D.groups) if (g.termTip) assert.ok(termKeys.has(g.termTip), g.id);
   for (const e of D.entries) for (const t of e.titleTerms) assert.ok(termKeys.has(t.term), e.id);
   // The terms inside sentences (TEXT_TERMS of app.js): the word is found in the sentence of each language
+  // (one row per sentence key, a plain or quoted key, with one or more terms)
   const block = app.match(/const TEXT_TERMS = \{([\s\S]*?)\n {2}\};/)[1];
-  const rows = [...block.matchAll(/(\w+): \[\{ term: '(\w+)', ja: '([^']+)', en: '([^']+)' \}\]/g)];
-  assert.ok(rows.length >= 2);
-  for (const [, key, term, ja, en] of rows) {
-    assert.ok(termKeys.has(term), term);
-    assert.ok(M.ja[key].includes(ja), `${key} ja: ${ja}`);
-    assert.ok(M.en[key].includes(en), `${key} en: ${en}`);
+  const rows = [...block.matchAll(/^ {4}'?([\w.-]+)'?: \[(.+)\],$/gm)];
+  assert.equal(rows.length, block.trim().split('\n').length, 'every line of TEXT_TERMS is read');
+  let count = 0;
+  for (const [, key, list] of rows) {
+    const terms = [...list.matchAll(/\{ term: '(\w+)', ja: '([^']+)', en: '([^']+)' \}/g)];
+    assert.ok(terms.length >= 1, key);
+    for (const [, term, ja, en] of terms) {
+      assert.ok(termKeys.has(term), term);
+      assert.ok(M.ja[key].includes(ja), `${key} ja: ${ja}`);
+      assert.ok(M.en[key].includes(en), `${key} en: ${en}`);
+      count += 1;
+    }
+    // No more than two underlined words in one sentence
+    assert.ok(terms.length <= 2, key);
   }
+  assert.ok(count >= 10, count);
 });

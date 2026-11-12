@@ -187,5 +187,17 @@
       <p data-i18n="helpAbout">この図鑑は学習用です。探す実験の記録はこのページの中だけにあり、保存も送信もしません。点滅する表示と自動で動く表示は作っていません。色の違いを使う図には、色を使わない切り替えを付けています。</p>
     </div>
   </dialog>
+  <dialog id="exp-dialog" class="exp-dialog" aria-labelledby="exp-title">
+    <div class="exp-shell">
+      <div class="exp-top">
+        <div class="exp-head"><h2 id="exp-title" class="exp-title"></h2><p id="exp-progress" class="exp-progress"></p></div>
+        <button id="exp-abort" class="exp-abort" type="button" data-i18n="expAbort">中断</button>
+      </div>
+      <div id="exp-stage" class="exp-stage" tabindex="-1"></div>
+      <div id="exp-feedback" class="exp-feedback"></div>
+      <button id="exp-absent" class="exp-answer exp-absent" type="button" data-i18n="expAbsent">ない（F・←）</button>
+      <button id="exp-present" class="exp-answer exp-present" type="button" data-i18n="expPresent">ある（J・→）</button>
+    </div>
+  </dialog>
 </body>
 </html>

@@ -13,6 +13,7 @@
   const View = AtlasView;
   const Search = AtlasSearch;
   const Messages = AtlasMessages;
+  const Core = AtlasCore;
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
   const VM = View.buildViewModel(Data);
@@ -20,7 +21,7 @@
   const ENTRIES = new Map(Data.entries.map((e) => [e.id, e]));
   const MODELS = new Map(VM.tabs.flatMap((tab) => tab.entries).map((m) => [m.id, m]));
   // The groups whose entry cards are drawn (the other tabs show their heading and the way to the next tab)
-  const CARD_GROUPS = ['popout'];
+  const CARD_GROUPS = ['popout', 'search'];
   const drawnEntries = (tab) => (CARD_GROUPS.includes(tab.id) ? tab.entries : []);
   // The entries with "Find and tap"
   const FIND_ENTRIES = Data.entries.filter((e) => (e.actions || []).includes('find')).map((e) => e.id);
@@ -30,6 +31,10 @@
     popHide: [{ term: 'termBackground', ja: '背景合わせ', en: 'background matching' }],
     regionHide: [{ term: 'termDisruptive', ja: '分断色', en: 'disruptive coloration' }],
     contourHide: [{ term: 'termDisruptive', ja: '分断色', en: 'disruptive coloration' }],
+    'item.search-time.howTo': [{ term: 'termFeature', ja: '特徴探索', en: 'feature search' }, { term: 'termConjunction', ja: '結合探索', en: 'conjunction search' }],
+    searchTheory: [{ term: 'termFit', ja: '特徴統合理論', en: 'feature integration theory' }, { term: 'termGuided', ja: '誘導探索', en: 'guided search' }],
+    resChartUse: [{ term: 'termMedian', ja: '真ん中の値', en: 'middle value' }],
+    resDevice: [{ term: 'termIntercept', ja: '線の高さ', en: 'height of the lines' }],
   };
 
   const state = {
@@ -39,6 +44,9 @@
     // Per entry: the control values, the seed of its figure, and (1-2) the two times of "Find and tap" in seconds. Never stored
     items: Object.fromEntries(Data.entries.map((e) => [e.id, { values: View.controlValues(e), seed: e.figure ? e.figure.seed : null,
       times: { withLine: null, noLine: null } }])),
+    // The search experiment: the feature pair, and the result of each kind of search (the summary of its last run, or null). The
+    // results stay on this page only: never stored or sent, and a reload clears them. version counts the changes of the results
+    experiment: { set: 'color', results: { feature: null, conjunction: null }, version: 0 },
   };
 
   const dictionaries = { ja: View.dictionary(Messages, 'ja'), en: View.dictionary(Messages, 'en') };
@@ -87,14 +95,14 @@
   // Japanese words stay together where a box wraps (word-break: keep-all in style.css): a line breaks only at a <wbr>, put
   // after a particle before the next word, between katakana and kanji, before an opening bracket, after a closing bracket
   // and after ：・、。, but never before a mark that may not start a line (、。・：）」ー, small kana and the like). A short
-  // quote (「探して押す」) stays whole, and so does の法則, so that ゲシュタルトの法則 breaks only as ゲシュタルト｜の法則.
+  // quote (「探して押す」) stays whole, and so do の法則 (ゲシュタルトの法則 breaks only as ゲシュタルト｜の法則) and ミリ秒.
   // Text without Japanese comes back as it is (English breaks at its spaces).
   const PARTICLES = 'のでをにがはとかもへやて';
   const NO_LINE_START = '、。，．・：；？！ー）」』】〕ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ';
   const JOINED = '＋＝／→×';
-  const WHOLE = ['の法則'];
+  const WHOLE = ['の法則', 'ミリ秒'];
   const SHORT_QUOTE = /「[^「」]{1,10}」/g;
-  const SPLITS = ['ゲシュタルト|の法則'];
+  const SPLITS = ['ゲシュタルト|の法則', '項目|あたり', '除いた|回数'];
   const scriptOf = (ch) => (/[゠-ヿ]/.test(ch) ? 'katakana' : /[㐀-䶿一-鿿]/.test(ch) ? 'kanji'
     : /[぀-ゟ]/.test(ch) ? 'hiragana' : 'other');
   function phrases(text) {
@@ -154,11 +162,12 @@
       'aria-describedby': tip.id }, phrases(word));
     return wireTerm(E('span', { class: 'term-wrap' }, button, tip));
   }
-  // "?" beside a word where an underline would be hard to read (a table heading)
-  function termHelp(termKey, scope) {
+  // "?" beside a word where an underline would be hard to read (a table heading). Its name says which word it explains (the word of
+  // the heading when it is shorter than the term, such as 傾き)
+  function termHelp(termKey, scope, word = null) {
     const tip = tipFor(termKey);
     const button = E('button', { type: 'button', class: 'term-help', 'data-term': termKey, 'data-key': 'help-term:' + scope + ':' + termKey,
-      'aria-label': t('termHelpLabel', { term: t(termKey) }), 'aria-describedby': tip.id }, E('span', { 'aria-hidden': 'true' }, '?'));
+      'aria-label': t('termHelpLabel', { term: word || t(termKey) }), 'aria-describedby': tip.id }, E('span', { 'aria-hidden': 'true' }, '?'));
     return wireTerm(E('span', { class: 'term-wrap' }, button, tip));
   }
   // A sentence with its terms: the first appearance of each word (not used before in the same scope) gets the underline
@@ -441,10 +450,26 @@
       read.append(stack);
     }
 
-    // Same controls, showing and hiding (or the easier-to-read form)
+    const uses = buildUses(entry, model, parts, used);
+    const stage = E('div', { class: 'entry-stage' }, E('div', { class: 'entry-main' }, frame), read, uses);
+    const article = E('article', { id, class: 'entry' + (square ? ' square' : ''), 'aria-labelledby': title.id, tabindex: '-1' },
+      title, E('p', { class: 'entry-oneline' }, phrases(t(model.oneLineKey))), E('p', { class: 'entry-howto' }, phrases(t(model.howToKey))),
+      controls, stage);
+    if (model.gapKey) {
+      article.append(E('div', { class: 'gap-note' }, E('p', { class: 'gap-head' }, phrases(t('gapHeading'))), E('p', {}, phrases(t(model.gapKey)))));
+    }
+    article.append(sourcesBox(model));
+    parts.article = article;
+    cards.set(id, parts);
+    return article;
+  }
+  // Same controls, showing and hiding (or the easier-to-read form): the small figures, each with the line of the controls that
+  // change it (the same height whatever the values) and its sentences. before: the elements between the heading and the figures
+  function buildUses(entry, model, parts, used, before = []) {
+    const id = entry.id;
     const uses = E('section', { class: 'entry-uses', 'aria-labelledby': id + '-uses' },
-      E('h4', { id: id + '-uses', class: 'uses-heading' }, phrases(t(model.usesHeadingKey))));
-    const list = E('div', { class: 'uses-list' });
+      E('h4', { id: id + '-uses', class: 'uses-heading' }, phrases(t(model.usesHeadingKey))), ...before);
+    const list = E('div', { class: 'uses-list' + (model.uses.length === 1 ? ' single' : '') });
     model.uses.forEach((um, index) => {
       const use = entry.uses[index];
       const svg = svgFor('use-svg', `use-${id}-${um.side}`);
@@ -465,18 +490,7 @@
       parts.uses.push({ use, model: um, svg, linkedLive });
     });
     uses.append(list);
-
-    const stage = E('div', { class: 'entry-stage' }, E('div', { class: 'entry-main' }, frame), read, uses);
-    const article = E('article', { id, class: 'entry' + (square ? ' square' : ''), 'aria-labelledby': title.id, tabindex: '-1' },
-      title, E('p', { class: 'entry-oneline' }, phrases(t(model.oneLineKey))), E('p', { class: 'entry-howto' }, phrases(t(model.howToKey))),
-      controls, stage);
-    if (model.gapKey) {
-      article.append(E('div', { class: 'gap-note' }, E('p', { class: 'gap-head' }, phrases(t('gapHeading'))), E('p', {}, phrases(t(model.gapKey)))));
-    }
-    article.append(sourcesBox(model));
-    parts.article = article;
-    cards.set(id, parts);
-    return article;
+    return uses;
   }
   // The note under a small figure: the name of a related tool in it becomes its link (a new tab)
   function noteText(um) {
@@ -501,6 +515,315 @@
     }
     return box;
   }
+
+  // ===== The search time tab: why it is measured, measuring (the feature pair, the bars of each search, the two start buttons, the
+  // length of a run), the results, how to read them, the showing side and the limits. The experiment runs in a dialog over the
+  // whole screen (below) =====
+  const SEARCHES = ['feature', 'conjunction'];
+  const SETS = ['color', 'fill'];
+  const TRIAL_PHASES = ['fixation', 'stimulus', 'feedback', 'gap'];
+  // The two sentences of the limits stand at the end of the card (they are the last of the result sentences)
+  const LIMIT_KEYS = ['resDevice', 'resLimits'];
+  const startKey = (search) => (search === 'feature' ? 'startFeature' : 'startConj');
+  const otherKinds = (search) => (search === 'feature' ? ['same-dir'] : ['same-dir', 'same-color']);
+  // A sample of a bar: a picture instead of the name of its color (the experiment is done with the eyes, so it is not read aloud)
+  function pictureSvg(result, className) {
+    const svg = S('svg', { class: className, viewBox: `0 0 ${result.width} ${result.height}`, 'aria-hidden': 'true', focusable: 'false' });
+    svg.append(...result.shapes.map(shapeElement));
+    return svg;
+  }
+  const sampleSvg = (kind, set) => pictureSvg(View.sampleShapes(kind, set), 'sample');
+  // A row of words and pictures (flex): the words in one span, so that the gap of the row does not come between them
+  const sampleRow = (key, pictures) => E('p', { class: 'sample-row' }, E('span', {}, phrases(t(key))), E('span', { class: 'samples' }, pictures));
+
+  function buildSearchCard(model) {
+    const entry = ENTRIES.get(model.id), id = entry.id, used = new Set();
+    const parts = { choices: new Map(), ranges: new Map(), uses: [], search: { version: null, starts: {} } };
+    const sp = parts.search;
+    const heading = (key, suffix, extra = {}) => E('h4', { id: `${id}-${suffix}`, class: 'search-heading', ...extra }, phrases(t(key)));
+    const title = E('h3', { id: id + '-title', class: 'entry-title' }, richText(t(model.titleKey), model.titleTerms.map((tt) => ({ term: tt.term,
+      ja: tt.ja, en: tt.en })), used, id));
+    // Measuring
+    const setGroup = E('div', { class: 'choice' });
+    sp.setButtons = SETS.map((set) => {
+      const button = E('button', { type: 'button', 'data-key': 'exp:set:' + set }, phrases(t(set === 'color' ? 'setColor' : 'setFill')));
+      button.addEventListener('click', () => setExperimentSet(set));
+      setGroup.append(button);
+      return [set, button];
+    });
+    sp.setHint = E('p', { class: 'control-note' }, phrases(t('setHint')));
+    sp.target = E('span', { class: 'samples' });
+    const starts = E('div', { class: 'search-starts' });
+    for (const search of SEARCHES) {
+      const button = E('button', { type: 'button', class: 'start-button', 'data-key': 'exp:start:' + search }, phrases(t(startKey(search))));
+      button.addEventListener('click', () => openExperiment(search));
+      const others = E('span', { class: 'samples' });
+      sp.starts[search] = others;
+      starts.append(E('div', { class: 'start-row' }, button, E('p', { class: 'sample-row' }, E('span', {}, phrases(t('sampleOthers'))), others)));
+    }
+    const measure = E('section', { class: 'search-measure', 'aria-labelledby': id + '-measure' }, heading('searchMeasureHeading', 'measure'),
+      E('div', { class: 'control', role: 'group', 'aria-labelledby': id + '-set' },
+        E('span', { class: 'control-name', id: id + '-set' }, phrases(t('setLabel'))), setGroup),
+      sp.setHint, E('p', { class: 'sample-row' }, E('span', {}, phrases(t('sampleTarget'))), sp.target), starts,
+      E('p', { class: 'search-note' }, phrases(t('expDuration'))), E('p', { class: 'search-note' }, phrases(t('expReplace'))));
+    // The results: what happens to the record and the button to clear it, then the chart, the tables and the sentences
+    sp.clear = E('button', { type: 'button', class: 'res-clear', 'data-key': 'exp:clear' }, phrases(t('resClear')));
+    sp.clear.addEventListener('click', clearResults);
+    sp.resHeading = heading('resHeading', 'results', { tabindex: '-1' });
+    sp.resBody = E('div', { class: 'res-body' });
+    const results = E('section', { class: 'search-results', 'aria-labelledby': id + '-results' }, sp.resHeading,
+      E('div', { class: 'res-privacy' }, E('p', {}, phrases(t('resPrivacy'))), sp.clear), sp.resBody);
+    // How to read: the two ideas behind the slopes
+    const read = E('section', { class: 'search-read', 'aria-labelledby': id + '-read' }, heading('searchReadHeading', 'read'),
+      E('p', {}, richText(t('searchTheory'), TEXT_TERMS.searchTheory, used, id)));
+    // The showing side: the switch of the kind of search right above the small chart (apart from the buttons that measure)
+    const view = entry.controls.find((c) => c.id === 'view');
+    const uses = buildUses(entry, model, parts, used, [E('div', { class: 'controls' }, buildControl(entry, view, parts))]);
+    // The limits (with results only)
+    sp.limits = E('section', { class: 'search-limits', 'aria-labelledby': id + '-limits' }, heading('searchLimitsHeading', 'limits'),
+      E('p', {}, richText(t('resDevice'), TEXT_TERMS.resDevice, used, id)), E('p', {}, phrases(t('resLimits'))));
+    const article = E('article', { id, class: 'entry search-entry', 'aria-labelledby': title.id, tabindex: '-1' },
+      title, E('p', { class: 'entry-oneline' }, phrases(t(model.oneLineKey))),
+      E('p', { class: 'entry-howto' }, richText(t(model.howToKey), TEXT_TERMS[model.howToKey], used, id)),
+      E('p', { class: 'search-why' }, phrases(t('searchWhy'))), measure, results, read, uses);
+    if (model.gapKey) {
+      article.append(E('div', { class: 'gap-note' }, E('p', { class: 'gap-head' }, phrases(t('gapHeading'))), E('p', {}, phrases(t(model.gapKey)))));
+    }
+    article.append(sp.limits, sourcesBox(model));
+    parts.article = article;
+    cards.set(id, parts);
+    return article;
+  }
+  function updateSearch(sp) {
+    const ex = state.experiment;
+    for (const [set, button] of sp.setButtons) button.setAttribute('aria-pressed', String(set === ex.set));
+    sp.setHint.classList.toggle('off', ex.set !== 'color');
+    sp.target.replaceChildren(sampleSvg('target', ex.set));
+    for (const search of SEARCHES) sp.starts[search].replaceChildren(...otherKinds(search).map((kind) => sampleSvg(kind, ex.set)));
+    const any = !!(ex.results.feature || ex.results.conjunction);
+    sp.clear.disabled = !any;
+    sp.limits.hidden = !any;
+    if (sp.version !== ex.version) {
+      sp.resBody.replaceChildren(...buildResults(ex.results));
+      sp.version = ex.version;
+    }
+  }
+  function setExperimentSet(set) {
+    if (state.experiment.set === set) return;
+    state.experiment.set = set;
+    updateCard('search-time');
+  }
+  // Clearing the results: the focus goes to the heading of the results (the button is off once nothing is left)
+  function clearResults() {
+    state.experiment.results = { feature: null, conjunction: null };
+    state.experiment.version += 1;
+    updateCard('search-time');
+    cards.get('search-time').search.resHeading.focus({ preventScroll: true });
+  }
+  // The sentences of the results in the order of the spec, without the two of the limits
+  const resultLines = (results) => View.resultTexts(Messages, state.language, Core.resultCases(results).filter((c) => !LIMIT_KEYS.includes(c.key)));
+
+  // The results: the chart (the names at the line ends from 720px; a legend in words above it on narrower screens), how to read it,
+  // the table (two tables below 720px, never a sideways scrolling one), the sentences and the values of research. A term gets its
+  // explanation once in the results
+  function buildResults(results) {
+    if (!results.feature && !results.conjunction) return [E('p', { class: 'res-none' }, phrases(t('resNone')))];
+    const used = new Set(), rows = View.resultRows(results);
+    const drawn = rows.filter((r) => r.medians.some((v) => v !== null));
+    const names = drawn.map((r) => t(r.labelKey)).join(state.language === 'ja' ? '・' : ', ');
+    const chart = (wide) => {
+      const svg = svgFor('res-chart-svg ' + (wide ? 'res-wide' : 'res-narrow'), wide ? 'res-chart-wide' : 'res-chart-narrow');
+      paintSvg(svg, View.resultChart(results, { wide, t: (key) => t(key) }), t('resChartTitle'), names ? t('resChartDesc', { rows: names }) : null);
+      return svg;
+    };
+    const out = [E('p', { class: 'res-use' }, richText(t('resChartUse'), TEXT_TERMS.resChartUse, used, 'results'))];
+    if (drawn.length) {
+      out.push(E('ul', { class: 'res-legend', 'aria-label': t('resLegend') },
+        drawn.map((r) => E('li', {}, pictureSvg(View.resultKey(r.id), 'res-key'), E('span', {}, phrases(t(r.labelKey)))))));
+    }
+    out.push(E('div', { class: 'res-chart' }, chart(true), chart(false)),
+      E('p', {}, phrases(t('resChartRead'))), E('p', { class: 'res-axis-note' }, phrases(t('resAxisNote'))),
+      ...resultTables(rows), E('div', { class: 'res-texts' }, resultLines(results).map((line) => E('p', {}, phrases(line)))),
+      ...referenceTable());
+    return out;
+  }
+  function resultTables(rows) {
+    const value = (x, format = String) => (x === null ? t('resNoValue') : format(x));
+    const head = (key, extra = {}) => E('th', { scope: 'col', ...extra }, phrases(t(key)));
+    const countHeads = () => Core.SET_SIZES.map((n) => E('th', { scope: 'col' }, phrases(t('resColItems', { n }))));
+    // "?" beside 傾き (its explanation; a heading cell has no underline)
+    const slopeHead = (scope, extra = {}) => E('th', { scope: 'col', ...extra }, phrases(t('resColSlope')),
+      termHelp('termSlope', scope, t('slopeWord')));
+    const rowHead = (r) => E('th', { scope: 'row' }, t(r.labelKey));
+    const medians = (r) => r.medians.map((m) => E('td', {}, value(m)));
+    const others = (r) => [E('td', {}, value(r.slope)), E('td', {}, value(r.accuracy, (a) => a + '%')), E('td', {}, value(r.excluded))];
+    const wide = E('table', { class: 'res-table res-wide' },
+      E('colgroup', {}, E('col')), E('colgroup', { span: 4 }), E('colgroup', { span: 3 }),
+      E('thead', {},
+        E('tr', {}, head('resColCondition', { rowspan: 2 }), head('resTableMedian', { scope: 'colgroup', colspan: 4 }),
+          slopeHead('results-wide', { rowspan: 2 }), head('resColAcc', { rowspan: 2 }), head('resColExcluded', { rowspan: 2 })),
+        E('tr', {}, countHeads())),
+      E('tbody', {}, rows.map((r) => E('tr', {}, rowHead(r), medians(r), others(r)))));
+    const median = E('table', { class: 'res-table res-narrow' }, E('caption', {}, phrases(t('resTableMedian'))),
+      E('thead', {}, E('tr', {}, head('resColCondition'), countHeads())),
+      E('tbody', {}, rows.map((r) => E('tr', {}, rowHead(r), medians(r)))));
+    const slope = E('table', { class: 'res-table res-narrow' }, E('caption', {}, phrases(t('resTableSlope'))),
+      E('thead', {}, E('tr', {}, head('resColCondition'), slopeHead('results-narrow'), head('resColAcc'), head('resColExcluded'))),
+      E('tbody', {}, rows.map((r) => E('tr', {}, rowHead(r), others(r)))));
+    return [wide, median, slope];
+  }
+  // The values of research (for reference): slopes only, since the stimuli and the display sizes differ
+  function referenceTable() {
+    const ref = Data.references, studies = [['resRefTreisman', ref.treisman1980], ['resRefWolfe', ref.wolfe1998]];
+    const fields = [['resRowFeatureYes', 'featurePresent'], ['resRowFeatureNo', 'featureAbsent'], ['resRowConjYes', 'conjPresent'],
+      ['resRowConjNo', 'conjAbsent']];
+    const value = (study, field) => (study.approx ? t('resApprox', { v: study[field] }) : study[field].toFixed(1));
+    return [E('table', { class: 'res-table res-ref' }, E('caption', {}, phrases(t('resRefHeading'))),
+      E('thead', {}, E('tr', {}, E('th', { scope: 'col' }, phrases(t('resColSlope'))),
+        studies.map(([key]) => E('th', { scope: 'col' }, phrases(t(key)))))),
+      E('tbody', {}, fields.map(([rowKey, field]) => E('tr', {}, E('th', { scope: 'row' }, t(rowKey)),
+        studies.map(([, study]) => E('td', {}, value(study, field))))))),
+    E('p', { class: 'res-ref-note' }, phrases(t('resRefNote')))];
+  }
+
+  // ===== The search experiment: a dialog over the whole screen. The order of a try (the fixation point, the bars, the result, the
+  // pause) and the times are those of AtlasSearch; this part draws its state and passes on the answers. The display changes inside
+  // a requestAnimationFrame callback, and an answer carries event.timeStamp (the same clock as performance.now()) =====
+  const expDialog = $('exp-dialog'), expStage = $('exp-stage');
+  const ANSWERS = { absent: $('exp-absent'), present: $('exp-present') };
+  const expSvg = svgFor('exp-svg', 'exp-figure');
+  const expMessage = E('div', { class: 'exp-message', hidden: true });
+  expStage.append(expSvg, expMessage);
+  // exp: the running experiment (null when the dialog is closed); shownPart: what the square or the message shows now; stored: the
+  // results of this run have been kept
+  const run = { exp: null, search: null, shownPart: null, feedback: null, stored: false };
+  function openExperiment(search) {
+    if (run.exp) return;
+    hideTip();
+    run.search = search;
+    run.shownPart = null;
+    run.stored = false;
+    run.exp = Search.createExperiment({ now: () => performance.now(), raf: (callback) => requestAnimationFrame(callback), seed32: newSeed, search,
+      set: state.experiment.set, onChange: drawExperiment });
+    setWords($('exp-title'), View.experimentTitle(Messages, state.language, search, state.experiment.set));
+    // The line of the result of a try keeps the height of its longest sentence
+    run.feedback = E('p', { 'aria-live': 'polite' });
+    const sizes = [...['fbMiss', 'fbFalse', 'fbEarly', 'fbTimeout'].map((key) => [t(key)]), [t('fbCorrect', { t: '3.99' })]];
+    $('exp-feedback').replaceChildren(stackOf(sizes, run.feedback, 'exp-feedback-stack'));
+    expDialog.showModal();
+    drawExperiment(run.exp.state());
+  }
+  function drawExperiment(s) {
+    if (!run.exp) return;
+    const trial = TRIAL_PHASES.includes(s.phase);
+    const progress = s.progress ? t(s.progress.block === 'practice' ? 'expPractice' : 'expMain', { i: s.progress.i }) : '';
+    if ($('exp-progress').textContent !== progress) setWords($('exp-progress'), progress);
+    // The square: the fixation point, the bars while they are shown, or nothing (the ground never changes)
+    const shapes = s.phase === 'fixation' ? View.fixationShapes()
+      : s.visible && s.trial ? View.renderPart('searchDisplay', { items: s.trial.items, set: s.set }, ctx()).shapes : [];
+    paintSvg(expSvg, { width: View.SIZES.square, height: View.SIZES.square, shapes }, t('fig.search-time.main.title'), null);
+    const feedback = s.phase === 'feedback' && s.feedback ? View.messageText(Messages, state.language, s.feedback) : '';
+    if (run.feedback.textContent !== feedback) setWords(run.feedback, feedback);
+    for (const button of Object.values(ANSWERS)) button.disabled = !trial;
+    expMessage.hidden = trial;
+    const part = trial ? 'trial' : s.phase;
+    if (part === run.shownPart) return;
+    run.shownPart = part;
+    if (trial) {
+      expStage.focus({ preventScroll: true });
+      return;
+    }
+    // At the end (or when stopped) the results of the run take the place of the earlier ones of the same search; stopped before any
+    // recorded try, nothing is kept and the dialog closes
+    if ((s.phase === 'done' || s.phase === 'aborted') && !run.stored) {
+      const summary = run.exp.summary();
+      run.stored = true;
+      if (!summary) {
+        expDialog.close();
+        return;
+      }
+      state.experiment.results = { ...state.experiment.results, [run.search]: summary };
+      state.experiment.version += 1;
+      updateCard('search-time');
+    }
+    showExperimentMessage(s);
+  }
+  // In place of the square: before the start, after the practice, while paused, and at the end
+  function showExperimentMessage(s) {
+    const go = (key, action) => {
+      const button = E('button', { type: 'button', class: 'exp-go', 'data-key': 'exp:' + key }, phrases(t(key)));
+      button.addEventListener('click', action);
+      return button;
+    };
+    let button, children;
+    if (s.phase === 'ready') {
+      button = go('expStart', () => run.exp.start());
+      children = [E('p', {}, phrases(t('expInstr'))), E('div', { class: 'sample-line' }, sampleRow('sampleTarget', [sampleSvg('target', s.set)]),
+        sampleRow('sampleOthers', otherKinds(s.search).map((kind) => sampleSvg(kind, s.set)))), E('p', { class: 'exp-reader' }, phrases(t('expReader'))),
+        button];
+    } else if (s.phase === 'practiceDone') {
+      button = go('expContinue', () => run.exp.proceed());
+      children = [E('p', {}, phrases(t('expPracticeDone'))), button];
+    } else if (s.phase === 'paused') {
+      button = go('expResume', () => run.exp.resume());
+      children = [E('p', {}, phrases(t('expHidden'))), button];
+    } else {
+      button = go('expShowResults', () => expDialog.close());
+      children = [E('p', { class: 'exp-status' }, phrases(t(s.phase === 'done' ? 'expDone' : 'expAborted'))), button,
+        E('div', { class: 'exp-results' }, resultLines(state.experiment.results).map((line) => E('p', {}, phrases(line))))];
+    }
+    expMessage.replaceChildren(...children);
+    expDialog.scrollTop = 0;
+    button.focus({ preventScroll: true });
+  }
+  // Stop (the button and Esc): before the start and at the end it closes the dialog; while measuring it stops and keeps what was
+  // measured (AtlasSearch.abort)
+  function stopExperiment() {
+    if (!run.exp || ['ready', 'done', 'aborted'].includes(run.exp.state().phase)) expDialog.close();
+    else run.exp.abort();
+  }
+  $('exp-abort').addEventListener('click', stopExperiment);
+  expDialog.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    stopExperiment();
+  });
+  // Closed: the focus goes back to the button that started it; with new results, that button comes to the top of the screen with
+  // the results below it
+  expDialog.addEventListener('close', () => {
+    if (!run.exp) return;
+    if (!['ready', 'done', 'aborted'].includes(run.exp.state().phase)) run.exp.abort();
+    const search = run.search, stored = run.stored && !!run.exp.summary();
+    run.exp = null;
+    const button = document.querySelector(`[data-key="exp:start:${search}"]`);
+    if (!button) return;
+    button.focus({ preventScroll: stored });
+    if (stored) button.closest('.start-row').scrollIntoView({ block: 'start' });
+  });
+  // Answers: F or ← = no, J or → = yes (the physical keys F and J, whatever the input method), the buttons on pointerdown. A key
+  // held down (repeat) is ignored by AtlasSearch
+  const KEY_ANSWERS = { KeyF: 'absent', KeyJ: 'present', ArrowLeft: 'absent', ArrowRight: 'present', f: 'absent', F: 'absent', j: 'present',
+    J: 'present' };
+  document.addEventListener('keydown', (event) => {
+    if (!run.exp || !expDialog.open || event.ctrlKey || event.metaKey || event.altKey) return;
+    const answer = KEY_ANSWERS[event.code] || KEY_ANSWERS[event.key];
+    if (!answer || !TRIAL_PHASES.includes(run.exp.state().phase)) return;
+    event.preventDefault();
+    run.exp.respond({ answer, timeStamp: event.timeStamp, input: 'key', repeat: event.repeat });
+  });
+  for (const [answer, button] of Object.entries(ANSWERS)) {
+    button.addEventListener('pointerdown', (event) => {
+      if (!run.exp || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      run.exp.respond({ answer, timeStamp: event.timeStamp, input: event.pointerType || 'mouse' });
+    });
+    // Enter or Space on a focused button answers as a key
+    button.addEventListener('click', (event) => {
+      if (run.exp && event.detail === 0) run.exp.respond({ answer, timeStamp: event.timeStamp, input: 'key' });
+    });
+  }
+  // The page hidden (another browser tab, another app): the try stops and does not count; "Resume" continues
+  document.addEventListener('visibilitychange', () => {
+    if (run.exp) run.exp.setHidden(document.hidden);
+  });
 
   // ===== Drawing a card from the state =====
   const ctx = () => ({ t: (key) => t(key), data: Data });
@@ -531,16 +854,20 @@
     }
     // The figure: the seed of "Find and tap" while it runs; nothing under the board; the marks after an answer
     const find = finds[id] ? finds[id].state() : null;
-    const covered = !!find && find.phase === 'cover';
-    const result = View.renderMain(entry, values, ctx(), item.seed);
-    const marks = find && find.marks ? View.markShapes(find.marks) : [];
-    paintSvg(parts.mainSvg, covered ? { ...result, shapes: [] } : result, t(`fig.${id}.main.title`), View.descText(Messages, state.language, entry,
-      values, 'main'), marks);
-    if (parts.cover) parts.cover.hidden = !covered;
-    parts.frame.classList.toggle('finding', !!find && ['shown', 'timing'].includes(find.phase));
+    if (parts.mainSvg) {
+      const covered = !!find && find.phase === 'cover';
+      const result = View.renderMain(entry, values, ctx(), item.seed);
+      const marks = find && find.marks ? View.markShapes(find.marks) : [];
+      paintSvg(parts.mainSvg, covered ? { ...result, shapes: [] } : result, t(`fig.${id}.main.title`), View.descText(Messages, state.language,
+        entry, values, 'main'), marks);
+      if (parts.cover) parts.cover.hidden = !covered;
+      parts.frame.classList.toggle('finding', !!find && ['shown', 'timing'].includes(find.phase));
+    }
     // How to read
-    const cases = View.readCases(Data, id, values, { times: item.times });
-    parts.readLive.replaceChildren(...View.texts(Messages, state.language, cases).map((line) => E('p', {}, phrases(line))));
+    if (parts.readLive) {
+      const cases = View.readCases(Data, id, values, { times: item.times });
+      parts.readLive.replaceChildren(...View.texts(Messages, state.language, cases).map((line) => E('p', {}, phrases(line))));
+    }
     if (find) {
       const text = find.result ? View.messageText(Messages, state.language, find.result) : '';
       if (parts.findLive.textContent !== text) setWords(parts.findLive, text);
@@ -552,6 +879,7 @@
       const linked = View.linkedText(Messages, state.language, entry, u.use, values);
       if (u.linkedLive.textContent !== linked) setWords(u.linkedLive, linked);
     }
+    if (parts.search) updateSearch(parts.search);
   }
 
   // ===== Operations of a card =====
@@ -614,7 +942,7 @@
         }))) : null;
       if (nav) children.push(nav);
       for (const m of entries) {
-        const article = buildCard(m);
+        const article = m.experiment ? buildSearchCard(m) : buildCard(m);
         if (nav) {
           const back = E('button', { type: 'button', class: 'back-to-list', 'data-key': 'back:' + m.id },
             E('span', { 'aria-hidden': 'true' }, '▲'), phrases(t('backToList').replace(/^▲\s*/, '')));
@@ -762,14 +1090,17 @@
     }
     return true;
   }
-  $('help-dialog').addEventListener('keydown', (event) => {
-    if (event.key !== 'Tab') return;
-    const focusable = [...$('help-dialog').querySelectorAll('button, a[href], input, select, summary, [tabindex="0"]')]
-      .filter(visibleFocusTarget);
-    const first = focusable[0], last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-  });
+  // Tab stays inside an open dialog (the help and the search experiment)
+  for (const dialog of [$('help-dialog'), $('exp-dialog')]) {
+    dialog.addEventListener('keydown', (event) => {
+      if (event.key !== 'Tab') return;
+      const focusable = [...dialog.querySelectorAll('button, a[href], input, select, summary, [tabindex="0"]')].filter(visibleFocusTarget);
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (!first) return;
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
+  }
 
   // Crossing 720px changes the layout of the cards only. When the focus was on an element that is no longer shown, it moves to
   // the panel of the tab. The browser may take the focus away before or after the media query reports the change, so an

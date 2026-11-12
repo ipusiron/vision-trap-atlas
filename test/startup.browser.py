@@ -160,14 +160,15 @@ def pending_contract(page, snap, width):
 
 
 def ready_contract(page, snap):
-    """The first view: the introduction, the table, the tabs and the two cards of the Pop out tab with their figures."""
+    """The first view: the introduction, the table, the tabs, the two cards of the Pop out tab with their figures and the card of the
+    Search time tab (its experiment opens in a dialog, so it has no figure frame)."""
     check(snap["ready"] == "true", "ready")
     check(not snap["toolsDisabled"] and not snap["controlsDisabled"], "the startup guards are released")
     check(not snap["noteVisible"] and not snap["note"], "the startup notice is removed")
-    check(snap["cards"] == 2 and snap["figures"] == 2 and all(snap["reading"]), ("the two cards", snap["cards"], snap["reading"]))
+    check(snap["cards"] == 3 and snap["figures"] == 2 and all(snap["reading"]), ("the three cards", snap["cards"], snap["reading"]))
     check(snap["scroll"] <= snap["client"], "no horizontal page scroll")
     ready_states = [s for s in snap["evidence"]["states"] if s["ready"] == "true"]
-    check(ready_states and all(s["cards"] == 2 and s["figures"] >= 12 and not s["note"] and not s["tools"] and not s["controls"]
+    check(ready_states and all(s["cards"] == 3 and s["figures"] >= 12 and not s["note"] and not s["tools"] and not s["controls"]
                                for s in ready_states), ("readiness never comes before the complete first view", ready_states[:3]))
     check(not page.evaluate("() => !!document.activeElement.closest('[hidden]')"), "the focus is never left in a hidden element")
 

@@ -344,8 +344,8 @@
       expInstr: '図が出たら、探す棒があるかどうかを、できるだけ早く、正確に答えます。ある＝J・→・右のボタン、ない＝F・←・左のボタン。',
       expReader: 'この実験は、目で探す時間を測るものです。画面の読み上げでは体験できません。結果の表は読み上げられます。',
       expStart: '始める',
-      expPractice: '練習 {i}／8',
-      expMain: '本番 {i}／64',
+      expPractice: '練習{i}／8',
+      expMain: '本番{i}／64',
       expPracticeDone: '練習が終わりました。ここから記録します。',
       expContinue: '続ける',
       expAbsent: 'ない（F・←）',
@@ -401,6 +401,21 @@
       resColExcluded: '除いた回数',
       resTableMedian: '真ん中の値（ミリ秒）',
       resTableSlope: '傾き・正答率・除いた回数',
+      resColCondition: '条件',
+      resColItems: '{n}本',
+      resNoValue: '－',
+      slopeWord: '傾き',
+      resAxisY: '見つけるまでの時間（ミリ秒）',
+      resChartTitle: '本数と見つけるまでの時間のグラフ',
+      resChartDesc: '本数ごとの真ん中の値を結んだ線（{rows}）。同じ値を下の表に載せています。',
+      resLegend: '凡例',
+      resRefTreisman: 'Treisman & Gelade 1980',
+      resRefWolfe: 'Wolfe 1998',
+      resRefNote: 'Treisman & Gelade 1980は、文字の刺激で測った値です。Wolfe 1998は、約100万回の平均を図5から読んだ概数です。',
+      resApprox: '約{v}',
+      searchMeasureHeading: '測る',
+      searchReadHeading: '見方',
+      searchLimitsHeading: '限界',
 
       // ===== ヘルプ =====
       helpFirst: 'はじめて読むとき',
@@ -536,6 +551,8 @@
       'desc.popout-asymmetry.show.omit': '5行の表。例外の行のほかに印を付け、例外だけ外した形',
       'desc.popout-asymmetry.hide.line': '斑点の背景に置いた物に、まっすぐな線を1本足した迷彩の絵',
       'desc.popout-asymmetry.hide.plain': '斑点の背景に物を置いた迷彩の絵。線は足していない',
+      'desc.search-time.show.feature': '6本の折れ線と凡例。探す系列は、凡例の色だけで決まる',
+      'desc.search-time.show.conjunction': '6本の折れ線と凡例。探す系列は、凡例の色と線の種類の組み合わせで決まる',
     },
 
     en: {
@@ -971,6 +988,22 @@
       resColExcluded: 'Excluded',
       resTableMedian: 'Middle values (ms)',
       resTableSlope: 'Slope, accuracy and excluded',
+      resColCondition: 'Condition',
+      resColItems: '{n} items',
+      resNoValue: '–',
+      slopeWord: 'slope',
+      resAxisY: 'Time to answer (ms)',
+      resChartTitle: 'Number of items and time to answer',
+      resChartDesc: 'Lines joining the middle value for each number of items ({rows}). The table below has the same values.',
+      resLegend: 'Legend',
+      resRefTreisman: 'Treisman & Gelade 1980',
+      resRefWolfe: 'Wolfe 1998',
+      resRefNote: 'Treisman & Gelade 1980 measured with letters. Wolfe 1998 is the mean of about a million trials, read approximately from '
+        + 'Fig. 5.',
+      resApprox: 'about {v}',
+      searchMeasureHeading: 'Measure',
+      searchReadHeading: 'How to read',
+      searchLimitsHeading: 'Limits',
 
       // ===== Help =====
       helpFirst: 'If this is your first visit',
@@ -1117,6 +1150,9 @@
       'desc.popout-asymmetry.show.omit': 'A five-row table with marks on every row but the exception',
       'desc.popout-asymmetry.hide.line': 'Camouflage scene: an object on a spotted background, with one straight line added',
       'desc.popout-asymmetry.hide.plain': 'Camouflage scene: an object on a spotted background, with no line added',
+      'desc.search-time.show.feature': 'Six lines and a legend. The series to find is set apart by its legend color alone',
+      'desc.search-time.show.conjunction': 'Six lines and a legend. The series to find is set apart only by the combination of its legend color and '
+        + 'line style',
     },
   };
 }));

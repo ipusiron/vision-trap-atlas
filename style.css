@@ -428,6 +428,127 @@ svg text { font-family: system-ui, sans-serif; }
 .fill-camoObjSpots-1 { fill: var(--c-camoObjSpots-1); } .stroke-camoObjSpots-1 { stroke: var(--c-camoObjSpots-1); }
 .fill-camoObjSpots-2 { fill: var(--c-camoObjSpots-2); } .stroke-camoObjSpots-2 { stroke: var(--c-camoObjSpots-2); }
 .fig-nofill, svg .fig-nofill { fill: none; }
+/* An open mark of the result chart (the bar was not there): the paper inside, the line of the series around it */
+.res-open { fill: var(--paper); stroke-width: 2; }
+.res-leader { stroke-width: 1.5; }
+
+/* Two sliders side by side: a thin rule in the middle of the gap between them, so that the names of their steps read as two
+   rows (同じ 小 中 大 | そろっている 少し ばらばら) and not as one */
+.control.range + .control.range { position: relative; }
+.control.range + .control.range::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: calc(-.375rem - .5px); border-left: 1px solid var(--line);
+}
+/* A step name is never broken inside a word; below 380px the two sliders take a row each, so that the names fit (Same Small Medium
+   Large needs about 151px) */
+.ticks > span { overflow-wrap: normal; }
+@media (max-width: 379px) {
+  .control.range { grid-column: 1 / -1; }
+  .control.range + .control.range::before { display: none; }
+}
+
+/* The search time tab: the parts of the card under their headings, the samples of the bars (pictures, not color names), the two
+   start buttons each with the other bars of its search, and the notes on the length of a run */
+.search-why { margin: .3rem 0 .2rem; font-size: .9375rem; line-height: 1.5; }
+.search-heading { margin: 1rem 0 .35rem; font-size: 1rem; line-height: 1.4; scroll-margin-top: .5rem; }
+.search-heading:focus { outline: none; }
+.search-heading:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.search-measure .control { margin: .2rem 0; }
+.search-measure .choice { max-width: 32rem; }
+.search-measure .control-note { margin: .2rem 0 0; }
+.sample-row { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .4rem; margin: .35rem 0; font-size: .875rem; line-height: 1.4; }
+.samples { display: inline-flex; gap: .3rem; }
+svg.sample { display: block; width: 30px; height: 30px; border: 1px solid var(--line); background: var(--paper); }
+.search-starts { display: grid; gap: .45rem; margin: .5rem 0; }
+.start-row { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .75rem; scroll-margin-top: .5rem; }
+.start-row .sample-row { margin: 0; }
+.start-button { font-weight: 700; }
+.search-note { margin: .15rem 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+.search-read p, .search-limits p { margin: .2rem 0 .4rem; font-size: .9375rem; line-height: 1.55; }
+.uses-list.single { grid-template-columns: minmax(0, 1fr); max-width: 26rem; }
+
+/* The results: the note on the record with the button to clear it, the chart, the legend in words (narrow screens), the tables
+   (one from 720px, two below), the sentences and the values of research */
+.res-privacy { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .35rem .75rem; margin: .2rem 0 .4rem; }
+.res-privacy p { flex: 1 1 14rem; margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+.res-body > p, .res-texts p { margin: .3rem 0; font-size: .9375rem; line-height: 1.5; }
+.res-body > .res-axis-note { color: var(--muted); font-size: .8125rem; }
+.res-legend { display: flex; flex-wrap: wrap; gap: .15rem .9rem; margin: .3rem 0; padding: 0; list-style: none; font-size: .8125rem; line-height: 1.4; }
+.res-legend li { display: inline-flex; align-items: center; gap: .3rem; }
+svg.res-key { display: block; width: 32px; height: 14px; }
+.res-chart > svg { display: block; width: 100%; max-width: 36rem; height: auto; border: 1px solid var(--line); background: var(--paper); }
+.res-table { max-width: 44rem; margin: .6rem 0; font-size: .8125rem; line-height: 1.4; }
+.res-table caption { padding: 0 0 .25rem; font-weight: 700; text-align: left; }
+.res-table th, .res-table td { padding: .3rem .35rem; }
+.res-table td { text-align: right; font-variant-numeric: tabular-nums; }
+/* The name of a row (特徴・ある, written without <wbr>) stays on one line in Japanese */
+:lang(ja) .res-table tbody th { white-space: nowrap; }
+.res-table thead th { vertical-align: bottom; }
+.res-ref { max-width: 36rem; margin-bottom: .2rem; }
+.res-body > .res-ref-note { margin: 0 0 .5rem; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+.res-texts { margin: .5rem 0; }
+@media (max-width: 719px) {
+  .res-body .res-wide { display: none; }
+  /* Narrow screens: smaller cells, so that the two tables and the research values fit 320px without a sideways scroll */
+  .res-table { font-size: .75rem; }
+  .res-table th, .res-table td { padding: .25rem .3rem; }
+}
+@media (min-width: 720px) { .res-body .res-narrow, .res-body .res-legend { display: none; } }
+
+/* The search experiment: a dialog over the whole screen on a plain ground. The side of the square of the display: on a portrait screen
+   the width less 32px, the height less 200px or 360px, whichever is smallest, with the two answer buttons under it; on a landscape
+   screen the height less 48px, the width less 288px or 360px, with the answer buttons on its two sides. Stop is at the top right,
+   away from the answers; the line of the result of a try keeps its height */
+.exp-dialog { width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; border-radius: 0; }
+.exp-dialog[open] { display: block; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.exp-shell {
+  display: grid; grid-template-columns: repeat(2, calc(min(100vw - 32px, 100dvh - 200px, 360px) / 2));
+  grid-template-areas: "top top" "stage stage" "feedback feedback" "absent present";
+  justify-content: center; align-content: center; gap: 8px 0; min-height: 100%; padding: 8px 0 12px;
+}
+.exp-top { grid-area: top; display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; min-width: 0; }
+.exp-head { min-width: 0; }
+.exp-title { margin: 0; font-size: 1.05rem; line-height: 1.35; }
+.exp-progress { min-height: 1.4em; margin: .1rem 0 0; color: var(--muted); font-size: .875rem; line-height: 1.4; }
+.exp-abort { flex: none; font-weight: 700; }
+.exp-stage {
+  grid-area: stage; display: grid; width: min(100vw - 32px, 100dvh - 200px, 360px); min-height: min(100vw - 32px, 100dvh - 200px, 360px);
+  border: 1px solid var(--line); background: var(--paper);
+  touch-action: manipulation;
+}
+.exp-stage:focus { outline: none; }
+.exp-stage > * { grid-area: 1 / 1; min-width: 0; }
+.exp-stage > svg { display: block; width: 100%; height: auto; align-self: start; }
+.exp-message { padding: .75rem; background: var(--paper); font-size: .9375rem; line-height: 1.5; }
+.exp-message p { margin: 0 0 .6rem; }
+.sample-line { display: flex; flex-wrap: wrap; gap: 0 1.2rem; }
+.exp-message .sample-row { margin: 0 0 .5rem; }
+.exp-reader { color: var(--muted); font-size: .8125rem; }
+.exp-status { font-weight: 700; }
+.exp-go { margin: 0 0 .7rem; font-weight: 700; }
+.exp-results p { font-size: .875rem; }
+.exp-feedback { grid-area: feedback; font-size: .9375rem; font-weight: 700; line-height: 1.5; text-align: center; }
+.exp-feedback p { margin: 0; }
+.exp-answer { min-height: 64px; font-weight: 700; touch-action: manipulation; }
+/* The narrowest screens: the message before the start in smaller letters, so that the answer buttons stay on the screen */
+@media (max-width: 359px) {
+  .exp-message { padding: .6rem; font-size: .875rem; line-height: 1.45; }
+  .exp-message p { margin-bottom: .45rem; }
+}
+.exp-absent { grid-area: absent; margin-right: 4px; }
+.exp-present { grid-area: present; margin-left: 4px; }
+@media (orientation: landscape) {
+  .exp-shell {
+    grid-template-columns: minmax(0, 1fr) min(100dvh - 48px, 100vw - 288px, 360px) minmax(0, 1fr); grid-template-rows: auto auto auto;
+    grid-template-areas: "head stage abort" "absent stage present" ". feedback ."; gap: 0 16px; padding: 12px 16px;
+  }
+  .exp-top { display: contents; }
+  .exp-stage { width: min(100dvh - 48px, 100vw - 288px, 360px); min-height: min(100dvh - 48px, 100vw - 288px, 360px); }
+  .exp-head { grid-area: head; justify-self: end; text-align: right; }
+  .exp-abort { grid-area: abort; justify-self: end; align-self: start; }
+  .exp-answer { align-self: center; width: min(100%, 13rem); margin: 0; }
+  .exp-absent { justify-self: end; }
+  .exp-present { justify-self: start; }
+}
 
 /* Narrow screens: a little smaller sentences under the figure, so that the controls, the figure and the small figures fit the
    height of a phone together */

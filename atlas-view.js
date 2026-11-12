@@ -788,6 +788,76 @@
   }
   const messageText = (M, lang, msg) => fill(dictionary(M, lang)[msg.key], msg.values || {});
 
+  // ===== 探す実験の結果の表とグラフ =====
+  // 4本の行（特徴・結合×ある・ない）。ある＝実線と塗った印、ない＝破線と白抜きの印。特徴＝丸、結合＝三角
+  const RESULT_SERIES = Object.freeze([
+    { id: 'feature.present', search: 'feature', side: 'present', color: 'seriesTarget', marker: 'circle', open: false },
+    { id: 'feature.absent', search: 'feature', side: 'absent', color: 'seriesTarget', marker: 'circle', open: true },
+    { id: 'conjunction.present', search: 'conjunction', side: 'present', color: 'seriesOthers-0', marker: 'triangle', open: false },
+    { id: 'conjunction.absent', search: 'conjunction', side: 'absent', color: 'seriesOthers-0', marker: 'triangle', open: true },
+  ]);
+  // 表の値（表示と同じ丸め）：本数ごとの真ん中の値は整数のミリ秒、傾きは小数1桁の文字、正答率は整数の%、除いた回数。出せない値は null。
+  // results＝{ feature: summarizeBlock の結果か null, conjunction: 同じ }
+  function resultRows(results) {
+    return RESULT_SERIES.map((sr) => {
+      const block = results[sr.search] || null, row = block ? block.rows[sr.side] : null;
+      return {
+        ...sr, labelKey: ROW_KEYS[sr.id], measured: !!row,
+        medians: Core.SET_SIZES.map((n) => (row && row.cells[n].median !== null ? Math.round(row.cells[n].median) : null)),
+        slope: row && row.slope !== null ? f1(row.slope) : null,
+        accuracy: row && row.accuracy !== null ? Math.round(row.accuracy * 100) : null,
+        excluded: row ? row.excluded : null,
+      };
+    });
+  }
+  // 縦軸の上端：1,000ミリ秒までは1,000、2,000までは500刻み、その先は1,000刻みで切り上げる（縦軸は0から）
+  function resultTop(max) {
+    if (max <= 1000) return { top: 1000, step: 250 };
+    if (max <= 2000) return { top: Math.ceil(max / 500) * 500, step: 500 };
+    return { top: Math.ceil(max / 1000) * 1000, step: 1000 };
+  }
+  function resultMarker(sr, x, y) {
+    const cls = sr.open ? `stroke-${sr.color} res-open` : `fill-${sr.color}`;
+    if (sr.marker === 'circle') return circle(x, y, 4.5, cls);
+    return path(Core.polygonPath([[x, y - 5.5], [x + 5.5, y + 4], [x - 5.5, y + 4]]), cls);
+  }
+  // 凡例の見本（線の種類と印）
+  function resultKey(id) {
+    const sr = RESULT_SERIES.find((s) => s.id === id);
+    return { width: 32, height: 14, shapes: [line(2, 7, 30, 7, `stroke-${sr.color} fig-series${sr.open ? ' line-dashed' : ''}`), resultMarker(sr, 16, 7)] };
+  }
+  // 結果のグラフ：横軸＝本数（0〜18）、縦軸＝見つけるまでの時間（0から）。点は真ん中の値で、線はその点を本数の順に結ぶ。
+  // wide のときは線の右端の高さに名前を書き、重なるときは13ずつずらして、端の点から名前へ短い線を引く（印は重ねない）。
+  // 狭い画面では名前を書かず、凡例を文字で置く
+  function resultChart(results, { wide = false, t }) {
+    const width = wide ? 480 : 280, height = 236, x0 = 46, x1 = wide ? 330 : 266, y0 = 30, y1 = 196;
+    const rows = resultRows(results);
+    const { top, step } = resultTop(Math.max(0, ...rows.flatMap((r) => r.medians.filter((v) => v !== null))));
+    const X = (n) => x0 + n / 18 * (x1 - x0), Y = (v) => y1 - v / top * (y1 - y0);
+    const shapes = [text(4, 14, t('resAxisY'), 'fig-axisname ta-start'), text(x1, height - 4, t('itemCount'), 'fig-axisname ta-end')];
+    for (let v = 0; v <= top; v += step) shapes.push(line(x0 - 4, Y(v), x0, Y(v), 'fig-axis'), text(x0 - 7, Y(v) + 4, v, 'fig-tick ta-end'));
+    for (const n of Core.SET_SIZES) shapes.push(line(X(n), y1, X(n), y1 + 4, 'fig-axis'), text(X(n), y1 + 16, n, 'fig-tick ta-middle'));
+    shapes.push(line(x0, y0, x0, y1, 'fig-axis'), line(x0, y1, x1, y1, 'fig-axis'));
+    const ends = [];
+    for (const r of rows) {
+      const points = Core.SET_SIZES.map((n, i) => (r.medians[i] === null ? null : [X(n), Y(r.medians[i])])).filter(Boolean);
+      if (!points.length) continue;
+      if (points.length >= 2) shapes.push(path(pts(points), `stroke-${r.color} fig-series${r.open ? ' line-dashed' : ''}`));
+      for (const [x, y] of points) shapes.push(resultMarker(r, x, y));
+      ends.push({ r, y: points[points.length - 1][1], from: points[points.length - 1][1] });
+    }
+    if (wide && ends.length) {
+      ends.sort((a, b) => a.y - b.y);
+      for (let i = 1; i < ends.length; i += 1) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 13);
+      const over = ends[ends.length - 1].y - (y1 + 4);
+      if (over > 0) for (const e of ends) e.y -= over;
+      for (const e of ends) {
+        shapes.push(line(x1 + 7, e.from, x1 + 15, e.y, `stroke-${e.r.color} res-leader`), text(x1 + 19, e.y + 4, t(e.r.labelKey), 'fig-legend ta-start'));
+      }
+    }
+    return { width, height, shapes, top, step };
+  }
+
   // ===== 図の説明（SVG の <desc>。いまの設定を文で表す） =====
   // side＝main（上の図）・show・hide。戻り値＝{ key, values, refs }。refs は「辞書のキーを引いて差し込む値」。
   // 説明の文がまだない項目は null（画面は <title> だけを付ける）
@@ -812,6 +882,7 @@
       if (side === 'show') return { key: `desc.${id}.show.${withLine ? 'add' : 'omit'}`, values: {}, refs: {} };
       if (side === 'hide') return { key: `desc.${id}.hide.${withLine ? 'line' : 'plain'}`, values: {}, refs: {} };
     }
+    if (id === 'search-time' && side === 'show') return { key: `desc.${id}.show.${values.view}`, values: {}, refs: {} };
     return null;
   }
   function descText(M, lang, entry, values, side) {
@@ -825,7 +896,8 @@
   return Object.freeze({
     fill, dictionary, partNames, renderPart, renderMain, renderUse, compose, popoutLayout, asymLayout, findLayout, markShapes, fixationShapes,
     sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, useSettings, linkedLine, linkedText, buildViewModel, readCases,
-    numbersCase, readKeysAll, texts, resultTexts, experimentTitle, messageText, descCase, descText,
+    numbersCase, readKeysAll, texts, resultTexts, experimentTitle, messageText, descCase, descText, RESULT_SERIES, resultRows, resultTop,
+    resultChart, resultKey,
     SIZES: Object.freeze({ square: SQ, cell: CELL, card: [W, H], small: [SW, SH], aspect: [AW, AH] }),
     DIFF, VARIETY, ANGLES, SCALES, JIT_ANGLE, JIT_SCALE,
   });

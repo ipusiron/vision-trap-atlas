@@ -1,13 +1,15 @@
 """Browser gates for Vision Trap Atlas (Playwright for Python; not part of CI).
 
 Run with a Python that already has Playwright and its Chromium, Firefox and WebKit:
-    python -X utf8 -B test/interface.browser.py --stage 2
-    python -X utf8 -B test/interface.browser.py --stage 2 --output <folder>
-    python -X utf8 -B test/interface.browser.py --stage 2 --browser chromium
+    python -X utf8 -B test/interface.browser.py --stage 3
+    python -X utf8 -B test/interface.browser.py --stage 3 --output <folder>
+    python -X utf8 -B test/interface.browser.py --stage 3 --browser chromium
 Every case runs at 320x568, 390x844, 720x900 and 1280x800, in Japanese and English, light and dark, in the three
 browsers: no console error, no CSP violation, no sideways page scroll, and the checks of the screen (the header, the
 introduction and the contrast table, the tabs and their names, the help, the explanations of the terms, the two cards of
-the Pop out tab with every value of their controls, and "Find and tap" with the clock held by Playwright). Then the
+the Pop out tab with every value of their controls, and "Find and tap" with the clock held by Playwright). From --stage 3,
+the Search time tab and its experiment with the clock held and paused: the answers are put in at chosen times, and the table
+and the sentences of the results must be those that AtlasCore computes from the test's own record of the tries. Then the
 addresses with a group or an entry id, the button to the next tab and the browser's back button, the links to other
 sites, the saved preferences, and the page served over HTTP.
 Results and viewport screenshots are written to --output (default: a new folder in the system temporary directory).
@@ -17,10 +19,12 @@ CSP of the page refuses in WebKit (a violation that the page itself never causes
 """
 import argparse
 import json
+import math
 import re
 import subprocess
 import sys
 import tempfile
+import time
 from contextlib import contextmanager
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -33,7 +37,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 PREFIX = "vision-trap-atlas."
-STAGES = ("2",)
+STAGES = ("2", "3")
 SIZES = ((320, 568), (390, 844), (720, 900), (1280, 800))
 BROWSERS = ("chromium", "firefox", "webkit")
 GROUPS = ("popout", "search", "gestalt", "figure-ground", "misread")
@@ -741,6 +745,521 @@ def find_case(browser, browser_name, url, width, height, language, theme, output
         context.close()
 
 
+# ===== The search experiment (the Search time tab) =====
+# The page's clock is held and paused by Playwright, and the answers are put in at chosen times. The clock moves with
+# fast_forward, which fires the waiting frame once with the new time (a frame per step, so the steps follow the order of a try:
+# the result, the pause, the fixation point, the display, the frame after it, the answer time); run_for would fire every 16 ms
+# frame on the way and take far longer. The test keeps its own record of
+# every try (the number of bars and whether the bar to find is there, read from the display; the time from the frame after the one
+# that showed the display to the key or the tap; the outcome) and computes the summary, the table and the sentences with
+# AtlasCore (summarizeBlock, resultCases) and AtlasView.resultTexts in Node. The page must show the same values.
+EXP_PROBE = """(() => {
+  const qa = window.__qa = {frames: [], shows: 0, shownAt: null, presses: []};
+  const raf = window.requestAnimationFrame;
+  window.requestAnimationFrame = cb => raf.call(window, ts => { qa.frames.push(ts); if (qa.frames.length > 600) qa.frames.splice(0, 300); cb(ts); });
+  const mark = () => qa.presses.push(performance.now());
+  addEventListener('keydown', mark, true);
+  addEventListener('pointerdown', mark, true);
+  document.addEventListener('DOMContentLoaded', () => {
+    const stage = document.getElementById('exp-stage');
+    let count = 0;
+    new MutationObserver(() => {
+      const n = stage.querySelectorAll(':scope > svg path').length;
+      if (n > 0 && count === 0) { qa.shows += 1; qa.shownAt = performance.now(); }
+      count = n;
+    }).observe(stage, {childList: true, subtree: true});
+  });
+})();"""
+EXP_STATE = """() => {
+  const qa = window.__qa, svg = document.querySelector('#exp-stage > svg'), message = document.querySelector('.exp-message');
+  const paths = Array.from(svg.querySelectorAll('path'));
+  const vertical = p => { const b = p.getBBox(); return b.height > b.width; };
+  const live = document.querySelector('#exp-feedback [aria-live]');
+  return {shows: qa.shows, shownAt: qa.shownAt, now: performance.now(), bars: paths.length,
+    present: paths.some(p => /\\b(fill-stimHot|stim-solid)\\b/.test(p.getAttribute('class')) && vertical(p)),
+    fixation: svg.querySelectorAll('.fixation').length, progress: document.getElementById('exp-progress').textContent,
+    feedback: live ? live.textContent : '', message: message.hidden ? null : message.textContent,
+    results: Array.from(document.querySelectorAll('.exp-results p'), p => p.textContent),
+    focus: (document.activeElement.dataset || {}).key || document.activeElement.id,
+    t0: qa.shownAt === null ? null : (qa.frames.find(f => f > qa.shownAt) ?? null),
+    pressed: qa.presses.length ? qa.presses[qa.presses.length - 1] : null, open: document.getElementById('exp-dialog').open,
+    answersOff: document.getElementById('exp-absent').disabled};
+}"""
+EXP_LAYOUT = """() => {
+  const box = el => { const r = el.getBoundingClientRect(); return {left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width,
+    height: r.height}; };
+  const d = document.getElementById('exp-dialog');
+  return {stage: box(document.getElementById('exp-stage')), absent: box(document.getElementById('exp-absent')),
+    present: box(document.getElementById('exp-present')), abort: box(document.getElementById('exp-abort')),
+    feedback: box(document.getElementById('exp-feedback')), title: box(document.getElementById('exp-title')),
+    scrollW: d.scrollWidth, clientW: d.clientWidth, innerW: innerWidth, innerH: innerHeight, modal: d.matches(':modal'),
+    buttons: Array.from(d.querySelectorAll('button'), b => b.id || (b.dataset || {}).key),
+    terms: d.querySelectorAll('.term, .term-help').length, page: document.documentElement.scrollWidth,
+    client: document.documentElement.clientWidth};
+}"""
+# The visible results of the tab: the rows of the visible tables, the sentences, the limits, the legend or the names at the line ends
+RESULTS_STATE = """() => {
+  const shown = el => !!el && el.getClientRects().length > 0;
+  const text = el => { const c = el.cloneNode(true); c.querySelectorAll('.term-tip').forEach(t => t.remove()); return c.textContent.trim(); };
+  const card = document.getElementById('search-time');
+  const charts = Array.from(card.querySelectorAll('svg.res-chart-svg')).filter(shown);
+  return {none: Array.from(card.querySelectorAll('.res-none'), text),
+    tables: Array.from(card.querySelectorAll('.res-table:not(.res-ref)')).filter(shown).map(t => ({caption: t.caption ? text(t.caption) : null,
+      rows: Array.from(t.tBodies[0].rows, r => Array.from(r.cells, c => text(c)))})),
+    texts: Array.from(card.querySelectorAll('.res-texts p'), text),
+    ref: Array.from(card.querySelectorAll('.res-ref tbody tr'), r => Array.from(r.cells, c => text(c))),
+    limits: shown(card.querySelector('.search-limits')) ? Array.from(card.querySelectorAll('.search-limits p'), text) : [],
+    legend: Array.from(card.querySelectorAll('.res-legend li')).filter(shown).length,
+    labels: charts.map(s => s.querySelectorAll('.fig-legend').length), charts: charts.length,
+    marks: charts.map(s => s.querySelectorAll('circle, path:not(.fig-series)').length),
+    clear: card.querySelector('[data-key="exp:clear"]').disabled,
+    help: Array.from(card.querySelectorAll('.res-table .term-help')).filter(shown).map(b => b.getAttribute('aria-label'))};
+}"""
+EXPECT_JS = r"""
+const [root, input] = [process.argv[1], require('fs').readFileSync(0, 'utf8')];
+const C = require(root + '/atlas-core.js'), V = require(root + '/atlas-view.js'), M = require(root + '/messages.js');
+const q = JSON.parse(input), results = {};
+for (const s of ['feature', 'conjunction']) {
+  results[s] = q[s] ? C.summarizeBlock(q[s].records, { aborted: q[s].aborted, granularity: q[s].granularity }) : null;
+}
+const cases = C.resultCases(results);
+const out = { keys: cases.map((c) => c.key), texts: {}, rows: {} };
+for (const lang of ['ja', 'en']) {
+  out.texts[lang] = V.resultTexts(M, lang, cases);
+  const none = M[lang].resNoValue;
+  out.rows[lang] = [['feature', 'present', 'resRowFeatureYes'], ['feature', 'absent', 'resRowFeatureNo'], ['conjunction', 'present', 'resRowConjYes'],
+    ['conjunction', 'absent', 'resRowConjNo']].map(([s, side, key]) => {
+    const row = results[s] ? results[s].rows[side] : null;
+    const medians = C.SET_SIZES.map((n) => (row && row.cells[n].median !== null ? String(Math.round(row.cells[n].median)) : none));
+    return { name: M[lang][key], medians, slope: row && row.slope !== null ? C.round1(row.slope).toFixed(1) : none,
+      accuracy: row && row.accuracy !== null ? Math.round(row.accuracy * 100) + '%' : none, excluded: row ? String(row.excluded) : none };
+  });
+}
+process.stdout.write(JSON.stringify(out));
+"""
+
+
+def expected_results(blocks):
+    out = subprocess.run(["node", "-e", EXPECT_JS, str(ROOT)], input=json.dumps(blocks), capture_output=True, check=True,
+                         encoding="utf-8").stdout
+    return json.loads(out)
+
+
+def js_seconds(rt):
+    """A time in seconds with two decimals, rounded like Math.round (the result line of a try)."""
+    hundredths = math.floor(rt / 10 + 0.5)
+    return f"{hundredths // 100}.{hundredths % 100:02d}"
+
+
+def wait_until(page, script, timeout=3.0):
+    """Polls from here, since the page's timers and frames stand still while its clock is paused."""
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        if page.evaluate(script):
+            return True
+        time.sleep(0.02)
+    raise AssertionError("timed out: " + script)
+
+
+# Answer times (ms) of a whole block: base + slope × number of bars for (bar there, bar not there), plus a small fixed spread. The
+# designs give other result sentences (the ratio of the slopes, the difference of the two searches, a negative slope)
+DESIGNS = (
+    {"feature": ((450, 3), (480, 7)), "conjunction": ((500, 22), (520, 50))},
+    {"feature": ((500, 0.4), (500, 4)), "conjunction": ((500, 12), (520, 20))},
+    {"feature": ((560, -2), (500, 10)), "conjunction": ((480, 10), (500, 36))},
+    {"feature": ((450, 5), (480, 30)), "conjunction": ((470, 20), (500, 25))},
+    {"feature": ((450, 10), (480, 40)), "conjunction": ((480, 18), (500, 12))},
+)
+SPREAD = (0, 32, -16, 48, -32, 16, 64, -48)
+
+
+class Experiment:
+    """Drives the dialog and keeps the test's own record of the recorded tries."""
+
+    # The steps of the clock to the next display (ms, one frame each): after an answer, the end of the result line (500), the end
+    # of the pause (300, the next try begins), the first frame of the fixation point and its end (500); after Start, Continue or
+    # Resume, the first frame of the fixation point and its end
+    AFTER_ANSWER, AFTER_START = (510, 310, 16, 510), (16, 510)
+
+    def __init__(self, page, language, touch):
+        self.page, self.L, self.touch = page, M[language], touch
+        self.records, self.skip, self.shows = [], self.AFTER_START, 0
+
+    def state(self):
+        return self.page.evaluate(EXP_STATE)
+
+    def press(self, answer, how):
+        """An answer: a key (F or J, or an arrow), or the button (a click or a tap at its center)."""
+        if how in ("key", "arrow"):
+            keys = {"key": ("j", "f"), "arrow": ("ArrowRight", "ArrowLeft")}[how]
+            self.page.keyboard.press(keys[0] if answer == "present" else keys[1])
+            return "key"
+        box = self.page.locator("#exp-" + answer).bounding_box()
+        x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+        if how == "tap" and self.touch:
+            self.page.touchscreen.tap(x, y)
+            return "touch"
+        self.page.mouse.click(x, y)
+        return "mouse"
+
+    def forward(self, *steps):
+        for step in steps:
+            self.page.clock.fast_forward(step)
+
+    def wait_display(self):
+        """Moves the clock to the next display; None when a message takes the place of the square instead."""
+        before = self.shows
+        self.forward(*self.skip)
+        for _ in range(60):
+            s = self.state()
+            self.shows = s["shows"]
+            if s["shows"] > before:
+                return s
+            if s["message"] is not None:
+                return None
+            self.forward(100)
+        raise AssertionError("the display did not come")
+
+    def trial(self, kind, rt=600, how="key", seen=None):
+        """One try: kind = answer (right), wrong, early (at once, under 200 ms), timeout or hidden. rt may be a function of the
+        display. seen(state) runs while the display is out. Returns the display, or None when the block came to its end."""
+        s = self.wait_display()
+        if s is None:
+            return None
+        check(s["bars"] in (3, 6, 12, 18) and not s["answersOff"] and s["fixation"] == 0, ("the display", s))
+        if seen:
+            seen(s)
+        record = {"setSize": s["bars"], "present": s["present"]}
+        if callable(rt):
+            rt = rt(s)
+        self.skip = self.AFTER_ANSWER
+        if kind in ("answer", "wrong"):
+            # The display starts at the frame after the one that showed it (AtlasSearch); the answer comes rt later
+            self.forward(16, rt)
+            right = "present" if s["present"] else "absent"
+            answer = right if kind == "answer" else ("absent" if right == "present" else "present")
+            record["input"] = self.press(answer, how)
+            after = self.state()
+            real = after["pressed"] - after["t0"]
+            check(abs(real - rt) < 17, ("the time of the answer", rt, real))
+            record["rt"] = real
+            if kind == "answer":
+                record["outcome"] = "correct"
+                check(after["feedback"] == fill(self.L["fbCorrect"], t=js_seconds(real)), ("fbCorrect", after["feedback"], real))
+            else:
+                record["outcome"] = "miss" if s["present"] else "falseAlarm"
+                check(after["feedback"] == self.L["fbMiss" if s["present"] else "fbFalse"], ("wrong", after["feedback"]))
+            check(after["bars"] == 0, "the display goes away with the answer")
+        elif kind == "early":
+            record.update(outcome="early", rt=None, input=self.press("present", how))
+            check(self.state()["feedback"] == self.L["fbEarly"], "too early")
+        elif kind == "timeout":
+            self.forward(16, 3990)
+            check(self.state()["feedback"] == "", "not yet at 3,990 ms")
+            self.forward(20)
+            record.update(outcome="timeout", rt=4000, input=None)
+            check(self.state()["feedback"] == self.L["fbTimeout"], "time is up at 4,000 ms")
+        elif kind == "hidden":
+            self.page.evaluate("""() => { Object.defineProperty(document, 'hidden', {configurable: true, get: () => true});
+              Object.defineProperty(document, 'visibilityState', {configurable: true, get: () => 'hidden'});
+              document.dispatchEvent(new Event('visibilitychange')); }""")
+            after = self.state()
+            check(after["message"] and self.L["expHidden"] in after["message"] and after["bars"] == 0, ("paused", after["message"]))
+            check(after["focus"] == "exp:expResume" and after["answersOff"], ("the focus on Resume", after["focus"]))
+            self.page.evaluate("""() => { delete document.hidden; delete document.visibilityState;
+              document.dispatchEvent(new Event('visibilitychange')); }""")
+            self.forward(400, 400)
+            check(self.state()["message"] is not None, "paused until Resume")
+            self.page.keyboard.press("Enter")
+            record.update(outcome="hidden", rt=None, input=None)
+            self.skip = self.AFTER_START
+        self.records.append(record)
+        return s
+
+    def practice(self, seen=None):
+        """Start, one press during the fixation point (too early; the try comes back at the end), the 8 tries with keys and buttons,
+        then Continue. Returns the number of tries."""
+        L = self.L
+        self.page.keyboard.press("Enter")
+        self.forward(16, 200)
+        s = self.state()
+        check(s["message"] is None and s["fixation"] == 2 and s["progress"] == fill(L["expPractice"], i=1), ("the fixation point", s))
+        self.page.keyboard.press("f")
+        s = self.state()
+        check(s["feedback"] == L["fbEarly"], "early during the fixation point")
+        self.skip, self.shows, tries = self.AFTER_ANSWER, s["shows"], 1
+        for i in range(12):
+            s = self.trial("answer", rt=560 + 16 * i, how=("key", "mouse", "arrow", "tap")[i % 4], seen=seen if i == 2 else None)
+            if s is None:
+                break
+            tries += 1
+            check(s["progress"] == fill(L["expPractice"], i=min(i + 1, 8)), ("practice progress", i, s["progress"]))
+        self.records.clear()
+        s = self.state()
+        check(s["message"] and L["expPracticeDone"] in s["message"] and s["focus"] == "exp:expContinue", ("practice done", s["message"]))
+        check(tries == 9, ("8 tries and the one that came back", tries))
+        self.page.keyboard.press("Enter")
+        self.skip = self.AFTER_START
+        return tries
+
+    def recorded(self, design, mistakes=(8,), mixed=False, stop_after=None, seen=None):
+        """The recorded tries: the design's answer times, two too early, one hidden page, one time-out, the given wrong answers.
+        stop_after: the number of tries before stopping (None: to the end). Returns the number of tries."""
+        tries = 0
+        for i in range(90):
+            if stop_after is not None and i == stop_after:
+                break
+            kind = "early" if i in (5, 30) else "hidden" if i == 12 else "timeout" if i == 17 else "wrong" if i in mistakes else "answer"
+            how = "mouse" if mixed and i % 3 == 1 else "tap" if mixed and i % 3 == 2 else "key"
+
+            def rt(s, i=i):
+                base, slope = design[0] if s["present"] else design[1]
+                return max(240, round((base + slope * s["bars"] + SPREAD[i % len(SPREAD)]) / 16) * 16)
+            s = self.trial(kind, rt=rt, how=how, seen=seen if i == 3 else None)
+            if s is None:
+                break
+            if i == 0:
+                check(s["progress"] == fill(self.L["expMain"], i=1), ("the first recorded try", s["progress"]))
+            tries += 1
+        return tries
+
+
+def exp_open(page, search):
+    page.locator(f'[data-key="exp:start:{search}"]').click()
+    s = page.evaluate(EXP_STATE)
+    check(page.locator("#exp-dialog").evaluate("el => el.open && el.matches(':modal')"), "a modal dialog")
+    check(s["focus"] == "exp:expStart" and s["answersOff"], ("the focus on Start", s["focus"]))
+    return s
+
+
+def exp_closed(page, search):
+    """The dialog is closed and the focus is back on the button that opened it."""
+    wait_until(page, "() => !document.getElementById('exp-dialog').open")
+    # The close event (which gives the focus back) comes a moment after the dialog closes
+    try:
+        wait_until(page, f"() => (document.activeElement.dataset || {{}}).key === 'exp:start:{search}'", timeout=2)
+    except AssertionError:
+        raise AssertionError(("the focus back on the start button", page.evaluate(ACTIVE)))
+
+
+def assert_experiment_layout(page, name, layouts, trial=True):
+    """The square of the display at the size of the spec, the answer buttons and Stop inside the screen, no sideways scroll, no
+    theme or language button and no explanation of a term in the dialog. Before the start the message may be taller than the square."""
+    m = page.evaluate(EXP_LAYOUT)
+    portrait = m["innerH"] >= m["innerW"]
+    side = min(m["innerW"] - 32, m["innerH"] - 200, 360) if portrait else min(m["innerH"] - 48, m["innerW"] - 288, 360)
+    check(abs(m["stage"]["width"] - side) <= 1 and (abs(m["stage"]["height"] - side) <= 1 or not trial and m["stage"]["height"] > side),
+          (name, "the square", side, m["stage"]))
+    check(m["modal"] and m["scrollW"] <= m["clientW"] and m["page"] <= m["client"], (name, "no sideways scroll", m))
+    for key in ("stage", "absent", "present", "abort", "feedback", "title") if trial else ("abort", "title"):
+        b = m[key]
+        check(b["left"] >= -0.5 and b["right"] <= m["innerW"] + 0.5 and b["top"] >= -0.5 and b["bottom"] <= m["innerH"] + 0.5,
+              (name, key, "inside the screen", b))
+    for key in ("absent", "present"):
+        check(m[key]["height"] + 1e-3 >= 64, (name, key, "64px high", m[key]))
+    check(m["abort"]["height"] + 1e-3 >= 44 and m["abort"]["width"] + 1e-3 >= 44, (name, "Stop 44px", m["abort"]))
+    if portrait:
+        # Under the square: no on the left, yes on the right, half the width each
+        check(m["absent"]["top"] >= m["stage"]["bottom"] and m["absent"]["right"] <= m["present"]["left"] + 0.5
+              and abs(m["absent"]["width"] - m["present"]["width"]) <= 1 and m["absent"]["width"] >= side / 2 - 8, (name, "answers under", m))
+    else:
+        check(m["absent"]["right"] <= m["stage"]["left"] + 0.5 and m["present"]["left"] >= m["stage"]["right"] - 0.5, (name, "answers beside", m))
+    # Stop at the top right, away from the answers
+    check(m["abort"]["top"] <= m["stage"]["top"] + 1 and m["abort"]["right"] >= m["stage"]["right"] - 1, (name, "Stop at the top right", m))
+    check(m["abort"]["bottom"] + 40 <= m["present"]["top"], (name, "Stop away from the answers", m))
+    check(not any(b in ("theme", "language", "help") for b in m["buttons"]), (name, "no theme or language button", m["buttons"]))
+    check(m["terms"] == 0, (name, "no term explanations in the experiment"))
+    layouts.append({"state": name, "side": side})
+
+
+def assert_results(page, width, language, blocks, name):
+    """The tab shows the values that AtlasCore computes from the test's own record: the table (two tables below 720px), the
+    sentences in their order (the two of the limits at the end of the card), the chart's names or legend, the research values."""
+    expected = expected_results(blocks)
+    got = page.evaluate(RESULTS_STATE)
+    L, rows = M[language], expected["rows"][language]
+    none = L["resNoValue"]
+    if width < 720:
+        check(len(got["tables"]) == 2, (name, "two tables below 720px", got["tables"]))
+        check([t["caption"] for t in got["tables"]] == [L["resTableMedian"], L["resTableSlope"]], (name, "the titles of the tables"))
+        check(got["tables"][0]["rows"] == [[r["name"], *r["medians"]] for r in rows], (name, "middle values", got["tables"][0]["rows"], rows))
+        check(got["tables"][1]["rows"] == [[r["name"], r["slope"], r["accuracy"], r["excluded"]] for r in rows], (name, "slopes", got["tables"][1]))
+    else:
+        check(len(got["tables"]) == 1, (name, "one table from 720px", got["tables"]))
+        check(got["tables"][0]["rows"] == [[r["name"], *r["medians"], r["slope"], r["accuracy"], r["excluded"]] for r in rows],
+              (name, "the table", got["tables"][0]["rows"], rows))
+    texts, keys = expected["texts"][language], expected["keys"]
+    check(keys[-2:] == ["resDevice", "resLimits"], keys)
+    check(got["texts"] == texts[:-2], (name, "the sentences", got["texts"], texts[:-2]))
+    check(got["limits"] == texts[-2:], (name, "the limits", got["limits"]))
+    check(got["help"] == [fill(L["termHelpLabel"], term=L["slopeWord"])], (name, "the ? of the slope", got["help"]))
+    drawn = sum(1 for r in rows if any(v != none for v in r["medians"]))
+    medians = sum(1 for r in rows for v in r["medians"] if v != none)
+    check(got["charts"] == 1, (name, "one chart", got["charts"]))
+    if width < 720:
+        check(got["legend"] == drawn and got["labels"] == [0] and got["marks"] == [medians], (name, "the legend in words", got))
+    else:
+        check(got["legend"] == 0 and got["labels"] == [drawn] and got["marks"] == [medians], (name, "names at the line ends", got))
+    ref, approx = DATA["references"], lambda v: fill(L["resApprox"], v=v)
+    check(got["ref"] == [[L[k], f"{ref['treisman1980'][f]:.1f}", approx(ref["wolfe1998"][f])] for k, f in (
+        ("resRowFeatureYes", "featurePresent"), ("resRowFeatureNo", "featureAbsent"), ("resRowConjYes", "conjPresent"),
+        ("resRowConjNo", "conjAbsent"))], (name, "research values", got["ref"]))
+    check(not got["clear"], (name, "Clear is on"))
+    return expected
+
+
+def experiment_case(browser, browser_name, url, width, height, language, theme, output, index):
+    """The Search time tab and its experiment with the clock held: the tab before measuring, the feature pair, Esc before the start,
+    a whole block (practice, then 64 recorded tries with keys and buttons, a too early answer, a time-out, a hidden page and wrong
+    answers), the other search whole or stopped, Stop during the practice, the results against AtlasCore, and Clear."""
+    name = f"{browser_name}-{width}-{language}-{theme}-exp"
+    touch = browser_name == "chromium" and width < 720
+    context = new_context(browser, browser_name, width, height, language, theme)
+    page = context.new_page()
+    errors, violations = observe(page, url)
+    page.clock.install()
+    page.add_init_script(TIMESTAMP_SHIM)
+    page.add_init_script(EXP_PROBE)
+    layouts, summary = [], {}
+    shots = width in (390, 1280)
+
+    def shoot(label):
+        if shots:
+            shot(page, output / f"{name}-{label}.png")
+    try:
+        page.goto(set_language_query(url, language), wait_until="load")
+        check(page.evaluate("() => document.documentElement.dataset.appReady") == "true", "ready")
+        # pause_at takes seconds since the epoch
+        page.clock.pause_at(page.evaluate("() => Date.now()") / 1000 + 1)
+        L = M[language]
+        page.locator("#tab-search").click()
+        card = page.locator("#search-time")
+        # The tab before measuring
+        check(page.locator("#search-time-title").evaluate(VISIBLE_TEXT) == L["item.search-time.title"], "the title")
+        check(card.locator(".search-why").evaluate("el => el.textContent") == L["searchWhy"], "why it is measured")
+        check(card.locator(".res-none").inner_text().strip() == L["resNone"], "nothing measured yet")
+        check(page.locator('[data-key="exp:clear"]').is_disabled() and not card.locator(".search-limits").is_visible(), "no results yet")
+        check([page.locator(f'[data-key="exp:set:{s}"]').get_attribute("aria-pressed") for s in ("color", "fill")] == ["true", "false"], "color first")
+        samples = lambda: card.locator(".search-measure svg.sample path").evaluate_all("els => els.map(e => e.getAttribute('class'))")
+        check(samples() == ["fill-stimHot", "fill-stimCool", "fill-stimCool", "fill-stimHot"], ("samples of color", samples()))
+        check(card.locator(".search-measure .control-note").evaluate("el => getComputedStyle(el).visibility") == "visible", "the color hint")
+        notes = card.locator(".search-note").all_inner_texts()
+        check([n.strip() for n in notes] == [L["expDuration"], L["expReplace"]], ("the length of a run", notes))
+        page.locator('[data-key="exp:set:fill"]').click()
+        check(samples() == ["stim-solid", "stim-outline", "stim-outline", "stim-solid"], ("samples without color", samples()))
+        check(card.locator(".search-measure .control-note").evaluate("el => getComputedStyle(el).visibility") == "hidden", "no color hint")
+        check(page.locator("#panel-search .term").count() == 7, ("the terms of the tab", page.locator("#panel-search .term").count()))
+        set_ = "fill" if index % 4 == 3 else "color"
+        page.locator(f'[data-key="exp:set:{set_}"]').click()
+        assert_layout(page, width, "search-tab", layouts)
+        page.evaluate("() => document.getElementById('search-time').scrollIntoView({block: 'start'})")
+        shoot("tab")
+        searches = ("feature", "conjunction") if index % 2 == 0 else ("conjunction", "feature")
+        # A whole first run at 390 and 1280px (both runs whole in the light theme); elsewhere the runs stop after some tries
+        whole_first = width in (390, 1280)
+        both = whole_first and theme == "light"
+        # The cases with two whole runs take the designs in turn, so that each difference of the two searches comes out
+        design = DESIGNS[{4: 0, 6: 3, 12: 4, 14: 2}.get(index, index % len(DESIGNS))]
+        blocks = {"feature": None, "conjunction": None}
+        # Esc before the start: the dialog closes, nothing is measured
+        exp_open(page, searches[0])
+        check(page.locator("#exp-title").inner_text().strip() == fill(L["expTitle"], search=L["termFeature" if searches[0] == "feature" else "termConjunction"],
+                                                                         set=L["setColorShort" if set_ == "color" else "setFillShort"]), "the title")
+        message = page.evaluate(EXP_STATE)["message"]
+        check(L["expInstr"] in message and L["expReader"] in message, ("before the start", message))
+        check(page.locator(".exp-message svg.sample").count() == 1 + (1 if searches[0] == "feature" else 2), "the samples of the run")
+        # Before the start the message fits the square, so the place of the answers is already the one of the tries
+        assert_experiment_layout(page, "ready", layouts)
+        shoot("ready")
+        page.keyboard.press("Escape")
+        exp_closed(page, searches[0])
+        check(page.locator('[data-key="exp:clear"]').is_disabled(), "still nothing measured")
+        # The first search, whole
+        for n, search in enumerate(searches):
+            whole = whole_first if n == 0 else both
+            exp_open(page, search)
+            run = Experiment(page, language, touch)
+            run.practice(seen=lambda s: (assert_experiment_layout(page, "practice", layouts), shoot("practice")) if n == 0 else None)
+            mistakes = range(50, 58) if index % 3 == 0 else (8, 50)
+            tries = run.recorded(design[search], mistakes=mistakes if whole else (8,), mixed=index % 2 == 1,
+                                 stop_after=None if whole else 20 if n == 0 else 6,
+                                 seen=lambda s: (assert_experiment_layout(page, "recorded", layouts), shoot("recorded")) if n == 0 else None)
+            if whole:
+                check(tries == 67, ("64 recorded tries and the three that came back", tries))
+            else:
+                # Stopped: Esc (or the Stop button) keeps what was measured
+                if index % 2:
+                    page.locator("#exp-abort").click()
+                else:
+                    page.keyboard.press("Escape")
+            blocks[search] = {"records": run.records, "aborted": not whole, "granularity": None}
+            expected = expected_results(blocks)
+            s = run.state()
+            check(s["message"] and L["expDone" if whole else "expAborted"] in s["message"] and s["focus"] == "exp:expShowResults",
+                  ("the end of the run", s["message"], s["focus"]))
+            check(s["results"] == expected["texts"][language][:-2], ("the sentences in the dialog", s["results"]))
+            if n == 0 or not whole:
+                shoot("done" if whole else "stopped")
+            page.keyboard.press("Enter" if n == 0 else "Escape")
+            exp_closed(page, search)
+            # The close event comes a moment after the dialog closes
+            placed = f"""() => {{ const top = document.querySelector('[data-key="exp:start:{search}"]').closest('.start-row').getBoundingClientRect().top;
+              return Math.abs(top) <= 12 || scrollY >= document.documentElement.scrollHeight - innerHeight - 1; }}"""
+            try:
+                wait_until(page, placed, timeout=2)
+            except AssertionError:
+                top = page.locator(f'[data-key="exp:start:{search}"]').evaluate("el => el.closest('.start-row').getBoundingClientRect().top")
+                raise AssertionError(("the start button at the top, the results below", top, page.evaluate("() => [scrollY, innerHeight, "
+                                      "document.documentElement.scrollHeight]")))
+            expected = assert_results(page, width, language, blocks, f"results-{n}")
+            summary[search] = {"whole": whole, "keys": expected["keys"], "tries": tries}
+            assert_layout(page, width, f"results-{n}", layouts)
+        page.evaluate("() => document.getElementById('search-time-results').scrollIntoView({block: 'start'})")
+        shoot("results")
+        if shots:
+            # The whole results area (the chart, the tables, the sentences and the research values), to read the sentences too
+            SHOOTING["on"] = True
+            try:
+                page.locator("#search-time .search-results").screenshot(caret="initial", path=str(output / f"{name}-results-all.png"))
+                page.wait_for_timeout(150)
+            finally:
+                SHOOTING["on"] = False
+        # The "?" of the slope: one explanation, inside the screen
+        help_button = page.locator("#search-time .res-table .term-help:visible")
+        help_button.click()
+        tips = tips_open(page)
+        check(len(tips) == 1 and tips[0]["text"] == L["termSlopeMeaning"], ("the explanation of the slope", tips))
+        assert_tip_inside(tips[0], "slope")
+        page.keyboard.press("Escape")
+        # Stop during the practice: nothing recorded, the dialog closes at once and the results stay
+        exp_open(page, searches[0])
+        page.keyboard.press("Enter")
+        for step in (16, 510, 16, 600):
+            page.clock.fast_forward(step)
+        page.locator("#exp-abort").click()
+        exp_closed(page, searches[0])
+        assert_results(page, width, language, blocks, "after a stop in the practice")
+        # Clear: nothing left, the focus on the heading of the results
+        page.locator('[data-key="exp:clear"]').click()
+        check(page.evaluate(ACTIVE)["id"] == "search-time-results", "the focus on the results heading after Clear")
+        got = page.evaluate(RESULTS_STATE)
+        check(got["none"] == [L["resNone"]] and not got["tables"] and not got["limits"] and got["clear"], ("cleared", got))
+        if language == "en":
+            text = page.evaluate("() => { const c = document.body.cloneNode(true); c.querySelectorAll('noscript').forEach(n => n.remove()); "
+                                 "return c.textContent; }")
+            check(not JAPANESE.search(text), ("Japanese on the English page", JAPANESE.findall(text)[:10]))
+        assert_clean(errors, violations)
+        return {"case": name, "status": "passed", "runs": summary, "layouts": len(layouts)}
+    except Exception as error:
+        try:
+            shot(page, output / (name + "-failed.png"))
+        except Exception:
+            pass
+        return {"case": name, "status": "failed", "error": str(error), "errors": errors, "violations": violations}
+    finally:
+        context.close()
+
+
 def at_top(page, selector):
     """The element is at the top of the screen, or the page is scrolled as far as it goes (a short panel below it)."""
     top = page.locator(selector).bounding_box()["y"]
@@ -770,7 +1289,7 @@ def address_case(browser, browser_name, url, width, height, output):
 
     try:
         for value, tab, place in (("popout-asymmetry", "popout", "#popout-asymmetry"), ("misread", "misread", "#tabs"),
-                                  ("gestalt-contour", "gestalt", "#tabs"), ("xyz", "popout", None)):
+                                  ("gestalt-contour", "gestalt", "#tabs"), ("search-time", "search", "#search-time"), ("xyz", "popout", None)):
             open_page(with_hash(url, value))
             assert_selected(page, tab)
             if place:
@@ -806,7 +1325,7 @@ def address_case(browser, browser_name, url, width, height, output):
         context.close()
 
 
-def links_case(browser, browser_name, url, width, height, language, theme, output):
+def links_case(browser, browser_name, url, width, height, language, theme, output, stage):
     """Every link to another site, clicked: a new tab with the link's address, no opener, the page's state kept."""
     name = f"{browser_name}-{width}-{language}-{theme}-links"
     context = new_context(browser, browser_name, width, height, language, theme)
@@ -826,23 +1345,29 @@ def links_case(browser, browser_name, url, width, height, language, theme, outpu
         page.goto(set_language_query(url, language), wait_until="load")
         wait_ready(page)
         page.locator('[data-key="ctl:popout-feature:kind:size"]').click()
-        for card in CARDS:
-            page.locator(f"#{card} .entry-sources > summary").click()
-        links = page.locator('main a[href^="http"], footer a[href^="http"]').all()
-        check(len(links) >= 8, ("links", len(links)))
-        for link in links:
-            href = link.get_attribute("href")
-            link.scroll_into_view_if_needed()
-            before = page.evaluate(state)
-            with context.expect_page() as info:
-                link.click()
-            tab = info.value
-            tab.wait_for_load_state("load")
-            check(tab.url == href, (name, "the new tab opens the link", tab.url, href))
-            check(tab.evaluate("() => window.opener === null"), (name, "no opener", href))
-            tab.close()
-            check(page.evaluate(state) == before, (name, "the page keeps its state", href))
-            opened.append(href)
+        # Every tab with cards: its sources opened, then each link of the tab and of the footer
+        groups = ("popout",) if stage == "2" else ("popout", "search")
+        total = page.locator('main a[href^="http"], footer a[href^="http"]').count()
+        for group in groups:
+            page.locator("#tab-" + group).click()
+            for summary in page.locator(f"#panel-{group} .entry-sources > summary").all():
+                summary.click()
+            links = page.locator(f'#panel-{group} a[href^="http"]' + (', footer a[href^="http"]' if group == "popout" else "")).all()
+            check(len(links) >= 5, ("links", group, len(links)))
+            for link in links:
+                href = link.get_attribute("href")
+                link.scroll_into_view_if_needed()
+                before = page.evaluate(state)
+                with context.expect_page() as info:
+                    link.click()
+                tab = info.value
+                tab.wait_for_load_state("load")
+                check(tab.url == href, (name, "the new tab opens the link", tab.url, href))
+                check(tab.evaluate("() => window.opener === null"), (name, "no opener", href))
+                tab.close()
+                check(page.evaluate(state) == before, (name, "the page keeps its state", href))
+                opened.append(href)
+        check(len(opened) == total, (name, "every link of the drawn cards and the footer", len(opened), total))
         check(len(answered) >= len(opened), (name, "requests answered here", len(answered)))
         assert_clean(errors, violations)
         return {"case": name, "status": "passed", "links": len(opened)}
@@ -894,8 +1419,8 @@ def precedence_cases(browser, browser_name, url):
     return results
 
 
-def http_case(browser, browser_name, base_url, width, height, output):
-    """The page served over HTTP (as on GitHub Pages): ready, both cards drawn, no error."""
+def http_case(browser, browser_name, base_url, width, height, output, stage):
+    """The page served over HTTP (as on GitHub Pages): ready, the cards drawn, no error."""
     name = f"{browser_name}-{width}-http"
     context = new_context(browser, browser_name, width, height, "ja", "light")
     page = context.new_page()
@@ -903,7 +1428,8 @@ def http_case(browser, browser_name, base_url, width, height, output):
     try:
         page.goto(base_url, wait_until="load")
         wait_ready(page)
-        check(page.locator(".entry").count() == 2, "the two cards")
+        cards = 2 if stage == "2" else 3
+        check(page.locator(".entry").count() == cards, ("the cards", cards))
         layouts = []
         assert_layout(page, width, "http", layouts)
         assert_clean(errors, violations)
@@ -943,6 +1469,7 @@ def main():
     parser.add_argument("--browser", choices=BROWSERS, action="append")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--size", action="append", help="only these sizes, such as 390x844 (to look at one case while working)")
+    parser.add_argument("--only-experiment", action="store_true", help="only the experiment cases (to look at them while working)")
     args = parser.parse_args()
     check(urlsplit(args.url).scheme in ("file", "http", "https"), "Use a file:// or HTTP(S) URL")
     root = ROOT.resolve()
@@ -970,22 +1497,30 @@ def main():
         for browser_name in args.browser or BROWSERS:
             browser = getattr(playwright, browser_name).launch(headless=True)
             report["browsers"][browser_name] = browser.version
+            index = 0
             for width, height in SIZES:
-                if args.size and f"{width}x{height}" not in args.size:
-                    continue
                 for language in ("ja", "en"):
                     for theme in ("light", "dark"):
-                        record(matrix_case(browser, browser_name, args.url, width, height, language, theme, output))
-                        record(find_case(browser, browser_name, args.url, width, height, language, theme, output))
+                        index += 1
+                        if args.size and f"{width}x{height}" not in args.size:
+                            continue
+                        if not args.only_experiment:
+                            record(matrix_case(browser, browser_name, args.url, width, height, language, theme, output))
+                            record(find_case(browser, browser_name, args.url, width, height, language, theme, output))
+                        if args.stage >= "3":
+                            record(experiment_case(browser, browser_name, args.url, width, height, language, theme, output, index - 1))
+            if args.only_experiment:
+                browser.close()
+                continue
             for width, height in ((390, 844), (1280, 800)):
                 record(address_case(browser, browser_name, args.url, width, height, output))
             for width, height, language, theme in ((1280, 800, "ja", "light"), (320, 568, "en", "dark")):
-                record(links_case(browser, browser_name, args.url, width, height, language, theme, output))
+                record(links_case(browser, browser_name, args.url, width, height, language, theme, output, args.stage))
             for result in precedence_cases(browser, browser_name, args.url):
                 record(result)
             with local_http() as http_url:
                 for width, height in ((320, 568), (1280, 800)):
-                    record(http_case(browser, browser_name, http_url, width, height, output))
+                    record(http_case(browser, browser_name, http_url, width, height, output, args.stage))
             browser.close()
     failed = [item for item in report["cases"] if item["status"] != "passed"]
     report["passed"] = len(report["cases"]) - len(failed)
