@@ -129,7 +129,7 @@ test('E: every result sentence is filled in, with the search names and the row n
   assert.equal(t('en', { feature: block(3.1, 25.1) })[1],
     'For feature search, the slope with the bar absent was 8.1× the slope with it present, larger than the 2× to 3× often seen in research.');
   const errors = t('en', { conjunction: block(28.7, 67.1, { errors: 8, answered: 60 }) });
-  assert.ok(errors.includes('Conjunction search had 8 wrong answers (13%). Rushing adds mistakes; answer at a pace that keeps you accurate.'));
+  assert.ok(errors.includes('Wrong answers in conjunction search: 8 (13%). Rushing adds mistakes; answer at a pace that keeps you accurate.'));
   const both = t('ja', { feature: block(3, 20), conjunction: block(4, 25) });
   assert.equal(both[0], '1項目あたりの傾きは、特徴探索が「ある」3.0ミリ秒・「ない」20.0ミリ秒、結合探索が「ある」4.0ミリ秒・「ない」25.0ミリ秒でした。');
   assert.equal(both[1], '「ない」の傾きは、2つの探し方で同じくらいでした。回数が少ないと結果はぶれます。もう一度測ると変わることがあります。');
@@ -156,6 +156,9 @@ test('E: repeated result sentences are joined into one, and a negative value has
   const oneError = { feature: block(3, 20, { errors: 8, answered: 61 }), conjunction: block(20, 50) };
   assert.deepEqual(t('ja', oneError).filter((x) => x.includes('押し間違い')),
     ['特徴探索の押し間違いは8回（13%）でした。急ぐと間違いが増えます。正確さを保てる速さで答えてください。']);
+  // One wrong answer in a short, stopped run: the English sentence does not depend on singular or plural
+  assert.deepEqual(t('en', { feature: block(3, 20, { errors: 1, answered: 5, aborted: true }) }).filter((x) => x.includes('Wrong answers')),
+    ['Wrong answers in feature search: 1 (20%). Rushing adds mistakes; answer at a pace that keeps you accurate.']);
   // Rows without a slope: one sentence naming them (two or more), the sentence of the row (one)
   const three = { feature: block(3, null), conjunction: block(null, null, { aborted: true }) };
   assert.ok(t('ja', three).includes('「特徴・ない」「結合・ある」「結合・ない」は、測れた段が3つ未満なので、傾きを出しません。'));

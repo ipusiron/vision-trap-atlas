@@ -983,7 +983,7 @@
       resRowQuoted: '"{row}"',
       resPartial: 'The run was stopped, so only the measured numbers of items are shown.',
       resMixed: 'Keys and touch (or mouse) were mixed. They have different delays, so measuring again with one of them makes comparison easier.',
-      resErrors: '{search} had {n} wrong answers ({p}%). Rushing adds mistakes; answer at a pace that keeps you accurate.',
+      resErrors: 'Wrong answers in {search}: {n} ({p}%). Rushing adds mistakes; answer at a pace that keeps you accurate.',
       resErrorsBoth: 'Wrong answers: {fn} ({fp}%) in feature search and {cn} ({cp}%) in conjunction search. Rushing adds mistakes; answer at a '
         + 'pace that keeps you accurate.',
       resCoarse: 'This browser rounds times to about {g} ms. Slopes are still given but will be noisier.',

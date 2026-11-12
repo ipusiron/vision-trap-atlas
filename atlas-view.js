@@ -769,7 +769,7 @@
   // ===== 結果の文 =====
   const ROW_KEYS = { 'feature.present': 'resRowFeatureYes', 'feature.absent': 'resRowFeatureNo', 'conjunction.present': 'resRowConjYes',
     'conjunction.absent': 'resRowConjNo' };
-  // 探し方の名前：文の頭（resErrors）は termFeature・termConjunction、文の中は *Inline（英語は小文字で始める）
+  // 探し方の名前：文の頭（実験の枠の題）は termFeature・termConjunction、文の中は *Inline（英語は小文字で始める）
   const searchName = (D, id, inline) => (inline ? D[id === 'feature' ? 'searchFeatureInline' : 'searchConjInline']
     : D[id === 'feature' ? 'termFeature' : 'termConjunction']);
   // 語を並べる：日本語は sep でつなぎ、英語は「A, B and C」
@@ -782,7 +782,7 @@
     const one = ({ key, values }) => {
       const v = {};
       for (const [k, x] of Object.entries(values)) {
-        if (k === 'search') v[k] = searchName(D, x, key !== 'resErrors');
+        if (k === 'search') v[k] = searchName(D, x, true);
         else if (k === 'row') v[k] = D[ROW_KEYS[x]];
         else if (k === 'n' || k === 'p') v[k] = String(x);
         else v[k] = numberText(x.toFixed(1));
