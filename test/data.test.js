@@ -64,6 +64,29 @@ test('B: controls have a known type, a default among their values, and messages 
   }
 });
 
+test('B: the boxes at the end of a tab: a heading and a sentence, and lines that each name an existing entry with its short name', () => {
+  const ids = new Set();
+  for (const g of D.groups) {
+    for (const box of g.endBoxes || []) {
+      assert.ok(!ids.has(box.id) && /^[a-z][a-z0-9-]*$/.test(box.id), box.id);
+      ids.add(box.id);
+      assert.ok(inBoth(box.headingKey) && (!box.leadKey || inBoth(box.leadKey)), box.id);
+      assert.ok(box.items.length >= 1, box.id);
+      for (const item of box.items) {
+        assert.ok(inBoth(item.textKey), `${box.id} ${item.textKey}`);
+        assert.ok(D.entries.some((e) => e.id === item.entry), `${box.id} ${item.entry}`);
+        assert.ok(inBoth(`item.${item.entry}.short`), `${box.id} short name of ${item.entry}`);
+      }
+    }
+  }
+  // The checks when reading a chart: after the misreading entries, one line for each of the four, in their order
+  const misread = D.groups.find((g) => g.id === 'misread');
+  assert.deepEqual(misread.endBoxes.map((b) => b.id), ['chart-checks']);
+  assert.deepEqual(misread.endBoxes[0].items.map((i) => i.entry),
+    D.entries.filter((e) => e.group === 'misread').sort((a, b) => a.order - b.order).map((e) => e.id));
+  assert.ok(inBoth('toEntry') && M.ja.toEntry.includes('{name}') && M.en.toEntry.includes('{name}'));
+});
+
 test('B: uses have a known side, registered parts, binds to existing controls, and existing texts', () => {
   const parts = new Set(V.partNames());
   for (const e of D.entries) {

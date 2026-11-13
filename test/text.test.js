@@ -151,6 +151,18 @@ test('E: the first steps of the help measure the time that conjunction search ta
   assert.match(M.en.helpFirstText, /measure how long conjunction search takes you\./);
 });
 
+test('E: the short table, the chart beside the contours and the checks when reading a chart', () => {
+  assert.equal(M.en['contrastRow2.hide'], 'Break up the outline and make the object\'s pattern part of the background');
+  assert.match(M.ja.contourShow, /^0%の図のように、/);
+  assert.equal(M.ja.contourShow.split('。').filter(Boolean).length, 3);
+  assert.equal(V.fill(M.ja.toEntry, { name: M.ja['item.misread-baseline.short'] }), '「縦軸の始まり」へ');
+  assert.equal(V.fill(M.en.toEntry, { name: M.en['item.misread-baseline.short'] }), 'Go to "Where the vertical axis starts"');
+  // The short name of an entry is its title without the term in parentheses
+  for (const id of ['misread-baseline', 'misread-area', 'misread-dual-axis', 'misread-aspect-range']) {
+    for (const lang of ['ja', 'en']) assert.ok(M[lang][`item.${id}.title`].startsWith(M[lang][`item.${id}.short`]), `${lang} ${id}`);
+  }
+});
+
 test('E: one crossing gets its own sentence ("cross once"), which the data never needs but the function is ready for', () => {
   const data = JSON.parse(JSON.stringify(D));
   data.datasets.townTemp = [0, 15, 30];

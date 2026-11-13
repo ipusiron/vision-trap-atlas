@@ -1027,6 +1027,7 @@
         }
         children.push(article);
       }
+      for (const box of tab.endBoxes) children.push(buildEndBox(box));
       if (tab.next) {
         const next = E('button', { type: 'button', class: 'next-tab', 'data-key': 'next:' + tab.id },
           phrases(t('nextTab', { tab: t(tab.next.labelKey) })));
@@ -1043,6 +1044,33 @@
     card.article.scrollIntoView({ block: 'start' });
     card.article.focus({ preventScroll: true });
   }
+  // A button that moves to an entry. Within the tab shown, it moves as "Entries in this tab" does. To an entry of another tab (or from
+  // outside the tabs, as the steps of "Where to start" do: away), it moves as the button to the next tab does: the history keeps the
+  // place on the page, so that the browser's back button returns there
+  function openEntry(id, away = false) {
+    const entry = ENTRIES.get(id);
+    if (!entry || !cards.has(id)) return;
+    if (!away && entry.group === state.tab) { goToEntry(id); return; }
+    hideTip();
+    writeHistory({ tab: state.tab, y: Math.round(scrollY) }, 'replace');
+    state.tab = entry.group;
+    renderTabs();
+    writeHistory({ tab: entry.group, entry: id }, 'push');
+    goToEntry(id);
+  }
+  // A box at the end of a tab: a heading, one sentence and a list whose lines each end with a button to the entry they are about
+  function buildEndBox(box) {
+    const headingId = `box-${box.id}-heading`;
+    return E('section', { class: 'end-box', id: 'box-' + box.id, 'aria-labelledby': headingId },
+      E('h3', { id: headingId, class: 'end-box-heading' }, phrases(t(box.headingKey))),
+      box.leadKey ? E('p', { class: 'end-box-lead' }, phrases(t(box.leadKey))) : null,
+      E('ul', { class: 'end-box-list' }, box.items.map((item) => {
+        const button = E('button', { type: 'button', class: 'end-box-button', 'data-key': `box:${box.id}:${item.entry}` },
+          phrases(t('toEntry', { name: t(`item.${item.entry}.short`) })));
+        button.addEventListener('click', () => openEntry(item.entry));
+        return E('li', {}, E('p', { class: 'end-box-text' }, phrases(t(item.textKey))), button);
+      })));
+  }
   function backToList(tabId, id) {
     const nav = $('nav-' + tabId);
     nav.scrollIntoView({ block: 'start' });
@@ -1053,9 +1081,11 @@
   // ===== History: the address keeps the tab (#popout …). A tab button replaces the address; the button to the next tab adds
   // an entry with the place on the page, so that the browser's back button returns there =====
   function writeHistory(entry, mode) {
+    // The address names the entry when the history moves to one (the same address opens it), otherwise the tab
+    const address = '#' + (entry.entry || entry.tab);
     try {
-      if (mode === 'push') history.pushState(entry, '', '#' + entry.tab);
-      else if (mode === 'hash') history.replaceState(entry, '', '#' + entry.tab);
+      if (mode === 'push') history.pushState(entry, '', address);
+      else if (mode === 'hash') history.replaceState(entry, '', address);
       else history.replaceState(entry, '');
     } catch (_) { /* A browser may refuse to write the history of a local file; the page works without it. */ }
   }
@@ -1084,6 +1114,7 @@
     state.tab = entry.tab;
     renderTabs();
     if (typeof entry.y === 'number') scrollTo(0, entry.y);
+    else if (entry.entry && cards.has(entry.entry)) cards.get(entry.entry).article.scrollIntoView({ block: 'start' });
     else if (tabsBar().getBoundingClientRect().top < 0) tabsBar().scrollIntoView({ block: 'start' });
   });
 
@@ -1122,6 +1153,7 @@
       $('tab-' + state.tab).focus();
     });
   });
+  for (const button of document.querySelectorAll('[data-route]')) button.addEventListener('click', () => openEntry(button.dataset.route, true));
   $('theme').addEventListener('click', () => {
     state.theme = state.theme === 'dark' ? 'light' : 'dark';
     saveTheme();

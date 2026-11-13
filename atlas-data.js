@@ -18,10 +18,15 @@
     { id: 'search', order: 20, labelKey: 'tabSearch', termKey: 'tabSearchTerm', termTip: 'termVisualSearch' },
     { id: 'gestalt', order: 30, labelKey: 'tabGestalt', termKey: 'tabGestaltTerm', termTip: 'termGrouping' },
     { id: 'figure-ground', order: 40, labelKey: 'tabFigureGround', termKey: 'tabFigureGroundTerm', termTip: 'termFigureGround' },
-    // 誤読の「グラフ」は専門の言葉ではないので、解説を付けない
-    { id: 'misread', order: 50, labelKey: 'tabMisread', termKey: 'tabMisreadTerm', termTip: null, leadKeys: ['misreadLead', 'misreadFictional'] },
+    // 誤読の「グラフ」は専門の言葉ではないので、解説を付けない。項目の後ろに、グラフを読むときの確かめ方の箱を置く
+    { id: 'misread', order: 50, labelKey: 'tabMisread', termKey: 'tabMisreadTerm', termTip: null, leadKeys: ['misreadLead', 'misreadFictional'],
+      endBoxes: [{ id: 'chart-checks', headingKey: 'chartChecksHeading', leadKey: 'chartChecksLead', items: [
+        { textKey: 'chartCheck1', entry: 'misread-baseline' }, { textKey: 'chartCheck2', entry: 'misread-area' },
+        { textKey: 'chartCheck3', entry: 'misread-dual-axis' }, { textKey: 'chartCheck4', entry: 'misread-aspect-range' }] }] },
   ];
 
+  // endBoxes：タブの項目の後ろ（「次のタブへ」の上）に置く箱。見出し・1文・箇条（各行の末尾に、その項目へ移るボタン）。
+  // ボタンの名前は item.<項目の id>.short を toEntry に差し込む。別のタブの項目も指せる（その場合は履歴に積んで移る）
   // uses の bind：{ つまみの id: 小さな図の設定の名前 } か { つまみの id: { to: 設定の名前, map: { つまみの値: 設定の値 } } }。
   // bindWhen：{ つまみの id: [値…] }。いまの値がどれにも当たらないとき、その図はつながらない（既定の絵のまま）
   const entries = [

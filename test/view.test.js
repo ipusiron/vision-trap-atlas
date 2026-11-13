@@ -499,6 +499,8 @@ test('C: the view model lists the tabs in order with their entries, headings and
   assert.deepEqual(vm.tabs.map((t) => t.entries.length), [2, 1, 3, 2, 4]);
   assert.deepEqual(vm.tabs.map((t) => (t.next ? t.next.labelKey : null)), ['tabSearch', 'tabGestalt', 'tabFigureGround', 'tabMisread', null]);
   assert.deepEqual(vm.tabs[4].leadKeys, ['misreadLead', 'misreadFictional']);
+  // The box at the end of the Misreading tab; the other tabs have none yet
+  assert.deepEqual(vm.tabs.map((t) => t.endBoxes.map((b) => b.id)), [[], [], [], [], ['chart-checks']]);
   for (const tab of vm.tabs) {
     for (const e of tab.entries) {
       // The search time card has the showing side only, so its heading names that side alone

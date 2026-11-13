@@ -76,11 +76,13 @@ test('F: no random numbers, network, HTML injection, inline styles or address ch
     assert.doesNotMatch(code, /location\.hash\s*=|location\.(?:assign|replace)\s*\(|location\.href\s*=/, file);
     if (file !== 'app.js') assert.doesNotMatch(code, /history\.(?:pushState|replaceState)/, file);
   }
-  // app.js writes the history in one function: a new entry with the tab in the address (the button to the next tab), the current
-  // entry with the tab in the address (a tab button), or the current entry without changing the address (the place on the page)
+  // app.js writes the history in one function: a new entry with the tab or the entry in the address (the button to the next tab, a
+  // button to an entry of another tab), the current entry with the tab in the address (a tab button), or the current entry without
+  // changing the address (the place on the page)
   const app = read('app.js');
   assert.deepEqual([...app.matchAll(/history\.(pushState|replaceState)\(([^)]*)\)/g)].map((m) => m[1] + '(' + m[2] + ')'),
-    ["pushState(entry, '', '#' + entry.tab)", "replaceState(entry, '', '#' + entry.tab)", "replaceState(entry, '')"]);
+    ["pushState(entry, '', address)", "replaceState(entry, '', address)", "replaceState(entry, '')"]);
+  assert.match(app, /const address = '#' \+ \(entry\.entry \|\| entry\.tab\);/);
   // The seed of a new arrangement is the only use of crypto
   assert.deepEqual([...app.matchAll(/crypto\.\w+/g)].map((m) => m[0]), ['crypto.getRandomValues']);
 });
@@ -207,6 +209,21 @@ test('F: the help has two tabs, help and glossary; the help panel has the first 
   assert.match(html, /<button id="close-help" type="button" data-i18n="close">閉じる<\/button>/);
   // No lessons: the help and the glossary only
   assert.doesNotMatch(html, /座学/);
+});
+
+test('F: "Where to start": three steps under what the atlas lets you do and above "Read more", each a button naming its entry', () => {
+  const features = html.indexOf('<section id="intro-features"'), route = html.indexOf('<section id="intro-route"');
+  const more = html.indexOf('<details id="intro-more"');
+  assert.ok(features > 0 && features < route && route < more);
+  const block = html.slice(route, more);
+  assert.match(block, /<h2 id="intro-route-heading" class="intro-features-heading" data-i18n="introRouteHeading">/);
+  const steps = [...block.matchAll(/<button class="route-button" type="button" data-route="([\w-]+)" data-key="route:([\w-]+)" data-i18n="(\w+)">/g)];
+  assert.deepEqual(steps.map((m) => [m[1], m[2], m[3]]), [['popout-feature', 'popout-feature', 'introRoute1'],
+    ['search-time', 'search-time', 'introRoute2'], ['gestalt-contour', 'gestalt-contour', 'introRoute3']]);
+  assert.deepEqual([...block.matchAll(/<p class="route-note" data-i18n="(\w+)">/g)].map((m) => m[1]),
+    ['introRoute1Note', 'introRoute2Note', 'introRoute3Note']);
+  // The buttons work through the function that moves to an entry (as away from the tab shown: with a history entry)
+  assert.match(read('app.js'), /querySelectorAll\('\[data-route\]'\)\) button\.addEventListener\('click', \(\) => openEntry\(button\.dataset\.route, true\)\)/);
 });
 
 test('F: the contrast table has the three rows of the spec, with "?" beside the showing and hiding sides', () => {

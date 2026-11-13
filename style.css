@@ -145,6 +145,21 @@ h1 span, h2, h3 { color: var(--accent); }
 .intro-features { max-width: 46rem; margin: .6rem 0 .15rem; }
 .intro-features-heading { margin: 0 0 .15rem; font-size: 1rem; line-height: 1.4; }
 .intro-features-list { margin: 0; padding-left: 1.25rem; font-size: .9375rem; line-height: 1.5; overflow-wrap: anywhere; }
+/* Where to start: three numbered steps, each a button to its entry with one line under it; one column below 720px, three from 720px
+   (the numbers stand in the gap left of each step) */
+.intro-route { margin: .7rem 0 .2rem; }
+.intro-route-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: .6rem 2rem; margin: .3rem 0 0; padding-left: 1.6rem; }
+.intro-route-list > li { min-width: 0; }
+.route-button { display: block; width: 100%; min-height: 44px; font-weight: 700; text-align: left; }
+.route-note { margin: .25rem 0 0; font-size: .9375rem; line-height: 1.5; }
+/* A box at the end of a tab (after its entries, before the button to the next tab) */
+.end-box { margin: 1.2rem 0 .4rem; padding: .7rem .9rem .8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.end-box-heading { margin: 0 0 .3rem; color: var(--accent); font-size: 1.05rem; line-height: 1.4; }
+.end-box-lead { margin: 0 0 .4rem; font-size: .9375rem; line-height: 1.5; }
+.end-box-list { margin: 0; padding-left: 1.2rem; }
+.end-box-list > li + li { margin-top: .6rem; }
+.end-box-text { margin: 0; font-size: .9375rem; line-height: 1.55; }
+.end-box-button { margin-top: .3rem; min-height: 44px; }
 .intro-features-list li + li { margin-top: .15rem; }
 .intro-more { margin: 0 0 .3rem; padding: 0; border: 0; border-radius: 0; background: none; }
 .intro-more[open] { padding-bottom: 0; }
@@ -651,6 +666,7 @@ svg.res-key { display: block; width: 32px; height: 14px; }
   .tab-name { font-size: 1rem; }
   .contrast-table .col-trait { width: 16%; }
   .section-nav-buttons { display: flex; flex-wrap: wrap; }
+  .intro-route-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   /* The figure on the left (about 60%) and the two small figures one above the other on the right (about 40%) */
   .entry-stage { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-areas: "main uses" "read uses"; align-items: start; }
   .entry-read { align-self: start; }

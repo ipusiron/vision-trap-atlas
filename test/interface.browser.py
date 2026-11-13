@@ -927,6 +927,70 @@ def assert_texts_apart(page, card, name):
             check(apart, (card, name, "two texts of the figure overlap", a, b))
 
 
+ROUTE = (("popout-feature", "popout"), ("search-time", "search"), ("gestalt-contour", "gestalt"))
+SELECTED_TAB = "() => document.querySelector('#tabs [role=tab][aria-selected=true]').id.replace(/^tab-/, '')"
+
+
+def test_route(page, width, layouts, language):
+    """Where to start: under what the atlas lets you do and above "Read more"; three steps (one row from 720px, one column below), the
+    buttons 44px high; each opens its tab at its entry with a new history entry, and the browser's back button returns to the place."""
+    L = M[language]
+    order = page.evaluate("""() => { const at = id => document.getElementById(id), after = (a, b) => !!(at(a).compareDocumentPosition(at(b)) & 4);
+      return [after('intro-features', 'intro-route'), after('intro-route', 'intro-more')]; }""")
+    check(order == [True, True], ("the steps between what the atlas lets you do and Read more", order))
+    check(page.locator("#intro-route-heading").inner_text().strip() == L["introRouteHeading"], "the heading of the steps")
+    check(page.locator("#intro-route .route-button").all_inner_texts() == [L[f"introRoute{k}"] for k in (1, 2, 3)], "the step buttons")
+    check(page.locator("#intro-route .route-note").all_inner_texts() == [L[f"introRoute{k}Note"] for k in (1, 2, 3)], "the step lines")
+    boxes = page.locator("#intro-route .route-button").evaluate_all("els => els.map(b => { const r = b.getBoundingClientRect(); "
+                                                                    "return [r.top, r.height, r.left]; })")
+    check(all(h >= 43.5 for _, h, _ in boxes), ("the step buttons are 44px high", boxes))
+    if width >= 720:
+        check(max(b[0] for b in boxes) - min(b[0] for b in boxes) < 1 and boxes[0][2] < boxes[1][2] < boxes[2][2], ("three columns", boxes))
+    else:
+        check(boxes[0][0] < boxes[1][0] < boxes[2][0] and abs(boxes[0][2] - boxes[2][2]) < 1, ("one column", boxes))
+    for card, group in ROUTE:
+        page.evaluate("() => document.getElementById('intro-route').scrollIntoView({block: 'center'})")
+        y, tab = page.evaluate("() => scrollY"), page.evaluate(SELECTED_TAB)
+        page.locator(f'[data-key="route:{card}"]').click()
+        assert_selected(page, group)
+        check(at_top(page, "#" + card), (card, "the step moves to its entry", page.locator("#" + card).bounding_box()["y"]))
+        check(page.evaluate("() => document.activeElement.id") == card, (card, "the entry has the focus"))
+        # A new history entry for the entry (after a back the number of entries may stay the same: the new one replaces the forward one)
+        pushed = page.evaluate("() => [history.state && history.state.entry, location.hash]")
+        check(pushed == [card, "#" + card], (card, "a new history entry", pushed))
+        page.go_back()
+        page.wait_for_function("tab => document.querySelector('#tab-' + tab).getAttribute('aria-selected') === 'true'", arg=tab)
+        page.wait_for_function("y => Math.abs(scrollY - y) <= 2", arg=y)
+        assert_selected(page, tab)
+    assert_layout(page, width, "route", layouts)
+
+
+def test_end_box(page, width, layouts, language):
+    """The checks when reading a chart: after the four misreading cards, a heading, one sentence and four lines, each ending with a
+    button to its card; the button moves within the tab, as "Entries in this tab" does (no history entry)."""
+    L = M[language]
+    page.locator("#tab-misread").click()
+    box = page.locator("#box-chart-checks")
+    check(box.is_visible(), "the box of checks")
+    check(page.evaluate("() => !!(document.getElementById('misread-aspect-range').compareDocumentPosition(document.getElementById('box-chart-checks')) & 4)"),
+          "the box after the last entry")
+    check(page.locator("#box-chart-checks-heading").inner_text().strip() == L["chartChecksHeading"], "the heading of the box")
+    check(page.locator("#box-chart-checks .end-box-lead").inner_text().strip() == L["chartChecksLead"], "the sentence of the box")
+    check(page.locator("#box-chart-checks .end-box-text").all_inner_texts() == [L[f"chartCheck{k}"] for k in (1, 2, 3, 4)], "the four checks")
+    entries = [e["id"] for e in sorted((e for e in DATA["entries"] if e["group"] == "misread"), key=lambda e: e["order"])]
+    buttons = page.locator("#box-chart-checks .end-box-button")
+    check(buttons.all_inner_texts() == [fill(L["toEntry"], name=L[f"item.{e}.short"]) for e in entries], "the buttons name the entries")
+    check(all(h >= 43.5 for h in buttons.evaluate_all("els => els.map(b => b.getBoundingClientRect().height)")), "the buttons are 44px high")
+    for card in entries:
+        length = page.evaluate("() => history.length")
+        page.locator(f'[data-key="box:chart-checks:{card}"]').click()
+        check(at_top(page, "#" + card), (card, "the check moves to its entry"))
+        check(page.evaluate("() => document.activeElement.id") == card, (card, "the entry has the focus"))
+        check(page.evaluate("() => history.length") == length and page.evaluate(SELECTED_TAB) == "misread", (card, "within the tab, no history entry"))
+    box.scroll_into_view_if_needed()
+    assert_layout(page, width, "end-box", layouts)
+
+
 def control_buttons(page, card):
     return page.locator(f"#{card} .controls .choice button").evaluate_all("els => els.map(b => b.dataset.key)")
 
@@ -1294,6 +1358,8 @@ def matrix_case(browser, browser_name, url, width, height, language, theme, outp
         for card in cards():
             test_card_controls(page, width, dict(SIZES)[width], layouts, language, card, output / (name + "-" + card + ".png"))
         bottoms = test_entry_nav(page, language, width, height)
+        test_end_box(page, width, layouts, language)
+        test_route(page, width, layouts, language)
         # A lone small figure (the search card and the misreading cards) has no label of its own: the heading above names it
         check(page.locator('.uses-list.single .use-label').count() == 0, "no label on a lone small figure")
         if language == "en":

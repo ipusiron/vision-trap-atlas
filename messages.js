@@ -21,6 +21,13 @@
       introFeature2: '見せることを目的とする代表例としてグラフを、隠すことを目的とする代表例として迷彩を取り上げる。同じつまみで、両方の小さな図が一緒に変わるのを見比べる。',
       introFeature3: '「探す時間」タブで、自分が探すのにかかる時間を測り、研究の値と比べる。',
       introFeature4: '「誤読」タブで、縦軸や面積の見せ方によってグラフが実際と違って見える例を、数で確かめる。',
+      introRouteHeading: 'はじめて読むときの順路',
+      introRoute1: '「目立つ」タブ「違いの種類と大きさ」',
+      introRoute1Note: 'つまみを動かし、1つだけ違う図形が目に入るかを見る。',
+      introRoute2: '「探す時間」タブ「図形の数と探す時間」',
+      introRoute2Note: '結合探索にかかる時間を測る。',
+      introRoute3: '「まとまる」タブ「輪郭」',
+      introRoute3Note: 'グラフと迷彩の小さな図が、同じつまみで一緒に変わるのを見る。',
       introMore: 'くわしい説明を読む',
       intro1: 'タブは左から、目立つ・探す時間・まとまる・図と地・誤読の順に並んでいます。はじめの4つのタブは、物が見つかるか、まとまって見えるかを扱います。最後の「誤読」タブは、見つけたあとで正しく読めるかを扱います。',
       intro2: '見せることを目的とする代表例がグラフ、隠すことを目的とする代表例が迷彩です。どちらも目の同じ働きを使いますが、目的は反対です。グラフは、見せたいものを目立たせ、仲間どうしをまとめて見せます。迷彩は、物を目立たなくし、輪郭をわかりにくくします。各項目では、上の図のつまみを動かすと、'
@@ -112,15 +119,19 @@
       'item.misread-baseline.title': '縦軸の始まり（縦軸の途中の省略）',
       'item.misread-baseline.oneLine': '縦軸の下端を上げると、小さな差が大きく見えます。',
       'item.misread-baseline.howTo': '「縦軸の下端」のつまみを動かします。「グラフの種類」と「軸が切れている印」も切り替えられます。',
+      'item.misread-baseline.short': '縦軸の始まり',
       'item.misread-area.title': '面積で表す（読み取りの正確さの順位）',
       'item.misread-area.oneLine': '絵の縦と横を両方伸ばすと、面積の比が値の比より大きくなります。',
       'item.misread-area.howTo': '「値の比」のつまみと、伸ばし方の切り替えを動かします。',
+      'item.misread-area.short': '面積で表す',
       'item.misread-dual-axis.title': '2つの縦軸（二重軸）',
       'item.misread-dual-axis.oneLine': '右の縦軸の範囲を変えるだけで、2本の線の関係が違って見えます。',
       'item.misread-dual-axis.howTo': '「右の縦軸の上端」のつまみを動かします。',
+      'item.misread-dual-axis.short': '2つの縦軸',
       'item.misread-aspect-range.title': '縦横の比と期間（縦横比）',
       'item.misread-aspect-range.oneLine': '同じデータでも、グラフの縦横の比や期間によって、増え方や減り方が違って見えます。',
       'item.misread-aspect-range.howTo': '「縦横の比」のつまみと「期間」の切り替えを動かします。',
+      'item.misread-aspect-range.short': '縦横の比と期間',
 
       // ===== つまみと段の名前（ctl.<項目>.<操作>・ctl.<項目>.<操作>.<段>） =====
       'ctl.popout-feature.kind': '違いの種類',
@@ -323,8 +334,8 @@
       regionShow: '期間を背景の帯で囲むと、ひとまとまりに読めます。散布図の点を線でつなぐと、点に順番があるように見えます。',
       regionHide: '物を囲む線があると、物の模様が1つにまとまり、背景から分かれて見えます。輪郭を途切れさせる模様（分断色）はその逆で、本当の輪郭を見つけにくくします。',
       regionGap: '迷彩の研究で、共通領域や連結性を取り上げた例は見つかりませんでした。迷彩の図は、物を囲む線があると物が目立つことを示すための絵です。',
-      contourShow: '0%の図のように、データが欠けた月をまたいで線を結ぶと、ないデータがあるように見えます。0%より上では、欠けた月を薄い帯で示し、そこで線を切ります。値を上げるほど、欠けた月が増えます。2本の線が交わる所では、線の種類を変え、線の端に名前を付けて、'
-        + 'どちらの線かわかるようにします。',
+      contourShow: '0%の図のように、データが欠けた月をまたいで線を結ぶと、ないデータがあるように見えます。そこで0%より上では、欠けた月を薄い帯で示して線を切り、値を上げるほど欠けた月を増やします。線が途切れたり交わったりすると、どこが同じ線かを目で追いにくくなるので、線の種類を変え、'
+        + '線の端に名前を付けて、どちらの線かわかるようにします。',
       contourHide: '縁にかかる模様で輪郭が途切れると、物の形を見つけにくくなります（分断色）。縁に模様を付けた的（ガの形の紙にえさを付けたもの）は、鳥に食べられにくかった、という野外実験があります。',
       areaShow: '棒が細くすき間が広いと、棒の形がデータとして目に入ります。棒を太くしてすき間を狭くすると、すき間のほうが形として目に入ることがあります。',
       areaHide: '物が小さく、背景に囲まれているほど、図に見える条件がそろいます。',
@@ -334,6 +345,13 @@
       symGap: 'グラフで左右対称や外へのふくらみを使う例は、ほかの働きほど多くありません。迷彩の研究でも、外へのふくらみを取り上げた例は見つかりませんでした。そのため、迷彩の図は「左右対称」を選んだときだけ変わります。',
       misreadLead: 'ここまでのタブでは、物が見つかるかどうかを扱いました。このタブでは、見つけたあとに正しく読めるかを扱います。グラフの誤読は、迷彩でいえば、見えていても別の物だと思わせる擬態に近いものです。',
       misreadFictional: 'このタブのグラフの値は、すべて架空です。',
+      toEntry: '「{name}」へ',
+      chartChecksHeading: 'グラフを読むときの確かめ方',
+      chartChecksLead: '4つの確かめ方は、このタブの4つの項目に対応しています。',
+      chartCheck1: '縦軸の下端の値を見る。0でないときは、差が実際より大きく見えていないかを確かめる。',
+      chartCheck2: '値を長さで表しているかを見る。面積や絵の大きさで表しているときは、見た目の大きさでなく、数で比べる。',
+      chartCheck3: '縦軸が左右に2つあるときは、それぞれの範囲を見る。2本の線が交わる位置や重なり方は、範囲の決め方で変わる。',
+      chartCheck4: 'どの期間を切り出したか、縦横の比がどうかを見る。期間や縦横の比が違えば、増え方や減り方の印象も変わる。',
       baseReadable: '棒グラフは縦軸を0から始めると、高さの比が値の比と同じになります。',
       areaReadable: '棒の長さで比べると、値の比をそのまま読めます。',
       dualReadable: '気温と雨の量を別々のグラフに分けると、線の交わりのような見かけの関係が出ません。値は、それぞれのグラフの縦軸で読めます。',
@@ -607,6 +625,13 @@
         + 'small camouflage scene together.',
       introFeature3: 'In the Search time tab, measure how long you take to find a target and compare it with research values.',
       introFeature4: 'In the Misreading tab, check with numbers how the vertical axis or area can make a chart look different from the data.',
+      introRouteHeading: 'Where to start',
+      introRoute1: 'Pop out tab: Kind and size of the difference',
+      introRoute1Note: 'Move the controls and see whether the one different shape catches your eye.',
+      introRoute2: 'Search time tab: Number of items and search time',
+      introRoute2Note: 'Measure how long conjunction search takes you.',
+      introRoute3: 'Grouping tab: Contours',
+      introRoute3Note: 'Watch the small chart and the camouflage picture change together with the same controls.',
       introMore: 'Read more',
       intro1: 'The tabs run from left to right: Pop out, Search time, Grouping, Figure and ground, Misreading. The first four ask whether something is '
         + 'found or seen as a group; Misreading asks whether you read it correctly once you have found it.',
@@ -622,7 +647,7 @@
       'contrastRow1.hide': 'Share the features of the surroundings',
       'contrastRow2.trait': 'Grouping',
       'contrastRow2.show': 'Put related things close, alike and enclosed',
-      'contrastRow2.hide': 'Break the outline and make the object\'s pattern part of the background',
+      'contrastRow2.hide': 'Break up the outline and make the object\'s pattern part of the background',
       'contrastRow3.trait': 'Figure and ground',
       'contrastRow3.show': 'Make the data the figure and the grid and background the ground',
       'contrastRow3.hide': 'Weaken the cues at the border and avoid symmetry',
@@ -704,15 +729,19 @@
       'item.misread-baseline.title': 'Where the vertical axis starts (truncated axis)',
       'item.misread-baseline.oneLine': 'Raising the bottom of the vertical axis makes a small difference look large.',
       'item.misread-baseline.howTo': 'Move "Bottom of the vertical axis". You can also switch "Chart type" and "Axis-break mark".',
+      'item.misread-baseline.short': 'Where the vertical axis starts',
       'item.misread-area.title': 'Showing amounts as areas (ordering of elementary perceptual tasks)',
       'item.misread-area.oneLine': 'Stretching a picture both ways makes its area grow faster than the value.',
       'item.misread-area.howTo': 'Move "Value ratio" and switch how the picture is stretched.',
+      'item.misread-area.short': 'Showing amounts as areas',
       'item.misread-dual-axis.title': 'Two vertical axes (dual axis)',
       'item.misread-dual-axis.oneLine': 'Changing only the range of the right axis changes how the two lines seem to relate.',
       'item.misread-dual-axis.howTo': 'Move "Top of the right axis".',
+      'item.misread-dual-axis.short': 'Two vertical axes',
       'item.misread-aspect-range.title': 'Aspect ratio and time range',
       'item.misread-aspect-range.oneLine': 'The same data can look like a different trend depending on the aspect ratio and the time range.',
       'item.misread-aspect-range.howTo': 'Move "Aspect ratio" and switch "Time range".',
+      'item.misread-aspect-range.short': 'Aspect ratio and time range',
 
       // ===== Controls and their steps =====
       'ctl.popout-feature.kind': 'Kind of difference',
@@ -933,9 +962,9 @@
         + '(disruptive coloration) do the opposite and make the true outline hard to find.',
       regionGap: 'We did not find camouflage research on common region or connectedness. The camouflage figure only illustrates how a line around an object '
         + 'makes it stand out.',
-      contourShow: 'As in the 0% figure, drawing a line across months with missing data makes absent data look present. Above 0%, a light band marks each '
-        + 'missing month and the lines stop there; higher values leave more months missing. Where two lines cross, use different line styles and put labels '
-        + 'at the line ends so each line can be told apart.',
+      contourShow: 'As in the 0% chart, joining a line across months with missing data makes it look as if the data were there. Above 0%, missing months are '
+        + 'shown as light bands and the line is cut there, and more months go missing as the value rises. When lines break off or cross, it gets hard to '
+        + 'follow which piece belongs to which line, so each line gets its own style and a name at its end.',
       contourHide: 'Patches that break the outline make an object\'s shape hard to find (disruptive coloration). In a field experiment, targets with '
         + 'patterns at the edge were less often eaten by birds.',
       areaShow: 'Narrow bars with wide gaps are seen as the shape of the data. Make the bars wide and the gaps narrow, and the gaps may catch the eye '
@@ -951,6 +980,13 @@
       misreadLead: 'The earlier tabs dealt with whether something is found. This tab deals with whether you read it correctly once found. Misreading a chart '
         + 'is close to masquerade in camouflage, where an object is seen but taken for something else.',
       misreadFictional: 'All values in this tab\'s charts are fictional.',
+      toEntry: 'Go to "{name}"',
+      chartChecksHeading: 'Checks when reading a chart',
+      chartChecksLead: 'Each check matches one item in this tab.',
+      chartCheck1: 'Look at the value at the bottom of the vertical axis. If it is not 0, check whether the difference looks bigger than it is.',
+      chartCheck2: 'See whether values are shown as lengths. If they are shown as areas or picture sizes, compare the numbers, not the sizes you see.',
+      chartCheck3: 'When there are two vertical axes, look at the range of each. Where the two lines cross or overlap depends on how the ranges are set.',
+      chartCheck4: 'See which period was cut out and what the aspect ratio is. A different period or aspect ratio changes how a rise or fall looks.',
       baseReadable: 'When a bar chart\'s vertical axis starts at 0, the ratio of the heights equals the ratio of the values.',
       areaReadable: 'Compared as bar lengths, the value ratio can be read directly.',
       dualReadable: 'Separate charts for temperature and rain show no false relation such as crossings. Each value is read against its own chart\'s axis.',

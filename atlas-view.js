@@ -747,7 +747,7 @@
     const groups = data.groups.slice().sort((a, b) => a.order - b.order);
     return {
       tabs: groups.map((g, i) => ({
-        id: g.id, labelKey: g.labelKey, termKey: g.termKey, termTip: g.termTip || null, leadKeys: g.leadKeys || [],
+        id: g.id, labelKey: g.labelKey, termKey: g.termKey, termTip: g.termTip || null, leadKeys: g.leadKeys || [], endBoxes: g.endBoxes || [],
         next: groups[i + 1] ? { id: groups[i + 1].id, labelKey: groups[i + 1].labelKey } : null,
         entries: data.entries.filter((e) => e.group === g.id).sort((a, b) => a.order - b.order).map(entryModel),
       })),
