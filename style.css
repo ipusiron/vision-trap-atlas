@@ -501,6 +501,8 @@ svg text { font-family: system-ui, sans-serif; }
 .fill-camoMarks-1 { fill: var(--c-camoMarks-1); } .stroke-camoMarks-1 { stroke: var(--c-camoMarks-1); }
 .fill-camoMarks-2 { fill: var(--c-camoMarks-2); } .stroke-camoMarks-2 { stroke: var(--c-camoMarks-2); }
 .fig-nofill, svg .fig-nofill { fill: none; }
+/* A month without data in the small chart of the contour entry: a light band behind the lines (the color of the lines of the page, see-through) */
+.fig-missing { fill: var(--line); fill-opacity: .45; }
 /* An open mark of the result chart (the bar was not there): the paper inside, the line of the series around it */
 .res-open { fill: var(--paper); stroke-width: 2; }
 .res-leader { stroke-width: 1.5; }

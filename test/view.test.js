@@ -15,8 +15,8 @@ const PARTS = ['popoutGrid', 'asymGrid', 'searchDisplay', 'proximityGrid', 'regi
   'areaPictures', 'dualAxisChart', 'aspectChart', 'barChart', 'groupedBars', 'lineChart', 'scatter', 'markTable', 'camoScene'];
 // Classes without a color of their own; style.css gives each a look (line, text, fill with the ink or paper of the theme)
 const PLAIN_CLASSES = ['camo-line', 'camo-outline', 'fig-axis', 'fig-axisname', 'fig-barline', 'fig-break', 'fig-cross', 'fig-dot', 'fig-frame',
-  'fig-frame-small', 'fig-legend', 'fig-link', 'fig-mark', 'fig-nofill', 'fig-outline', 'fig-pattern', 'fig-rule', 'fig-series', 'fig-spine', 'fig-stroke',
-  'fig-textbar',
+  'fig-frame-small', 'fig-legend', 'fig-link', 'fig-mark', 'fig-missing', 'fig-nofill', 'fig-outline', 'fig-pattern', 'fig-rule', 'fig-series',
+  'fig-spine', 'fig-stroke', 'fig-textbar',
   'fig-tick', 'fig-title', 'fixation', 'line-dashed', 'mark-pressed', 'mark-target', 'stim-outline', 'stim-solid', 'ta-end', 'ta-middle', 'ta-start'];
 
 // ----- bounding box of a shape list (paths use M, L, A and Z; arcs are sampled from their center) -----
@@ -188,6 +188,30 @@ test('C: the counts of shapes in the main figures', () => {
   assert.equal(dual.filter((s) => s.type === 'circle' && s.cls === 'fill-seriesTarget').length, 13, '12 months and the legend sample');
   const search = V.renderPart('searchDisplay', { items: C.makeSearchTrials({ search: 'feature', rng: C.xorshift32(1) }).main[0].items }, ctx);
   assert.ok([3, 6, 12, 18].includes(search.shapes.length));
+});
+
+test('C: the contour entry: every step of the gap changes both small figures (more missing months; more patches on the edge)', () => {
+  const e = entry('gestalt-contour'), [show, hide] = e.uses;
+  const steps = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
+  for (const crossing of ['smooth', 'corner']) {
+    const shows = steps.map((gap) => V.renderUse(show, { gap, crossing }, ctx)), hides = steps.map((gap) => V.renderUse(hide, { gap, crossing }, ctx));
+    // The showing side: at 0 the lines run across September and October (no band); from 10% a band marks each missing month and one
+    // month more goes missing at each step
+    assert.deepEqual(shows.map((f) => f.shapes.filter((x) => x.cls === 'fig-missing').length), [0, 2, 3, 4, 5, 6, 7], crossing);
+    assert.equal(shows[0].shapes.filter((x) => x.type === 'path' && /fig-series/.test(x.cls)).length, 2, 'one line each at 0');
+    // The hiding side: four more patches on the edge at each step
+    const outline = pathPoints(hides[0].shapes.find((x) => x.type === 'path' && /fill-camoObj-/.test(x.cls)).attrs.d);
+    const at = hides[0].shapes.findIndex((x) => x.type === 'path' && /fill-camoObj-/.test(x.cls));
+    const patches = (f) => f.shapes.slice(at + 1).filter((x) => x.type === 'circle' && x.attrs.r >= 10);
+    assert.deepEqual(hides.map((f) => patches(f).length), [0, 4, 8, 12, 16, 20, 24], crossing);
+    for (let i = 1; i < steps.length; i += 1) {
+      assert.notDeepEqual(shows[i], shows[i - 1], `${crossing} show ${steps[i]}`);
+      assert.notDeepEqual(hides[i], hides[i - 1], `${crossing} hide ${steps[i]}`);
+    }
+    // At 60% the patches cover nine tenths of the outline or more, so the outline can hardly be followed
+    const covered = outline.filter(([x, y]) => patches(hides[6]).some((c) => Math.hypot(c.attrs.cx - x, c.attrs.cy - y) <= c.attrs.r)).length;
+    assert.ok(covered >= 0.9 * outline.length, `covered ${covered} of ${outline.length}`);
+  }
 });
 
 test('C: the aspect-ratio figure keeps its frame and changes only the plotting area', () => {

@@ -146,6 +146,11 @@ test('E: charts stand for showing and camouflage for hiding: the sentences besid
   assert.doesNotMatch(M.en.helpFirstText, /showing and hiding/);
 });
 
+test('E: the first steps of the help measure the time that conjunction search takes', () => {
+  assert.match(M.ja.helpFirstText, /次に「探す時間」タブで結合探索にかかる時間を測ります。/);
+  assert.match(M.en.helpFirstText, /measure how long conjunction search takes you\./);
+});
+
 test('E: one crossing gets its own sentence ("cross once"), which the data never needs but the function is ready for', () => {
   const data = JSON.parse(JSON.stringify(D));
   data.datasets.townTemp = [0, 15, 30];

@@ -323,7 +323,8 @@
       regionShow: '期間を背景の帯で囲むと、ひとまとまりに読めます。散布図の点を線でつなぐと、点に順番があるように見えます。',
       regionHide: '物を囲む線があると、物の模様が1つにまとまり、背景から分かれて見えます。輪郭を途切れさせる模様（分断色）はその逆で、本当の輪郭を見つけにくくします。',
       regionGap: '迷彩の研究で、共通領域や連結性を取り上げた例は見つかりませんでした。迷彩の図は、物を囲む線があると物が目立つことを示すための絵です。',
-      contourShow: 'データが欠けた月をまたいで線を結ぶと、ないデータがあるように見えます。2本の線が交わる所では、線の種類を変え、線の端に名前を付けて、どちらの線かわかるようにします。',
+      contourShow: '0%の図のように、データが欠けた月をまたいで線を結ぶと、ないデータがあるように見えます。0%より上では、欠けた月を薄い帯で示し、そこで線を切ります。値を上げるほど、欠けた月が増えます。2本の線が交わる所では、線の種類を変え、線の端に名前を付けて、'
+        + 'どちらの線かわかるようにします。',
       contourHide: '縁にかかる模様で輪郭が途切れると、物の形を見つけにくくなります（分断色）。縁に模様を付けた的（ガの形の紙にえさを付けたもの）は、鳥に食べられにくかった、という野外実験があります。',
       areaShow: '棒が細くすき間が広いと、棒の形がデータとして目に入ります。棒を太くしてすき間を狭くすると、すき間のほうが形として目に入ることがあります。',
       areaHide: '物が小さく、背景に囲まれているほど、図に見える条件がそろいます。',
@@ -444,13 +445,13 @@
       helpFirst: 'はじめて読むとき',
       helpTabHelp: 'ヘルプ',
       helpTabGlossary: '用語集',
-      helpFirstText: 'まず「目立つ」タブの「違いの種類と大きさ」でつまみを動かします。次に「探す時間」タブで結合探索を測ります。最後に「まとまる」タブの「輪郭」で、グラフと迷彩の小さな図が一緒に変わるのを見ます。',
+      helpFirstText: 'まず「目立つ」タブの「違いの種類と大きさ」でつまみを動かします。次に「探す時間」タブで結合探索にかかる時間を測ります。最後に「まとまる」タブの「輪郭」で、グラフと迷彩の小さな図が一緒に変わるのを見ます。',
       'helpKey.tabs': 'タブと項目は、押して選ぶ。タブは、キーボードの←→でも切り替えられる。',
       'helpKey.slider': 'つまみは、指かマウスで動かす。キーボードでは←→で動かす。',
       'helpKey.experiment': '探す実験では、探す棒があればJか→、なければFか←を押す。Escで中断する。',
       helpAbout: 'この図鑑は学習用です。探す実験の記録はこのページの中だけにあり、保存も送信もしません。点滅する表示や、ひとりでに動く表示は使っていません。色の違いを使う図には、色を使わない切り替えを付けています。',
       glossLead: '用語を、主に出てくるタブごとに分けています。',
-      glossExpertLabel: '専門の言葉',
+      glossExpertLabel: '専門用語',
       'glossGroup.all': '全体',
       'glossGroup.popout': '「目立つ」タブ',
       'glossGroup.search': '「探す時間」タブ',
@@ -458,7 +459,7 @@
       'glossGroup.figure-ground': '「図と地」タブ',
       'glossGroup.misread': '「誤読」タブ',
 
-      // ===== 用語（画面の言葉・専門の言葉・意味） =====
+      // ===== 用語（画面の言葉・専門用語・意味） =====
       termTarget: '探すもの・探す棒',
       termTargetExpert: '標的（ターゲット）',
       termTargetMeaning: '探している1つの図形',
@@ -501,7 +502,7 @@
       termBackground: '背景に合わせる',
       termBackgroundExpert: '背景合わせ',
       termBackgroundMeaning: '物の色や模様を、周りの背景に似せる迷彩',
-      termDisruptive: '輪郭を崩す模様',
+      termDisruptive: '輪郭を途切れさせる模様',
       termDisruptiveExpert: '分断色',
       termDisruptiveMeaning: '偽の縁を見せ、本当の輪郭を見つけにくくする模様（Stevens & Merilaita 2009の定義）',
       termMasquerade: '別の物に見せる',
@@ -511,10 +512,8 @@
       termDirectionExpert: '方位',
       termDirectionMeaning: '棒が縦か横か斜めか。「傾き」は結果の増え方だけに使う',
       termShowSide: '見せる側',
-      termShowSideExpert: 'データ可視化',
       termShowSideMeaning: '見せることを目的とする使い方。代表例はグラフ',
       termHideSide: '隠す側',
-      termHideSideExpert: '迷彩',
       termHideSideMeaning: '隠すことを目的とする使い方。代表例は迷彩',
       termVisualSearch: '視覚探索',
       termVisualSearchMeaning: 'たくさんの物の中から、目当ての物を目で探すこと',
@@ -934,8 +933,9 @@
         + '(disruptive coloration) do the opposite and make the true outline hard to find.',
       regionGap: 'We did not find camouflage research on common region or connectedness. The camouflage figure only illustrates how a line around an object '
         + 'makes it stand out.',
-      contourShow: 'Drawing a line across missing months makes absent data look present. Where two lines cross, use different line styles and put labels at '
-        + 'the line ends so each line can be told apart.',
+      contourShow: 'As in the 0% figure, drawing a line across months with missing data makes absent data look present. Above 0%, a light band marks each '
+        + 'missing month and the lines stop there; higher values leave more months missing. Where two lines cross, use different line styles and put labels '
+        + 'at the line ends so each line can be told apart.',
       contourHide: 'Patches that break the outline make an object\'s shape hard to find (disruptive coloration). In a field experiment, targets with '
         + 'patterns at the edge were less often eaten by birds.',
       areaShow: 'Narrow bars with wide gaps are seen as the shape of the data. Make the bars wide and the gaps narrow, and the gaps may catch the eye '
@@ -1076,8 +1076,8 @@
       helpFirst: 'If this is your first visit',
       helpTabHelp: 'Help',
       helpTabGlossary: 'Glossary',
-      helpFirstText: 'First, move the controls in "Kind and size of the difference" in the Pop out tab. Next, measure conjunction search in the Search time '
-        + 'tab. Finally, in "Contours" in the Grouping tab, watch the small chart and the small camouflage scene change together.',
+      helpFirstText: 'First, move the controls in "Kind and size of the difference" in the Pop out tab. Next, in the Search time tab, measure how long '
+        + 'conjunction search takes you. Finally, in "Contours" in the Grouping tab, watch the small chart and the small camouflage scene change together.',
       'helpKey.tabs': 'Tabs and entries: tap or click to choose. The ← and → keys also switch tabs.',
       'helpKey.slider': 'Sliders: move them with a finger or the mouse, or with the ← and → keys.',
       'helpKey.experiment': 'Search experiment: press J or → if the bar to find is there, and F or ← if it is not. Esc stops the run.',
@@ -1137,7 +1137,7 @@
       termBackground: 'Matching the background',
       termBackgroundExpert: 'background matching',
       termBackgroundMeaning: 'Camouflage that makes an object\'s colors and patterns resemble its surroundings',
-      termDisruptive: 'Outline-breaking pattern',
+      termDisruptive: 'Pattern that breaks up the outline',
       termDisruptiveExpert: 'disruptive coloration',
       termDisruptiveMeaning: 'Markings that create false edges and hinder detection of the true outline (as defined by Stevens & Merilaita, 2009)',
       termMasquerade: 'Looking like something else',
@@ -1147,10 +1147,8 @@
       termDirectionExpert: 'orientation',
       termDirectionMeaning: 'Whether a bar is vertical, horizontal or slanted. "Slope" is kept for how the time grows',
       termShowSide: 'The showing side',
-      termShowSideExpert: 'data visualization',
       termShowSideMeaning: 'Uses that aim to show; charts are the typical example',
       termHideSide: 'The hiding side',
-      termHideSideExpert: 'camouflage',
       termHideSideMeaning: 'Uses that aim to hide; camouflage is the typical example',
       termVisualSearch: 'Visual search',
       termVisualSearchMeaning: 'Looking with your eyes for one thing among many',

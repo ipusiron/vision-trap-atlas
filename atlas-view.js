@@ -456,21 +456,29 @@
         shapes.push(line(166, y, 182, y, cls(i) + ' fig-series'), text(186, y + 4, 'ABCDEF'[i], 'fig-legend ta-start'));
       });
     } else if (mode === 'contour') {
-      const { p, q, meet, missing } = m12.cross, P = plot12(14, 168, 12, 138);
+      // 欠けた月：輪郭の途切れが0のときは、9・10月（missing）をまたいで線を結ぶ（ないデータがあるように見える形）。0より大きいときは、
+      // 欠けた月を薄い帯で示して線を切り、10%ごとに欠けた月を1か月ずつ足す（missingMore の順）。1点だけ残った月は点で描く
+      const { p, q, meet, missing, missingMore } = m12.cross, P = plot12(14, 168, 12, 138);
       const corner = (s.crossing || 'smooth') === 'corner';
       const A = corner ? [...p.slice(0, meet + 1), ...q.slice(meet + 1)] : p, B = corner ? [...q.slice(0, meet + 1), ...p.slice(meet + 1)] : q;
-      const joined = !(s.gap > 0);
+      const steps = Math.round((s.gap || 0) * 10), joined = steps === 0;
+      const gone = joined ? missing : [...missing, ...missingMore.slice(0, steps - 1)];
       const pieces = (vals) => {
-        const keep = vals.map((v, i) => (missing.includes(i) ? null : [P.x(i), P.y(v)]));
+        const keep = vals.map((v, i) => (gone.includes(i) ? null : [P.x(i), P.y(v)]));
         if (joined) return [keep.filter(Boolean)];
         const out = []; let cur = [];
         for (const k of keep) { if (k) cur.push(k); else if (cur.length) { out.push(cur); cur = []; } }
         if (cur.length) out.push(cur);
         return out;
       };
+      const half = (P.x(1) - P.x(0)) / 2;
+      if (!joined) for (const i of gone) shapes.push(rect(P.x(i) - half, 12, 2 * half, 126, 'fig-missing'));
       shapes.push(...axes(14, 12, 168, 138));
-      for (const [vals, cls, name] of [[A, 'stroke-seriesTarget', 'A'], [B, 'stroke-seriesOthers-0 line-dashed', 'B']]) {
-        for (const piece of pieces(vals)) shapes.push(path(pts(piece), cls + ' fig-series'));
+      for (const [vals, cls, dot, name] of [[A, 'stroke-seriesTarget', 'fill-seriesTarget', 'A'],
+        [B, 'stroke-seriesOthers-0 line-dashed', 'fill-seriesOthers-0', 'B']]) {
+        for (const piece of pieces(vals)) {
+          shapes.push(piece.length === 1 ? circle(piece[0][0], piece[0][1], 2.5, dot) : path(pts(piece), cls + ' fig-series'));
+        }
         shapes.push(text(174, P.y(vals[11]) + 4, name, 'fig-legend ta-start'));
       }
     } else if (mode === 'region') {
@@ -607,11 +615,12 @@
         shapes.push(circle(cx + Math.abs(u) * rx, cy + v * ry, sr, cls), circle(cx - Math.abs(u) * rx, cy + v * ry, sr, cls));
       }
     } else for (let i = 0; i < 10; i += 1) { const [u, v] = inner(); shapes.push(circle(cx + u * rx, cy + v * ry, sr, objCls())); }
-    // 縁にかかる斑点（輪郭を途切れさせる）
-    const edges = Math.round((s.edgePatches || 0) * 10);
+    // 縁にかかる斑点（輪郭の項目。輪郭を途切れさせる）：10%ごとに背景の色の斑点を4つずつ、半径10〜12で物の縁の上に置く。場所は黄金比で縁を
+    // 順に回って散らし、段を上げても前の斑点は残す（どの段でも増えたことがわかり、60%では輪郭がほとんど追えない）
+    const edges = Math.round((s.edgePatches || 0) * 40);
     for (let i = 0; i < edges; i += 1) {
-      const [x, y] = outline[Math.floor(i * outline.length / Math.max(edges, 1) + Core.randInt(rng, 3)) % outline.length];
-      shapes.push(circle(x, y, 7, spotCls(Core.randInt(rng, colors))));
+      const [x, y] = outline[Math.floor(((i * 0.6180339887) % 1) * outline.length)];
+      shapes.push(circle(x, y, 10 + (i % 3), spotCls(i % colors)));
     }
     if (s.outline) shapes.push(path(Core.polygonPath(outline), 'camo-outline fig-nofill'));
     if (s.addedLine) shapes.push(line(cx - rx * 0.15, cy - ry * 1.25, cx + rx * 0.25, cy + ry * 1.25, 'camo-line'));

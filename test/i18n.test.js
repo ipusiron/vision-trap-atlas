@@ -8,10 +8,11 @@ const M = require('../messages.js');
 // Hiragana, katakana, CJK ideographs, CJK punctuation and full-width forms
 const JAPANESE = /[　-〿぀-ヿ㐀-䶿一-鿿豈-﫿！-｠]/;
 const placeholders = (s) => [...s.matchAll(/\{([a-zA-Z0-9_]+)\}/g)].map((m) => m[1]).sort();
-// The 19 terms that have a screen word and a specialist word, then the 16 terms named by their specialist word
-const TERMS19 = ['termTarget', 'termDistractor', 'termSetSize', 'termRt', 'termMedian', 'termSlope', 'termIntercept', 'termFeature', 'termConjunction',
-  'termPopout', 'termPreattentive', 'termGrouping', 'termFigureGround', 'termBackground', 'termDisruptive', 'termMasquerade', 'termDirection',
-  'termShowSide', 'termHideSide'];
+// The 17 terms that have a screen word and a specialist word, the 16 terms named by their specialist word, and the 2 sides (showing and
+// hiding), whose meaning names the typical example instead of a specialist word
+const TERMS17 = ['termTarget', 'termDistractor', 'termSetSize', 'termRt', 'termMedian', 'termSlope', 'termIntercept', 'termFeature', 'termConjunction',
+  'termPopout', 'termPreattentive', 'termGrouping', 'termFigureGround', 'termBackground', 'termDisruptive', 'termMasquerade', 'termDirection'];
+const SIDES = ['termShowSide', 'termHideSide'];
 const TERMS16 = ['termVisualSearch', 'termFit', 'termGuided', 'termAsymmetry', 'termProximity', 'termSimilarity', 'termCommonRegion',
   'termConnectedness', 'termClosure', 'termContinuation', 'termRubin', 'termTruncation', 'termAccuracyRank', 'termDualAxis', 'termAspect',
   'termFixation'];
@@ -53,18 +54,25 @@ test('F: Japanese values are not made of Latin letters alone, and avoid the list
   for (const [key, value] of Object.entries(M.en)) assert.doesNotMatch(value, /\brecommend|\bmust be optimal|\balways start at (?:0|zero)/i, key);
 });
 
-test('F: the 35 terms have a word and a meaning in both languages; the first 19 also name the specialist word', () => {
-  assert.equal(TERMS19.length + TERMS16.length, 35);
-  for (const key of [...TERMS19, ...TERMS16]) {
+test('F: the 35 terms have a word and a meaning in both languages; the 17 screen words also name the specialist word', () => {
+  assert.equal(TERMS17.length + TERMS16.length + SIDES.length, 35);
+  for (const key of [...TERMS17, ...TERMS16, ...SIDES]) {
     for (const lang of ['ja', 'en']) {
       assert.equal(typeof M[lang][key], 'string', `${lang} ${key}`);
       assert.equal(typeof M[lang][key + 'Meaning'], 'string', `${lang} ${key}Meaning`);
     }
   }
-  for (const key of TERMS19) for (const lang of ['ja', 'en']) assert.equal(typeof M[lang][key + 'Expert'], 'string', `${lang} ${key}Expert`);
-  for (const key of TERMS16) assert.equal(M.ja[key + 'Expert'], undefined, key);
+  for (const key of TERMS17) for (const lang of ['ja', 'en']) assert.equal(typeof M[lang][key + 'Expert'], 'string', `${lang} ${key}Expert`);
+  for (const key of [...TERMS16, ...SIDES]) for (const lang of ['ja', 'en']) assert.equal(M[lang][key + 'Expert'], undefined, key);
+  // The two sides name their typical example in the meaning (charts, camouflage), so a specialist word beside them would repeat it
+  assert.match(M.ja.termShowSideMeaning, /代表例はグラフ$/);
+  assert.match(M.ja.termHideSideMeaning, /代表例は迷彩$/);
   const termKeys = Object.keys(M.ja).filter((k) => /^term[A-Z]/.test(k) && !/(Meaning|Expert)$/.test(k) && k !== 'termHelpLabel');
-  assert.deepEqual(termKeys.sort(), [...TERMS19, ...TERMS16].sort());
+  assert.deepEqual(termKeys.sort(), [...TERMS17, ...TERMS16, ...SIDES].sort());
+  // The label of a specialist word, and the term of disruptive coloration in the plain words of the short table (no 崩す)
+  assert.deepEqual([M.ja.glossExpertLabel, M.en.glossExpertLabel], ['専門用語', 'Technical term']);
+  assert.deepEqual([M.ja.termDisruptive, M.en.termDisruptive], ['輪郭を途切れさせる模様', 'Pattern that breaks up the outline']);
+  for (const [key, text] of Object.entries(M.ja)) assert.doesNotMatch(text, /崩/, key);
   // The meanings named in the spec
   assert.equal(M.ja.termGroupingMeaning,
     '近いもの・似たものなどが、1つのまとまりとして見えること。まとまって見える条件（近接・類同など）を、ゲシュタルトの法則と呼ぶ。数え方は資料によって違う');
@@ -152,7 +160,7 @@ test('F: the glossary groups the 35 terms by the tab where they mainly appear: e
       const key = dt[2].match(/^<span data-i18n="(\w+)">/)[1];
       seen.push(key);
       assert.equal(dt[1], 'dt', key);
-      const expert = TERMS19.includes(key) && (M.ja[key] !== M.ja[key + 'Expert'] || M.en[key].toLowerCase() !== M.en[key + 'Expert'].toLowerCase());
+      const expert = TERMS17.includes(key) && (M.ja[key] !== M.ja[key + 'Expert'] || M.en[key].toLowerCase() !== M.en[key + 'Expert'].toLowerCase());
       assert.equal(dt[2].includes(`data-i18n="${key}Expert"`), expert, key + ' specialist word');
       // The specialist word comes with its label, so that the word, the specialist word and the meaning can be told apart
       assert.equal(dt[2].includes('<span class="term-expert-label" data-i18n="glossExpertLabel">'), expert, key + ' label');
@@ -162,7 +170,7 @@ test('F: the glossary groups the 35 terms by the tab where they mainly appear: e
   }
   // Each of the 35 terms exactly once
   assert.equal(seen.length, 35);
-  assert.deepEqual([...seen].sort(), [...TERMS19, ...TERMS16].sort());
+  assert.deepEqual([...seen].sort(), [...TERMS17, ...TERMS16, ...SIDES].sort());
 });
 
 test('F: the short introduction is one sentence per line in index.html, the same sentences as the dictionary', () => {
@@ -178,7 +186,7 @@ test('F: the short introduction is one sentence per line in index.html, the same
 });
 
 test('F: every term with a dashed underline or a "?" is in the terms table, and its word appears in the sentence in both languages', () => {
-  const termKeys = new Set([...TERMS19, ...TERMS16]);
+  const termKeys = new Set([...TERMS17, ...TERMS16, ...SIDES]);
   for (const m of html.matchAll(/data-term-help="(\w+)"/g)) assert.ok(termKeys.has(m[1]), m[1]);
   for (const g of D.groups) if (g.termTip) assert.ok(termKeys.has(g.termTip), g.id);
   for (const e of D.entries) for (const t of e.titleTerms) assert.ok(termKeys.has(t.term), e.id);
