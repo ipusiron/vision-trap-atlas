@@ -20,10 +20,12 @@
   const TABS = VM.tabs.map((tab) => tab.id);
   const ENTRIES = new Map(Data.entries.map((e) => [e.id, e]));
   // The groups whose entry cards are drawn (the other tabs show their heading and the way to the next tab)
-  const CARD_GROUPS = ['popout', 'search', 'gestalt', 'figure-ground', 'misread'];
+  const CARD_GROUPS = ['popout', 'search', 'gestalt', 'figure-ground', 'misread', 'illusion'];
   const drawnEntries = (tab) => (CARD_GROUPS.includes(tab.id) ? tab.entries : []);
   // The entries with "Find and tap"
   const FIND_ENTRIES = Data.entries.filter((e) => (e.actions || []).includes('find')).map((e) => e.id);
+  // Reduced motion: the moving entry shows "Next frame" instead of "Play"
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   // Terms inside the sentences of the cards and the panels: the first appearance of the word gets the dashed underline
   const TEXT_TERMS = {
     misreadLead: [{ term: 'termMasquerade', ja: '擬態', en: 'masquerade' }],
@@ -322,6 +324,8 @@
     }
   }
   function renderTabs() {
+    // A moving entry stops when its tab is no longer shown
+    for (const [id, motion] of Object.entries(motions)) if (ENTRIES.get(id).group !== state.tab) motion.stop();
     for (const tab of VM.tabs) {
       const selected = tab.id === state.tab;
       const button = $('tab-' + tab.id);
@@ -442,7 +446,7 @@
 
   function buildCard(model) {
     const entry = ENTRIES.get(model.id), id = entry.id, used = new Set();
-    const square = entry.figure && ['popoutGrid', 'asymGrid'].includes(entry.figure.part);
+    const square = entry.figure && ['popoutGrid', 'asymGrid', 'motionGrid'].includes(entry.figure.part);
     const parts = { choices: new Map(), ranges: new Map(), switchNotes: new Map(), uses: [] };
     // Title (with its terms), what it is, how to use it
     const title = E('h3', { id: id + '-title', class: 'entry-title' }, richText(t(model.titleKey), model.titleTerms.map((tt) => ({ term: tt.term,
@@ -465,6 +469,17 @@
       const button = E('button', { type: 'button', class: 'find-button', 'data-key': `act:${id}:find` }, phrases(t('findPress')));
       button.addEventListener('click', (event) => finds[id].press(event));
       actions.append(button);
+    }
+    if (model.safety.actions.some((a) => a.id === 'play')) {
+      // A moving entry: Play (with reduced motion, Next frame instead) and Stop, which can be pressed only while the figures move
+      const reduced = reduceMotion.matches;
+      const go = E('button', { type: 'button', class: 'motion-go', 'data-key': `act:${id}:${reduced ? 'frame' : 'play'}` },
+        phrases(t(reduced ? 'motionFrame' : 'motionPlay')));
+      go.addEventListener('click', () => (reduced ? motions[id].nextFrame() : motions[id].play()));
+      const stop = E('button', { type: 'button', class: 'motion-stop', 'data-key': `act:${id}:stop`, disabled: true }, phrases(t('motionStop')));
+      stop.addEventListener('click', () => motions[id].stop());
+      actions.append(go, stop);
+      parts.motion = { go, stop };
     }
     if (actions.children.length) controls.append(actions);
 
@@ -509,7 +524,8 @@
     const uses = buildUses(entry, model, parts, used);
     const stage = E('div', { class: 'entry-stage' }, E('div', { class: 'entry-main' }, frame), read, uses);
     const article = E('article', { id, class: 'entry' + (square ? ' square' : ''), 'aria-labelledby': title.id, tabindex: '-1' },
-      title, E('p', { class: 'entry-oneline' }, phrases(t(model.oneLineKey))), E('p', { class: 'entry-howto' }, phrases(t(model.howToKey))),
+      title, E('p', { class: 'entry-oneline' }, phrases(t(model.oneLineKey))),
+      E('p', { class: 'entry-howto' }, phrases(t(model.howToReducedKey && reduceMotion.matches ? model.howToReducedKey : model.howToKey))),
       controls, stage);
     if (model.gapKey) {
       article.append(E('div', { class: 'gap-note' }, E('p', { class: 'gap-head' }, phrases(t('gapHeading'))), E('p', {}, phrases(t(model.gapKey)))));
@@ -926,9 +942,10 @@
     }
     // The figure: the seed of "Find and tap" while it runs; nothing under the board; the marks after an answer
     const find = finds[id] ? finds[id].state() : null;
+    const extra = motionExtra(id);
     if (parts.mainSvg) {
       const covered = !!find && find.phase === 'cover';
-      const result = View.renderMain(entry, values, ctx(), item.seed);
+      const result = View.renderMain(entry, values, ctx(), item.seed, extra);
       const marks = find && find.marks ? View.markShapes(find.marks) : [];
       paintSvg(parts.mainSvg, covered ? { ...result, shapes: [] } : result, t(`fig.${id}.main.title`), View.descText(Messages, state.language,
         entry, values, 'main'), marks);
@@ -951,11 +968,13 @@
     }
     // The small figures and the line under each
     for (const u of parts.uses) {
-      paintSvg(u.svg, View.renderUse(u.use, values, ctx()), t(u.model.titleKey), View.descText(Messages, state.language, entry, values, u.model.side));
+      paintSvg(u.svg, View.renderUse(u.use, values, ctx(), extra), t(u.model.titleKey),
+        View.descText(Messages, state.language, entry, values, u.model.side));
       const linked = View.linkedText(Messages, state.language, entry, u.use, values);
       if (u.linkedLive.textContent !== linked) setWords(u.linkedLive, linked);
     }
     if (parts.search) updateSearch(parts.search);
+    if (parts.motion) paintMotionButtons(id);
   }
 
   // ===== Operations of a card =====
@@ -963,6 +982,8 @@
     const item = state.items[id];
     if (item.values[controlId] === value) return;
     item.values = { ...item.values, [controlId]: value };
+    // A moving entry stops and shows its still figures: a control never starts the motion (the next Play uses the new values)
+    if (motions[id]) motions[id].reset();
     if (finds[id]) finds[id].reset(); else updateCard(id);
   }
   function reshuffle(id) {
@@ -998,6 +1019,47 @@
         updateCard(id);
       },
     });
+  }
+
+  // ===== Moving entries: one clock per entry moves its figure and both small figures. It moves only after "Play" and stops after
+  // the seconds of its safety mark, or at "Stop"; with reduced motion, "Next frame" shows the four still frames one by one. Each
+  // change of the clock writes only the attributes that changed (requestAnimationFrame, no CSS transition or animation) =====
+  const motions = {};
+  for (const e of Data.entries.filter((x) => x.safety.motion === 'onPlay')) {
+    motions[e.id] = Search.createMotion({ raf: (callback) => requestAnimationFrame(callback), seconds: e.safety.maxSeconds,
+      onChange: () => paintMotion(e.id) });
+  }
+  const motionExtra = (id) => (motions[id] ? { pose: View.motionPose(motions[id].state(), ENTRIES.get(id).safety.maxSeconds) } : {});
+  function paintMotion(id) {
+    const parts = cards.get(id);
+    if (!parts) return;
+    const entry = ENTRIES.get(id), item = state.items[id], extra = motionExtra(id);
+    patchSvg(parts.mainSvg, View.renderMain(entry, item.values, ctx(), item.seed, extra));
+    for (const u of parts.uses) patchSvg(u.svg, View.renderUse(u.use, item.values, ctx(), extra));
+    paintMotionButtons(id);
+  }
+  // Stop can be pressed only while the figures move. When it goes off with the focus on it, the focus moves to the button beside it
+  // first (a button that cannot be pressed does not keep the focus)
+  function paintMotionButtons(id) {
+    const { go, stop } = cards.get(id).motion, moving = motions[id].state().phase === 'playing';
+    if (!moving && document.activeElement === stop) go.focus({ preventScroll: true });
+    stop.disabled = !moving;
+  }
+  // A figure drawn again in place: when the shapes are of the same kinds in the same order (a moving figure), only the attributes that
+  // changed are written; otherwise the shapes are replaced. The title and the description stay
+  const sameShapes = (elements, shapes) => elements.length === shapes.length
+    && elements.every((el, i) => el.tagName === shapes[i].type && sameShapes([...el.children], shapes[i].children || []));
+  function patchShape(el, shape) {
+    for (const [name, value] of Object.entries(shape.attrs)) if (el.getAttribute(name) !== String(value)) el.setAttribute(name, String(value));
+    if ((el.getAttribute('class') || '') !== shape.cls) el.setAttribute('class', shape.cls);
+    if (shape.type === 'text' && el.textContent !== shape.text) el.textContent = shape.text;
+    [...el.children].forEach((child, i) => patchShape(child, shape.children[i]));
+  }
+  function patchSvg(svg, result) {
+    const elements = [...svg.children].filter((el) => el.tagName !== 'title' && el.tagName !== 'desc');
+    if (sameShapes(elements, result.shapes)) { elements.forEach((el, i) => patchShape(el, result.shapes[i])); return; }
+    for (const el of elements) el.remove();
+    svg.append(...result.shapes.map(shapeElement));
   }
 
   // ===== Panels: the leads, "Entries in this tab", the cards and the way to the next tab =====
@@ -1237,6 +1299,16 @@
       if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     });
   }
+
+  // The setting of reduced motion changed: the moving entries stop, and the cards are drawn again with "Play" or "Next frame" (the focus
+  // on one of the two goes to the other)
+  reduceMotion.addEventListener('change', () => {
+    for (const motion of Object.values(motions)) motion.stop();
+    const key = document.activeElement?.dataset?.key || '';
+    render();
+    const other = key.replace(/:(play|frame)$/, (m, k) => (k === 'play' ? ':frame' : ':play'));
+    if (other !== key) restoreFocus(other);
+  });
 
   // Crossing 720px changes the layout of the cards only. When the focus was on an element that is no longer shown, it moves to
   // the panel of the tab. The browser may take the focus away before or after the media query reports the change, so an

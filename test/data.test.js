@@ -9,16 +9,17 @@ const V = require('../atlas-view.js');
 const M = require('../messages.js');
 const fixture = require('./fixtures/illusion-data.js');
 
-const IDS = ['popout-feature', 'popout-asymmetry', 'search-time', 'gestalt-proximity-similarity', 'gestalt-region-connection', 'gestalt-contour',
-  'figure-ground-area', 'figure-ground-symmetry', 'misread-baseline', 'misread-area', 'misread-dual-axis', 'misread-aspect-range'];
-const GROUPS = ['popout', 'search', 'gestalt', 'figure-ground', 'misread'];
+const IDS = ['popout-feature', 'popout-asymmetry', 'popout-motion', 'search-time', 'gestalt-proximity-similarity', 'gestalt-region-connection',
+  'gestalt-contour', 'figure-ground-area', 'figure-ground-symmetry', 'misread-baseline', 'misread-area', 'misread-dual-axis', 'misread-aspect-range',
+  'illusion-lightness-contrast'];
+const GROUPS = ['popout', 'search', 'gestalt', 'figure-ground', 'misread', 'illusion'];
 const RELATED = ['day101', 'day085', 'day070', 'day075', 'day125'];
 const SIDES = ['show', 'hide', 'readable', 'read'];
 const ordered = (list) => list.slice().sort((a, b) => a.order - b.order);
 const inBoth = (key) => typeof M.ja[key] === 'string' && typeof M.en[key] === 'string';
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
-test('B: the twelve entry ids are fixed, ASCII and in order; the five groups are fixed', () => {
+test('B: the fourteen entry ids are fixed, ASCII and in order; the six groups are fixed', () => {
   const ids = GROUPS.flatMap((g) => ordered(D.entries.filter((e) => e.group === g)).map((e) => e.id));
   assert.deepEqual(ids, IDS);
   assert.deepEqual(D.entries.map((e) => e.id), IDS);
@@ -146,12 +147,17 @@ test('B: groups, sources and related tools exist; every source has the level A, 
   }
 });
 
-test('B: the safety marks: no flashes, no motion in the first release, and a color-free switch where color alone is used', () => {
+test('B: safety marks: no flashes; only popout-motion moves (only after Play, 3 seconds or less); color-free switch where color alone is used', () => {
   for (const e of D.entries) {
     const s = e.safety;
     assert.equal(s.flashes, false, e.id);
-    assert.equal(s.motion, 'none', e.id);
-    assert.ok(s.maxSeconds <= 5, e.id);
+    if (e.id === 'popout-motion') {
+      assert.equal(s.motion, 'onPlay', e.id);
+      assert.ok(s.maxSeconds > 0 && s.maxSeconds <= 5, e.id);
+    } else {
+      assert.equal(s.motion, 'none', e.id);
+      assert.equal(s.maxSeconds, 0, e.id);
+    }
     assert.equal(s.stripes, false, e.id);
   }
   const colorOnly = D.entries.filter((e) => e.safety.colorOnly).map((e) => e.id);
@@ -185,17 +191,17 @@ test('B: validateData accepts the data and rejects the seven kinds of invalid da
   }
 });
 
-test('B: the data shape takes an illusion group: six tabs, and the entry gets the notice, Play, Stop and Show', () => {
+test('B: the data shape takes another group: seven tabs, and the entry gets the notice, Play, Next frame, Stop and Show', () => {
   const { data, messages } = fixture;
   assert.equal(C.validateData(data, { parts: V.partNames() }), true);
   const vm = V.buildViewModel(data);
-  assert.equal(vm.tabs.length, 6);
-  assert.equal(vm.tabs[5].id, 'illusion');
-  assert.deepEqual(vm.tabs[4].next, { id: 'illusion', labelKey: 'tabIllusion' });
-  const entry = vm.tabs[5].entries[0];
-  assert.equal(entry.id, 'illusion-sample');
+  assert.equal(vm.tabs.length, 7);
+  assert.equal(vm.tabs[6].id, 'future');
+  assert.deepEqual(vm.tabs[5].next, { id: 'future', labelKey: 'tabFuture' });
+  const entry = vm.tabs[6].entries[0];
+  assert.equal(entry.id, 'future-sample');
   assert.equal(entry.safety.noticeKey, 'fixtureStripesNotice');
-  assert.deepEqual(entry.safety.actions.map((a) => a.id), ['play', 'stop', 'show']);
+  assert.deepEqual(entry.safety.actions.map((a) => a.id), ['play', 'frame', 'stop', 'show']);
   assert.equal(entry.safety.maxSeconds, 5);
   assert.equal(entry.uses[0].side, 'read');
   for (const lang of ['ja', 'en']) {
@@ -203,8 +209,11 @@ test('B: the data shape takes an illusion group: six tabs, and the entry gets th
       assert.equal(typeof messages[lang][key], 'string', `${lang} ${key}`);
     }
   }
-  // The first release has no motion and no stripes, so the atlas itself shows none of these
-  for (const tab of V.buildViewModel(D).tabs) for (const e of tab.entries) assert.deepEqual(e.safety.actions, [], e.id);
+  // In the atlas itself, only popout-motion has moving actions, no entry shows stripes
+  for (const tab of V.buildViewModel(D).tabs) for (const e of tab.entries) {
+    if (e.id === 'popout-motion') assert.deepEqual(e.safety.actions.map((a) => a.id), ['play', 'frame', 'stop'], e.id);
+    else assert.deepEqual(e.safety.actions, [], e.id);
+  }
   // A figure that moves needs a stop time of 5 seconds or less, and stripes need a notice
   const moving = clone(data);
   moving.entries.at(-1).safety.maxSeconds = 0;
@@ -269,4 +278,37 @@ test('B: the palette has the same names in both themes, and every value is a 6-d
   for (const k of Object.keys(light)) assert.equal([].concat(light[k]).length, [].concat(dark[k]).length, k);
   assert.equal(light.paper, '#fffdf7');
   assert.equal(dark.paper, '#172940');
+});
+
+// ===== Clue box of the figure-and-ground tab (across-tab navigation) =====
+test('B: the camouflage clues box at the end of figure-and-ground points to figure-ground-symmetry and popout-motion', () => {
+  const fg = D.groups.find((g) => g.id === 'figure-ground');
+  assert.deepEqual(fg.endBoxes.map((b) => b.id), ['camo-clues']);
+  const box = fg.endBoxes[0];
+  assert.equal(box.headingKey, 'camoCluesHeading');
+  assert.equal(box.leadKey, 'camoCluesLead');
+  assert.deepEqual(box.items.map((i) => i.entry), ['figure-ground-symmetry', 'popout-motion']);
+  // Each entry id must be a real entry, and each has a short name in both languages
+  for (const item of box.items) {
+    assert.ok(D.entries.some((e) => e.id === item.entry), item.entry);
+    assert.ok(typeof M.ja[`item.${item.entry}.short`] === 'string', `ja short ${item.entry}`);
+    assert.ok(typeof M.en[`item.${item.entry}.short`] === 'string', `en short ${item.entry}`);
+    assert.ok(typeof M.ja[item.textKey] === 'string' && typeof M.en[item.textKey] === 'string', item.textKey);
+  }
+});
+
+// ===== Illusion group and its lightness-contrast entry =====
+test('B: the illusion group and the lightness-contrast entry have the expected shape', () => {
+  const illusion = D.groups.find((g) => g.id === 'illusion');
+  assert.equal(illusion.order, 60);
+  assert.equal(illusion.termTip, 'termIllusion', 'illusion itself is a specialist word, and gets a tooltip');
+  assert.ok(typeof M.ja.termIllusionMeaning === 'string' && typeof M.en.termIllusionMeaning === 'string');
+  const lc = D.entries.find((e) => e.id === 'illusion-lightness-contrast');
+  assert.equal(lc.group, 'illusion');
+  assert.deepEqual(lc.controls.map((c) => c.id), ['diff', 'compare']);
+  assert.deepEqual(lc.uses.map((u) => u.side), ['show', 'hide']);
+  assert.equal(lc.uses[0].part, 'heatmap');
+  assert.equal(lc.uses[1].part, 'camoScene');
+  // The related tools name both Day101 (color illusions) and Day085 (camouflage)
+  assert.deepEqual(lc.related.sort(), ['day085', 'day101']);
 });

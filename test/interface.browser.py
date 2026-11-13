@@ -45,7 +45,7 @@ PREFIX = "vision-trap-atlas."
 STAGES = ("2", "3", "4", "5")
 SIZES = ((320, 568), (390, 844), (720, 900), (1280, 800))
 BROWSERS = ("chromium", "firefox", "webkit")
-GROUPS = ("popout", "search", "gestalt", "figure-ground", "misread")
+GROUPS = ("popout", "search", "gestalt", "figure-ground", "misread", "illusion")
 # The cards with "Find and tap" (square figures), and the cards with controls drawn at each stage (the search card is apart)
 FIND_CARDS = ("popout-feature", "popout-asymmetry")
 GROUPING_CARDS = ("gestalt-proximity-similarity", "gestalt-region-connection", "gestalt-contour", "figure-ground-area", "figure-ground-symmetry")
@@ -54,7 +54,7 @@ MISREAD_CARDS = ("misread-baseline", "misread-area", "misread-dual-axis", "misre
 CHECKED_CARDS = GROUPING_CARDS + MISREAD_CARDS
 STAGE_CARDS = {"2": FIND_CARDS, "3": FIND_CARDS, "4": FIND_CARDS + GROUPING_CARDS, "5": FIND_CARDS + CHECKED_CARDS}
 STAGE_GROUPS = {"2": ("popout",), "3": ("popout", "search"), "4": ("popout", "search", "gestalt", "figure-ground"),
-                "5": ("popout", "search", "gestalt", "figure-ground", "misread")}
+                "5": ("popout", "search", "gestalt", "figure-ground", "misread", "illusion")}
 RUN = {"stage": STAGES[-1]}
 
 
@@ -630,9 +630,9 @@ def test_tab_names(page, width, language):
             check(not p["bad"], (tab["id"], part, "breaks only between words", p["lines"]))
     tops = [t["top"] for t in tabs]
     if width < 720:
-        check(len(set(tops[:3])) == 1 and len(set(tops[3:])) == 1 and tops[3] > tops[0], ("three tabs, then two", tops))
+        check(len(set(tops[:3])) == 1 and len(set(tops[3:])) == 1 and tops[3] > tops[0], ("three tabs, then three", tops))
     else:
-        check(len(set(tops)) == 1, ("five tabs in one row", tops))
+        check(len(set(tops)) == 1, ("six tabs in one row", tops))
     if language == "ja" and width == 320:
         gestalt = next(t for t in tabs if t["id"] == "tab-gestalt")["term"]
         check(gestalt["lines"] == ["ゲシュタルト", "の法則"], ("ゲシュタルト｜の法則 at 320px", gestalt["lines"]))
@@ -641,7 +641,7 @@ def test_tab_names(page, width, language):
 
 def test_tabs(page, width, layouts, language):
     # The tab bar (the help has a tab list of its own, inside its dialog)
-    check(page.locator('main [role="tablist"]').count() == 1 and page.locator('#tabs [role="tab"]').count() == 5, "five tabs")
+    check(page.locator('main [role="tablist"]').count() == 1 and page.locator('#tabs [role="tab"]').count() == 6, "six tabs")
     assert_selected(page, "popout")
     history = page.evaluate("() => history.length")
     page.locator("#tabs").scroll_into_view_if_needed()
@@ -662,8 +662,8 @@ def test_tabs(page, width, layouts, language):
     check(page.evaluate("() => history.length") == history, "a tab adds no history entry")
     page.locator("#tab-popout").click()
     page.locator("#tab-popout").focus()
-    for key, expected in (("ArrowRight", "search"), ("ArrowRight", "gestalt"), ("ArrowLeft", "search"), ("End", "misread"),
-                          ("ArrowRight", "popout"), ("ArrowLeft", "misread"), ("Home", "popout")):
+    for key, expected in (("ArrowRight", "search"), ("ArrowRight", "gestalt"), ("ArrowLeft", "search"), ("End", "illusion"),
+                          ("ArrowRight", "popout"), ("ArrowLeft", "illusion"), ("Home", "popout")):
         page.keyboard.press(key)
         assert_selected(page, expected)
         check(page.evaluate("() => document.activeElement.id") == "tab-" + expected, ("tab focus", key, expected))
@@ -688,7 +688,7 @@ def same_help_box(page, first, name):
     """The help keeps its size and place on every tab: the width, the height, the top and the tab strip within 1px."""
     now = page.evaluate(HELP_BOX)
     check(all(abs(now[k] - first[k]) < 1 for k in ("width", "height", "top", "strip")), (name, "the help keeps its size", first, now))
-GLOSS_GROUPS = ("all", "popout", "search", "gestalt", "figure-ground", "misread")
+GLOSS_GROUPS = ("all", "popout", "search", "gestalt", "figure-ground", "misread", "illusion")
 TERM_KEYS = sorted(k for k in M["ja"] if re.match(r"^term[A-Z]", k) and not re.search(r"(Meaning|Expert)$", k) and k != "termHelpLabel")
 
 
@@ -733,11 +733,11 @@ def test_help(page, width, layouts, screenshot, language):
         ok, st, _ = help_tab_state(page, name)
         check(ok and st["active"] == f"help-tab-{name}", (key, name, st))
         same_help_box(page, size, key)
-    # The glossary: the groups by tab, the 35 terms once each
+    # The glossary: the groups by tab, the 38 terms once each
     check(page.locator("#help-panel-glossary .gloss-group h3").all_inner_texts() == [L["glossGroup." + g] for g in GLOSS_GROUPS], "glossary groups")
     keys = page.locator("#help-panel-glossary dt > span:first-child").evaluate_all("els => els.map(e => e.dataset.i18n)")
-    check(len(keys) == 35 and sorted(keys) == TERM_KEYS, ("35 terms once each", keys))
-    check(page.locator("#help-panel-glossary dd").count() == 35, "35 meanings")
+    check(len(keys) == 38 and sorted(keys) == TERM_KEYS, ("38 terms once each", keys))
+    check(page.locator("#help-panel-glossary dd").count() == 38, "38 meanings")
     assert_layout(page, width, "help-glossary", layouts)
     shot(page, screenshot.with_name(screenshot.stem + "-glossary.png"))
     # Closed and opened again: the same tab at the same place
@@ -2189,8 +2189,9 @@ def http_case(browser, browser_name, base_url, width, height, output, stage):
     try:
         page.goto(base_url, wait_until="load")
         wait_ready(page)
-        # The cards with controls and the search card (from the stage of the search experiment)
-        count = len(STAGE_CARDS[stage]) + (1 if "search" in STAGE_GROUPS[stage] else 0)
+        # The cards with controls, the search card (from the search experiment stage) and, at stage 5, popout-motion and
+        # illusion-lightness-contrast (not in STAGE_CARDS yet: they have controls but no full-coverage case)
+        count = len(STAGE_CARDS[stage]) + (1 if "search" in STAGE_GROUPS[stage] else 0) + (2 if stage == "5" else 0)
         check(page.locator(".entry").count() == count, ("the cards", count))
         layouts = []
         assert_layout(page, width, "http", layouts)

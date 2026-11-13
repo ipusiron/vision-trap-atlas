@@ -62,7 +62,7 @@
       </section>
       <details id="intro-more" class="intro-more">
         <summary data-i18n="introMore">くわしい説明を読む</summary>
-        <p class="intro" data-i18n="intro1">タブは左から、目立つ・探す時間・まとまる・図と地・誤読の順に並んでいます。はじめの4つのタブは、物が見つかるか、まとまって見えるかを扱います。最後の「誤読」タブは、見つけたあとで正しく読めるかを扱います。</p>
+        <p class="intro" data-i18n="intro1">タブは左から、目立つ・探す時間・まとまる・図と地・誤読・目の錯覚の順に並んでいます。はじめの4つのタブは、物が見つかるか、まとまって見えるかを扱います。「誤読」タブは、見つけたあとで正しく読めるかを扱います。最後の「目の錯覚」タブは、同じものが周りによって違って見えることを扱います。</p>
         <p class="intro" data-i18n="intro2">見せることを目的とする代表例がグラフ、隠すことを目的とする代表例が迷彩です。どちらも目の同じ働きを使いますが、目的は反対です。グラフは、見せたいものを目立たせ、仲間どうしをまとめて見せます。迷彩は、物を目立たなくし、輪郭をわかりにくくします。各項目では、上の図のつまみを動かすと、グラフと迷彩の小さな図も一緒に変わります。</p>
       </details>
       <div id="contrast" class="contrast">
@@ -98,6 +98,8 @@
           <span class="tab-name" data-i18n="tabFigureGround">図と地</span><span class="tab-term" data-i18n="tabFigureGroundTerm">図と地の分化</span></button>
         <button id="tab-misread" role="tab" type="button" aria-controls="panel-misread" aria-selected="false" tabindex="-1">
           <span class="tab-name" data-i18n="tabMisread">誤読</span><span class="tab-term" data-i18n="tabMisreadTerm">グラフ</span></button>
+        <button id="tab-illusion" role="tab" type="button" aria-controls="panel-illusion" aria-selected="false" tabindex="-1">
+          <span class="tab-name" data-i18n="tabIllusion">目の錯覚</span><span class="tab-term" data-i18n="tabIllusionTerm">錯視</span></button>
       </div>
       <section id="panel-popout" class="panel" role="tabpanel" aria-labelledby="tab-popout" tabindex="0">
         <h2 id="heading-popout" class="panel-heading">目立つ（前注意の特徴）</h2>
@@ -118,6 +120,10 @@
       <section id="panel-misread" class="panel" role="tabpanel" aria-labelledby="tab-misread" tabindex="0" hidden>
         <h2 id="heading-misread" class="panel-heading">誤読（グラフ）</h2>
         <div id="body-misread" class="panel-body"></div>
+      </section>
+      <section id="panel-illusion" class="panel" role="tabpanel" aria-labelledby="tab-illusion" tabindex="0" hidden>
+        <h2 id="heading-illusion" class="panel-heading">目の錯覚（錯視）</h2>
+        <div id="body-illusion" class="panel-body"></div>
       </section>
     </fieldset>
   </main>
@@ -161,6 +167,8 @@
           <dd data-i18n="termPreattentiveMeaning">色・方向・大きさのように、探すときの手がかりになる特徴。「前注意」は、速く楽に見つかる感じを表す呼び名で、注意が働いていないという意味ではない</dd>
           <dt><span data-i18n="termAsymmetry">探索非対称性</span></dt>
           <dd data-i18n="termAsymmetryMeaning">AをBの中から探すのと、BをAの中から探すのとで、速さが大きく違うこと</dd>
+          <dt><span data-i18n="termMotion">運動</span></dt>
+          <dd data-i18n="termMotionMeaning">物の動き。色・方向・大きさと並んで、探すときに注意を導く特徴に数えられる</dd>
           <dt><span data-i18n="termDirection">方向（棒の）</span><span class="term-expert"><span class="term-expert-label" data-i18n="glossExpertLabel">専門用語</span><span data-i18n="termDirectionExpert">方位</span></span></dt>
           <dd data-i18n="termDirectionMeaning">棒が縦か横か斜めか。「傾き」は結果の増え方だけに使う</dd>
           <dt><span data-i18n="termBackground">背景に合わせる</span><span class="term-expert"><span class="term-expert-label" data-i18n="glossExpertLabel">専門用語</span><span data-i18n="termBackgroundExpert">背景合わせ</span></span></dt>
@@ -241,6 +249,15 @@
           <dd data-i18n="termAspectMeaning">グラフの縦と横の長さの比。同じデータでも、線の傾きの見え方が変わる</dd>
           <dt><span data-i18n="termMasquerade">別の物に見せる</span><span class="term-expert"><span class="term-expert-label" data-i18n="glossExpertLabel">専門用語</span><span data-i18n="termMasqueradeExpert">擬態（マスカレード）</span></span></dt>
           <dd data-i18n="termMasqueradeMeaning">見つかっても、別の物（枝や葉など）と思わせる迷彩</dd>
+        </dl>
+      </section>
+      <section class="gloss-group" aria-labelledby="gloss-illusion">
+        <h3 id="gloss-illusion" data-i18n="glossGroup.illusion">「目の錯覚」タブ</h3>
+        <dl class="glossary">
+          <dt><span data-i18n="termIllusion">錯視</span></dt>
+          <dd data-i18n="termIllusionMeaning">形・大きさ・明るさ・色が、実際と違って見えること</dd>
+          <dt><span data-i18n="termLightnessContrast">明るさの対比</span></dt>
+          <dd data-i18n="termLightnessContrastMeaning">同じ明るさの面が、周りが暗いと明るく、周りが明るいと暗く見えること</dd>
         </dl>
       </section>
     </div>

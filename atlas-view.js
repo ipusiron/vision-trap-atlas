@@ -121,6 +121,36 @@
     return path(Core.polygonPath(Core.barCorners(it.x, it.y, b.length * it.scale, b.thickness * it.scale, it.angle)), it.cls);
   }
 
+  // ===== 動き（popout-motion）：押したときだけ動く。3つの図を同じ時計（AtlasSearch.createMotion）で動かす =====
+  // pose＝{ u: 進んだ往復の数, env: 振れ幅に掛ける0〜1, prev: 前のコマの u（コマ送りのときだけ。ほかは null） }。
+  // 止まっている間は u＝0・env＝0（どの物も元の位置）。動いている間は、動き始めと止まる前の ramp 秒で env を0から1へ、1から0へ変えるので、
+  // 3秒で止まったときはどの物も元の位置に戻っている。コマ送りは u＝コマ÷4・env＝1（1往復を4コマで：右・元・左・元）
+  const MOTION = Object.freeze({
+    period: 1.5, ramp: 0.25, frames: 4,
+    steps: Object.freeze(['none', 'small', 'medium', 'large']),
+    grid: Object.freeze([0, 6, 12, 18]),     // 上の図：片側の振れ幅（viewBox 360 の単位。丸の半径は12、隣の丸との間は36）
+    line: Object.freeze([0, 0.25, 0.5, 1]),  // 見せる側：印が終わりの点から最後の区間を戻る割合
+    camo: Object.freeze([0, 3, 6, 10]),      // 隠す側：物の片側の振れ幅（viewBox 200 の単位）
+    others: 2,                               // 「ばらばらに動く」のほかの物の段（中）
+  });
+  const REST = Object.freeze({ u: 0, env: 0, prev: null });
+  function motionPose(state, seconds) {
+    if (!state || state.phase === 'idle') return REST;
+    if (state.phase === 'frames') return { u: state.frame / MOTION.frames, env: 1, prev: (state.frame - 1) / MOTION.frames };
+    const t = state.t;
+    return { u: t / MOTION.period, env: Math.max(0, Math.min(1, t / MOTION.ramp, (seconds - t) / MOTION.ramp)), prev: null };
+  }
+  // 往復する物のずれ：方向 dir（ラジアン）に、振れ幅 amp × sin(2π(u＋位相)) × env
+  function swing(item, u, env) {
+    const k = env * item.amp * Math.sin(2 * Math.PI * (u + item.phase));
+    return [k * Math.cos(item.dir), k * Math.sin(item.dir)];
+  }
+  function motionStep(amount) {
+    const i = MOTION.steps.indexOf(amount || 'none');
+    if (i < 0) throw new Error('unknown motion step ' + amount);
+    return i;
+  }
+
   // ===== 図の部品 =====
   const PARTS = {};
   const register = (name, fn) => { PARTS[name] = fn; };
@@ -139,6 +169,24 @@
       if (it.line) shapes.push(line(it.x, it.y + 0.3 * r, it.x, it.y + 1.6 * r, 'fig-stroke'));
     }
     return { width: SQ, height: SQ, shapes };
+  });
+
+  // 動きの項目：6×6 のます目の同じ丸。1つ（種で決めたマス）だけが左右に往復する。「ばらばらに動く」では、ほかの丸がそれぞれの方向と位相で
+  // 「中」の振れ幅で動く。丸の色はどの時刻でも同じ（明るさを変えない）。コマ送りでは、前のコマの位置に薄い点（動きの跡）を置く
+  register('motionGrid', (s) => {
+    const rng = Core.xorshift32(s.seed || 1), target = Core.randInt(rng, 36), pose = s.pose || REST;
+    const a = motionStep(s.amount), random = s.others === 'random', trails = [], circles = [];
+    for (let cell = 0; cell < 36; cell += 1) {
+      const [x, y] = cellCenter(cell), dir = Core.unit(rng) * 2 * Math.PI, phase = Core.unit(rng);
+      const item = cell === target ? { dir: 0, phase: 0, amp: MOTION.grid[a] } : { dir, phase, amp: random ? MOTION.grid[MOTION.others] : 0 };
+      if (pose.prev !== null && item.amp > 0) {
+        const [px, py] = swing(item, pose.prev, 1);
+        trails.push(circle(x + px, y + py, 3, 'fig-trail'));
+      }
+      const [dx, dy] = swing(item, pose.u, pose.env);
+      circles.push(circle(x + dx, y + dy, 12, 'fill-stimCool'));
+    }
+    return { width: SQ, height: SQ, shapes: [...trails, ...circles] };
   });
 
   // 「探して押す」の印：押した図形＝太い丸の線、探すもの＝角の丸い四角の二重線（形で見分ける）
@@ -358,6 +406,19 @@
     };
   });
 
+  // ===== 目の錯覚の上の図 =====
+  // 明るさの対比の項目：同じ灰色の四角2つ。左の四角は暗くなる周り、右の四角は明るくなる周りの上（周りの明るさの差の段＝lightLeft・lightRight の添字）。
+  // 「帯でつなぐ」では、四角と同じ灰色の帯で2つをつなぐ。四角と帯の灰色はどの段でも同じ
+  const LIGHT_STEPS = [0, 0.25, 0.5, 0.75, 1];
+  register('lightnessSquares', (s) => {
+    const k = LIGHT_STEPS.indexOf(s.diff ?? 0);
+    if (k < 0) throw new Error('unknown step ' + s.diff);
+    const shapes = [rect(10, 20, 150, 200, `fill-lightLeft-${k}`), rect(160, 20, 150, 200, `fill-lightRight-${k}`)];
+    if (s.compare === 'band') shapes.push(rect(113, 112, 94, 16, 'fill-lightGray'));
+    shapes.push(rect(57, 92, 56, 56, 'fill-lightGray'), rect(207, 92, 56, 56, 'fill-lightGray'));
+    return { width: W, height: H, shapes };
+  });
+
   // ===== 小さな図（見せる側・読みやすい形） =====
   const FRAME = () => rect(0.5, 0.5, SW - 1, SH - 1, 'fig-frame-small fig-nofill');
 
@@ -438,7 +499,9 @@
     return { width: SW, height: SH, shapes };
   });
 
-  // 折れ線グラフ。mode＝search（タブ2）・contour（2-3）・region（2-2）・aspect（4-4の読みやすい形）・split（4-3の読みやすい形）
+  // 折れ線グラフ。mode＝search（タブ2）・contour（2-3）・region（2-2）・aspect（4-4の読みやすい形）・split（4-3の読みやすい形）・
+  // motion（動きの項目）
+  const MOTION_LINES = [1, 0, 3, 5]; // 動きの項目の4本（monthly12.series6 の添字。先頭が強調する1本）
   register('lineChart', (s, ctx) => {
     const ds = ctx.data.datasets, m12 = ds.monthly12, mode = s.mode || 'search', shapes = [];
     const axes = (x0, y0, x1, y1) => [line(x0, y0, x0, y1, 'fig-axis'), line(x0, y1, x1, y1, 'fig-axis')];
@@ -497,6 +560,28 @@
       shapes.push(path(pts(ds.townRain.map((v, i) => [bottom.x(i), bottom.y(v)])), 'stroke-seriesOthers-0 fig-series line-dashed'));
       ds.townRain.forEach((v, i) => shapes.push(rect(bottom.x(i) - 2.5, bottom.y(v) - 2.5, 5, 5, 'fill-seriesOthers-0')));
       shapes.push(text(4, 20, '°C', 'fig-legend ta-start'), text(4, 96, 'mm', 'fig-legend ta-start'));
+    } else if (mode === 'motion') {
+      // 動きの項目：4本の折れ線（7〜12月）。終わりの点に印。強調する1本（探す系列）の印は、終わりの点から最後の区間を戻って往復する。
+      // 「ばらばらに動く」では、ほかの線の印も、それぞれの位相で動く。コマ送りでは、前のコマの印の位置に薄い点を置く
+      const pose = s.pose || REST, a = motionStep(s.motionAmount), random = s.motionOthers === 'random', rng = Core.xorshift32(s.seed || 1);
+      const X = (i) => 16 + i * 34, Y = (v) => 138 - v * 1.26, trails = [], marks = [];
+      shapes.push(...axes(14, 12, 190, 138));
+      MOTION_LINES.forEach((si, k) => {
+        const vals = m12.series6[si].slice(6), color = k === 0 ? 'seriesTarget' : `seriesOthers-${k - 1}`, phase = Core.unit(rng);
+        const item = k === 0 ? { amp: MOTION.line[a], phase: 0 } : { amp: random ? MOTION.line[MOTION.others] : 0, phase };
+        const at = (u, env) => {
+          const f = env * item.amp * (1 - Math.cos(2 * Math.PI * (u + item.phase))) / 2;
+          return [X(5) + f * (X(4) - X(5)), Y(vals[5]) + f * (Y(vals[4]) - Y(vals[5]))];
+        };
+        shapes.push(path(pts(vals.map((v, i) => [X(i), Y(v)])), `stroke-${color} fig-series`));
+        if (pose.prev !== null && item.amp > 0) {
+          const [px, py] = at(pose.prev, 1);
+          trails.push(circle(px, py, 2.5, 'fig-trail'));
+        }
+        const [mx, my] = at(pose.u, pose.env);
+        marks.push(circle(mx, my, 4, `fill-${color}`));
+      });
+      shapes.push(...trails, ...marks);
     } else throw new Error('unknown lineChart mode ' + mode);
     return { width: SW, height: SH, shapes };
   });
@@ -537,6 +622,26 @@
       shapes.push(rect(40, y + 4, 130 - (i % 2) * 24, 8, 'fig-textbar'));
       if (omit ? i !== exception : i === exception) shapes.push(circle(24, y + 8, 5, 'fig-mark'));
     }
+    return { width: SW, height: SH, shapes };
+  });
+
+  // 明るさの対比の項目：5×5 のヒートマップ（1色の濃淡。値0〜100を10刻みの段 heat-0〜heat-10 で塗る）。値は datasets.heat5 から（A・B＝同じ値のマス、
+  // L・H＝その周り）。A・B のマスには数を書き添える
+  function heatValues(ds, spread) {
+    const d = Math.round(ds.heatStep * spread);
+    return ds.heat5.map((row) => row.map((c) => {
+      if (c === 'A' || c === 'B') return ds.heatSame;
+      if (c === 'L') return ds.heatSame - d;
+      return c === 'H' ? ds.heatSame + d : c;
+    }));
+  }
+  register('heatmap', (s, ctx) => {
+    const ds = ctx.data.datasets, v = heatValues(ds, s.spread ?? 0), size = 26, x0 = (SW - 5 * size) / 2, y0 = (SH - 5 * size) / 2, shapes = [];
+    ds.heat5.forEach((row, r) => row.forEach((c, k) => {
+      const x = x0 + k * size, y = y0 + r * size;
+      shapes.push(rect(x + 1, y + 1, size - 2, size - 2, `fill-heat-${Math.round(v[r][k] / 10)}`));
+      if (c === 'A' || c === 'B') shapes.push(text(x + size / 2, y + size / 2 + 4, v[r][k], 'fig-cellnum fill-heatText ta-middle'));
+    }));
     return { width: SW, height: SH, shapes };
   });
 
@@ -584,6 +689,36 @@
       (x, y, r, i) => x - r >= cx + BIG.gap && Math.hypot(x - mirror[i].x, y - mirror[i].y) >= 2 * r);
     return [...left, ...right].map((o, i) => circle(o.x, o.y, o.r, `fill-camoMarks-${BIG.colors[i % BIG.radii.length]}`));
   }
+  // 動きの項目：背景に合わせた模様の物（地の色は背景と同じ、斑点は背景の色）が5つ。1つ（種で決める）が左右に往復する。「ばらばらに動く」では、
+  // ほかの4つもそれぞれの方向と位相で動く。物は g の translate で動かし、背景の斑点は動かさない
+  const CAMO_PLACES = [[50, 40], [150, 40], [100, 75], [50, 110], [150, 110]];
+  function camoMotion(s, rng, spotCls) {
+    const pose = s.pose || REST, a = motionStep(s.motionAmount), random = s.motionOthers === 'random', target = Core.randInt(rng, CAMO_PLACES.length);
+    return CAMO_PLACES.map(([cx, cy], i) => {
+      const dir = Core.unit(rng) * 2 * Math.PI, phase = Core.unit(rng);
+      const item = i === target ? { dir: 0, phase: 0, amp: MOTION.camo[a] } : { dir, phase, amp: random ? MOTION.camo[MOTION.others] : 0 };
+      const body = [path(Core.polygonPath(blobPoints(cx, cy, 20, 13)), 'fill-camoObj-0')];
+      for (let k = 0; k < 6; k += 1) {
+        const ang = Core.unit(rng) * 2 * Math.PI, rho = Math.sqrt(Core.unit(rng)) * 0.6;
+        body.push(circle(cx + Math.cos(ang) * rho * 20, cy + Math.sin(ang) * rho * 13, 3.5, spotCls(Core.randInt(rng, 3))));
+      }
+      const [dx, dy] = swing(item, pose.u, pose.env);
+      return group(body, { transform: `translate(${r2(dx)} ${r2(dy)})` });
+    });
+  }
+  // 明るさの対比の項目：右半分の背景に薄い白を重ねて明るくする（不透明度＝SPLIT_VEIL×差）。物（地の色は背景と同じ、斑点は背景の色）は左右の境に
+  // またがり、明るさは変えない（左の背景に合ったまま）
+  const SPLIT_VEIL = 0.55;
+  function camoSplit(s, rng, spotCls) {
+    const cx = SW / 2, cy = SH / 2, rx = 44, ry = 26;
+    const out = [rect(SW / 2, 0, SW / 2, SH, 'fill-veil', { 'fill-opacity': SPLIT_VEIL * s.splitDiff }),
+      path(Core.polygonPath(blobPoints(cx, cy, rx, ry)), 'fill-camoObj-0')];
+    for (let k = 0; k < 10; k += 1) {
+      const ang = Core.unit(rng) * 2 * Math.PI, rho = Math.sqrt(Core.unit(rng)) * 0.62;
+      out.push(circle(cx + Math.cos(ang) * rho * rx, cy + Math.sin(ang) * rho * ry, 5, spotCls(Core.randInt(rng, 3))));
+    }
+    return out;
+  }
   register('camoScene', (s) => {
     const rng = Core.xorshift32(s.seed || 1);
     let mode = 'color', level = s.objLevel ?? 0, colors = 3, scale = 1, jitter = 0.2;
@@ -599,6 +734,8 @@
       const r = 9 * (1 + (Core.unit(rng) * 2 - 1) * jitter);
       shapes.push(circle(r + Core.unit(rng) * (SW - 2 * r), r + Core.unit(rng) * (SH - 2 * r), r, spotCls(Core.randInt(rng, colors))));
     }
+    if (s.motionAmount !== undefined) return { width: SW, height: SH, shapes: [...shapes, ...camoMotion(s, rng, spotCls), FRAME()] };
+    if (s.splitDiff !== undefined) return { width: SW, height: SH, shapes: [...shapes, ...camoSplit(s, rng, spotCls), FRAME()] };
     const cx = SW / 2, cy = SH / 2;
     const rx = s.big ? BIG.rx : s.objectShare !== undefined ? SW / 2 * s.objectShare : 32 * scale;
     const ry = s.big ? BIG.ry : s.objectShare !== undefined ? 24 : 20 * scale;
@@ -703,14 +840,15 @@
     if (l.key !== 'linkedTo') return D[l.key];
     return fill(D.linkedTo, { names: l.controls.map((id) => D[`ctl.${entry.id}.${id}`]).join(lang === 'ja' ? '・' : ', ') });
   }
-  function renderMain(entry, values, ctx, seed) {
+  // extra：つまみの値でない設定（動きの項目の pose）
+  function renderMain(entry, values, ctx, seed, extra = {}) {
     if (!entry.figure) return null;
-    return renderPart(entry.figure.part, { ...entry.figure.params, ...values, seed: seed ?? entry.figure.seed }, ctx);
+    return renderPart(entry.figure.part, { ...entry.figure.params, ...values, seed: seed ?? entry.figure.seed, ...extra }, ctx);
   }
-  function renderUse(use, values, ctx) {
+  function renderUse(use, values, ctx, extra = {}) {
     const { settings } = useSettings(use, values);
-    const parts = [renderPart(use.part, settings, ctx)];
-    for (const w of use.with || []) parts.push(renderPart(w.part, { ...settings, ...(w.params || {}) }, ctx));
+    const parts = [renderPart(use.part, { ...settings, ...extra }, ctx)];
+    for (const w of use.with || []) parts.push(renderPart(w.part, { ...settings, ...(w.params || {}), ...extra }, ctx));
     return compose(parts, use.layout || 'row');
   }
 
@@ -722,11 +860,15 @@
     const showOnly = e.uses.length > 0 && e.uses.every((u) => u.side === 'show');
     const sf = e.safety;
     const safetyActions = [];
-    if (sf.motion === 'onPlay') safetyActions.push({ id: 'play', labelKey: 'motionPlay' }, { id: 'stop', labelKey: 'motionStop' });
+    // 動く項目：「動かす」（動きを減らす設定では、代わりに「次のコマ」）と「止める」
+    if (sf.motion === 'onPlay') {
+      safetyActions.push({ id: 'play', labelKey: 'motionPlay' }, { id: 'frame', labelKey: 'motionFrame' }, { id: 'stop', labelKey: 'motionStop' });
+    }
     if (sf.stripes) safetyActions.push({ id: 'show', labelKey: 'stripesShow' });
     return {
       id: e.id, group: e.group,
       titleKey: `item.${e.id}.title`, oneLineKey: `item.${e.id}.oneLine`, howToKey: `item.${e.id}.howTo`, titleTerms: e.titleTerms,
+      howToReducedKey: sf.motion === 'onPlay' ? `item.${e.id}.howToReduced` : null,
       figure: e.figure, experiment: !!e.experiment,
       controls: e.controls.map((c) => ({
         ...c, labelKey: `ctl.${e.id}.${c.id}`,
@@ -790,6 +932,16 @@
       case 'symmetry': {
         if (values.cue === 'convex') return [{ key: values.regions === 2 ? 'symRead.convex2' : 'symRead.convex8', values: {} }];
         return [{ key: values.cue === 'symmetric' ? 'symRead.symmetric' : 'symRead.none', values: {} }];
+      }
+      case 'motion': {
+        const random = values.others === 'random';
+        if (values.amount === 'none') return [{ key: random ? 'motionRead.oneStill' : 'motionRead.none', values: {} }];
+        if (random) return [{ key: 'motionRead.allMove', values: {} }];
+        return [{ key: values.amount === 'small' ? 'motionRead.small' : 'motionRead.large', values: {} }];
+      }
+      case 'lightness': {
+        if (!values.diff) return [{ key: 'lightRead.same', values: {} }];
+        return [{ key: values.compare === 'band' ? 'lightRead.band' : 'lightRead.apart', values: {} }];
       }
       case 'baseline': {
         if (!values.bottom) return [{ key: 'baseRead.zero', values: {} }];
@@ -1047,7 +1199,7 @@
     fill, dictionary, partNames, renderPart, renderMain, renderUse, compose, popoutLayout, asymLayout, findLayout, markShapes, fixationShapes,
     sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, shownValue, useSettings, linkedLine, linkedText, buildViewModel, readCases,
     numbersCase, readKeysAll, texts, resultTexts, resultSetTexts, experimentTitle, messageText, descCase, descText, RESULT_SERIES, resultRows,
-    resultTop, resultChart, resultChartDesc, resultKey, numberText, stepLabel,
+    resultTop, resultChart, resultChartDesc, resultKey, numberText, stepLabel, motionPose, MOTION,
     SIZES: Object.freeze({ square: SQ, cell: CELL, card: [W, H], small: [SW, SH], aspect: [AW, AH], aspectPlot: [AMAXW, AMAXH] }),
     ASPECT_EDGE,
     DIFF, VARIETY, ANGLES, SCALES, JIT_ANGLE, JIT_SCALE,

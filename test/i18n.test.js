@@ -8,14 +8,14 @@ const M = require('../messages.js');
 // Hiragana, katakana, CJK ideographs, CJK punctuation and full-width forms
 const JAPANESE = /[　-〿぀-ヿ㐀-䶿一-鿿豈-﫿！-｠]/;
 const placeholders = (s) => [...s.matchAll(/\{([a-zA-Z0-9_]+)\}/g)].map((m) => m[1]).sort();
-// The 17 terms that have a screen word and a specialist word, the 16 terms named by their specialist word, and the 2 sides (showing and
+// The 17 terms that have a screen word and a specialist word, the 19 terms named by their specialist word, and the 2 sides (showing and
 // hiding), whose meaning names the typical example instead of a specialist word
 const TERMS17 = ['termTarget', 'termDistractor', 'termSetSize', 'termRt', 'termMedian', 'termSlope', 'termIntercept', 'termFeature', 'termConjunction',
   'termPopout', 'termPreattentive', 'termGrouping', 'termFigureGround', 'termBackground', 'termDisruptive', 'termMasquerade', 'termDirection'];
 const SIDES = ['termShowSide', 'termHideSide'];
-const TERMS16 = ['termVisualSearch', 'termFit', 'termGuided', 'termAsymmetry', 'termProximity', 'termSimilarity', 'termCommonRegion',
+const TERMS19 = ['termVisualSearch', 'termFit', 'termGuided', 'termAsymmetry', 'termMotion', 'termProximity', 'termSimilarity', 'termCommonRegion',
   'termConnectedness', 'termClosure', 'termContinuation', 'termRubin', 'termTruncation', 'termAccuracyRank', 'termDualAxis', 'termAspect',
-  'termFixation'];
+  'termIllusion', 'termLightnessContrast', 'termFixation'];
 // Words this atlas does not use in Japanese (the misleading phrasings of the research notes and the words to avoid)
 const AVOIDED = ['分かる', 'おすすめ', 'オススメ', '全て', '既に', '傾き0', '必ず0から', '最適', '閾値', '効く', '走る', '照合', '突き合わせ', '断定', '構図',
   '落とし穴', '潰す', '踏み込', '持ち帰れる'];
@@ -54,21 +54,21 @@ test('F: Japanese values are not made of Latin letters alone, and avoid the list
   for (const [key, value] of Object.entries(M.en)) assert.doesNotMatch(value, /\brecommend|\bmust be optimal|\balways start at (?:0|zero)/i, key);
 });
 
-test('F: the 35 terms have a word and a meaning in both languages; the 17 screen words also name the specialist word', () => {
-  assert.equal(TERMS17.length + TERMS16.length + SIDES.length, 35);
-  for (const key of [...TERMS17, ...TERMS16, ...SIDES]) {
+test('F: the 38 terms have a word and a meaning in both languages; the 17 screen words also name the specialist word', () => {
+  assert.equal(TERMS17.length + TERMS19.length + SIDES.length, 38);
+  for (const key of [...TERMS17, ...TERMS19, ...SIDES]) {
     for (const lang of ['ja', 'en']) {
       assert.equal(typeof M[lang][key], 'string', `${lang} ${key}`);
       assert.equal(typeof M[lang][key + 'Meaning'], 'string', `${lang} ${key}Meaning`);
     }
   }
   for (const key of TERMS17) for (const lang of ['ja', 'en']) assert.equal(typeof M[lang][key + 'Expert'], 'string', `${lang} ${key}Expert`);
-  for (const key of [...TERMS16, ...SIDES]) for (const lang of ['ja', 'en']) assert.equal(M[lang][key + 'Expert'], undefined, key);
+  for (const key of [...TERMS19, ...SIDES]) for (const lang of ['ja', 'en']) assert.equal(M[lang][key + 'Expert'], undefined, key);
   // The two sides name their typical example in the meaning (charts, camouflage), so a specialist word beside them would repeat it
   assert.match(M.ja.termShowSideMeaning, /代表例はグラフ$/);
   assert.match(M.ja.termHideSideMeaning, /代表例は迷彩$/);
   const termKeys = Object.keys(M.ja).filter((k) => /^term[A-Z]/.test(k) && !/(Meaning|Expert)$/.test(k) && k !== 'termHelpLabel');
-  assert.deepEqual(termKeys.sort(), [...TERMS17, ...TERMS16, ...SIDES].sort());
+  assert.deepEqual(termKeys.sort(), [...TERMS17, ...TERMS19, ...SIDES].sort());
   // The label of a specialist word, and the term of disruptive coloration in the plain words of the short table (no 崩す)
   assert.deepEqual([M.ja.glossExpertLabel, M.en.glossExpertLabel], ['専門用語', 'Technical term']);
   assert.deepEqual([M.ja.termDisruptive, M.en.termDisruptive], ['輪郭を途切れさせる模様', 'Pattern that breaks up the outline']);
@@ -144,13 +144,13 @@ test('F: the language button shows EN on the Japanese page and JA on the English
   assert.match(html, /<button id="language" class="tool-button" type="button" data-i18n-aria="languageToggle" aria-label="EN：英語の表示にする">EN<\/button>/);
 });
 
-test('F: the glossary groups the 35 terms by the tab where they mainly appear: each term once, followed by its meaning, with the '
+test('F: the glossary groups the 38 terms by the tab where they mainly appear: each term once, followed by its meaning, with the '
   + 'specialist word (and its label) where it differs', () => {
   const panel = html.match(/<div id="help-panel-glossary"[^>]*>([\s\S]*?)\n    <\/div>\n  <\/dialog>/)[1];
   const group = new RegExp('<section class="gloss-group" aria-labelledby="gloss-([\\w-]+)">\\s*<h3 id="gloss-\\1" '
     + 'data-i18n="glossGroup\\.\\1">[^<]*</h3>\\s*<dl class="glossary">([\\s\\S]*?)</dl>', 'g');
   const groups = [...panel.matchAll(group)];
-  assert.deepEqual(groups.map((g) => g[1]), ['all', 'popout', 'search', 'gestalt', 'figure-ground', 'misread']);
+  assert.deepEqual(groups.map((g) => g[1]), ['all', 'popout', 'search', 'gestalt', 'figure-ground', 'misread', 'illusion']);
   const seen = [];
   for (const g of groups) {
     const items = [...g[2].matchAll(/<(dt|dd)\b[^>]*>([\s\S]*?)<\/\1>/g)];
@@ -168,9 +168,9 @@ test('F: the glossary groups the 35 terms by the tab where they mainly appear: e
       assert.match(dd[0], new RegExp(`^<dd data-i18n="${key}Meaning">`), key);
     }
   }
-  // Each of the 35 terms exactly once
-  assert.equal(seen.length, 35);
-  assert.deepEqual([...seen].sort(), [...TERMS17, ...TERMS16, ...SIDES].sort());
+  // Each of the 38 terms exactly once
+  assert.equal(seen.length, 38);
+  assert.deepEqual([...seen].sort(), [...TERMS17, ...TERMS19, ...SIDES].sort());
 });
 
 test('F: the short introduction is one sentence per line in index.html, the same sentences as the dictionary', () => {
@@ -186,7 +186,7 @@ test('F: the short introduction is one sentence per line in index.html, the same
 });
 
 test('F: every term with a dashed underline or a "?" is in the terms table, and its word appears in the sentence in both languages', () => {
-  const termKeys = new Set([...TERMS17, ...TERMS16, ...SIDES]);
+  const termKeys = new Set([...TERMS17, ...TERMS19, ...SIDES]);
   for (const m of html.matchAll(/data-term-help="(\w+)"/g)) assert.ok(termKeys.has(m[1]), m[1]);
   for (const g of D.groups) if (g.termTip) assert.ok(termKeys.has(g.termTip), g.id);
   for (const e of D.entries) for (const t of e.titleTerms) assert.ok(termKeys.has(t.term), e.id);

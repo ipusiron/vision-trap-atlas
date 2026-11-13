@@ -11,13 +11,14 @@ const M = require('../messages.js');
 const ctx = { t: (key) => { const v = M.ja[key]; if (typeof v !== 'string') throw new Error('missing ' + key); return v; }, data: D };
 const entry = (id) => D.entries.find((e) => e.id === id);
 const OKABE_ITO = ['#000000', '#e69f00', '#56b4e9', '#009e73', '#f0e442', '#0072b2', '#d55e00', '#cc79a7'];
-const PARTS = ['popoutGrid', 'asymGrid', 'searchDisplay', 'proximityGrid', 'regionDots', 'contour', 'sectors', 'symmetryBands', 'baselineChart',
-  'areaPictures', 'dualAxisChart', 'aspectChart', 'barChart', 'groupedBars', 'lineChart', 'scatter', 'markTable', 'camoScene'];
+const PARTS = ['popoutGrid', 'asymGrid', 'motionGrid', 'searchDisplay', 'proximityGrid', 'regionDots', 'contour', 'sectors', 'symmetryBands',
+  'baselineChart', 'areaPictures', 'dualAxisChart', 'aspectChart', 'lightnessSquares', 'barChart', 'groupedBars', 'lineChart', 'scatter', 'markTable',
+  'heatmap', 'camoScene'];
 // Classes without a color of their own; style.css gives each a look (line, text, fill with the ink or paper of the theme)
-const PLAIN_CLASSES = ['camo-line', 'camo-outline', 'fig-axis', 'fig-axisname', 'fig-barline', 'fig-break', 'fig-cross', 'fig-dot', 'fig-frame',
-  'fig-frame-small', 'fig-legend', 'fig-link', 'fig-mark', 'fig-missing', 'fig-nofill', 'fig-outline', 'fig-pattern', 'fig-rule', 'fig-series',
-  'fig-spine', 'fig-stroke', 'fig-textbar',
-  'fig-tick', 'fig-title', 'fixation', 'line-dashed', 'mark-pressed', 'mark-target', 'stim-outline', 'stim-solid', 'ta-end', 'ta-middle', 'ta-start'];
+const PLAIN_CLASSES = ['camo-line', 'camo-outline', 'fig-axis', 'fig-axisname', 'fig-barline', 'fig-break', 'fig-cellnum', 'fig-cross', 'fig-dot',
+  'fig-frame', 'fig-frame-small', 'fig-legend', 'fig-link', 'fig-mark', 'fig-missing', 'fig-nofill', 'fig-outline', 'fig-pattern', 'fig-rule',
+  'fig-series', 'fig-spine', 'fig-stroke', 'fig-textbar', 'fig-tick', 'fig-title', 'fig-trail', 'fixation', 'line-dashed', 'mark-pressed',
+  'mark-target', 'stim-outline', 'stim-solid', 'ta-end', 'ta-middle', 'ta-start'];
 
 // ----- bounding box of a shape list (paths use M, L, A and Z; arcs are sampled from their center) -----
 function arcPoints(x0, y0, r, large, sweep, x1, y1) {
@@ -75,9 +76,9 @@ function combos(e) {
   for (const c of e.controls) list = list.flatMap((v) => V.controlOptions(c).map((x) => ({ ...v, [c.id]: x })));
   return list;
 }
-const rendered = (use, values) => JSON.stringify(V.renderUse(use, values, ctx));
+const rendered = (use, values, extra = {}) => JSON.stringify(V.renderUse(use, values, ctx, extra));
 
-test('C: the eighteen parts are registered', () => {
+test('C: the twenty-one parts are registered', () => {
   assert.deepEqual(V.partNames(), PARTS);
   assert.throws(() => V.renderPart('pieChart3d', {}, ctx), /unknown part/);
 });
@@ -92,7 +93,7 @@ test('C: every figure of every entry stays inside its viewBox for every combinat
       n += 1;
     }
   }
-  assert.equal(n, 496);
+  assert.equal(n, 514);
   // The 1-1 and 1-2 figures stay inside with other seeds as well
   for (let seed = 1; seed <= 30; seed += 1) {
     for (const kind of ['color', 'direction', 'size', 'shape', 'lightness']) {
@@ -121,6 +122,10 @@ test('C: the color classes refer to palette entries of both themes, and the othe
     for (const k of ['target', 'same-dir', 'same-color']) take(V.sampleShapes(k, set));
   }
   take({ shapes: [...V.fixationShapes(), ...V.markShapes({ pressed: 0, target: 35 })] });
+  // The moving entry with a non-rest pose: the main figure and the two small ones show the fig-trail dots of the frame-by-frame step
+  const motionPose = { pose: { u: 0.5, env: 1, prev: 0.25 } }, motion = entry('popout-motion'), motionValues = V.controlValues(motion);
+  take(V.renderPart(motion.figure.part, { ...motion.figure.params, ...motionValues, seed: motion.figure.seed, ...motionPose }, ctx));
+  for (const u of motion.uses) take(V.renderUse(u, motionValues, ctx, motionPose));
   const plain = new Set();
   for (const cls of used) {
     const m = /^(?:fill|stroke)-([a-zA-Z]+)(?:-(\d+))?$/.exec(cls);
@@ -444,10 +449,12 @@ test('C: the reading sentences use the rounded values shown for their borders', 
 test('C: a control moves only the small figures it is bound to, and the line under each small figure names it', () => {
   for (const e of D.entries) {
     const defaults = V.controlValues(e);
+    // A moving entry: bound controls take effect only when the figures are moving, so test with a mid-stroke pose
+    const extra = e.safety.motion === 'onPlay' ? { pose: { u: 0.25, env: 1, prev: null } } : {};
     for (const u of e.uses) {
-      const before = rendered(u, defaults);
+      const before = rendered(u, defaults, extra);
       for (const c of e.controls) {
-        const changes = V.controlOptions(c).filter((v) => rendered(u, { ...defaults, [c.id]: v }) !== before);
+        const changes = V.controlOptions(c).filter((v) => rendered(u, { ...defaults, [c.id]: v }, extra) !== before);
         if (Object.hasOwn(u.bind || {}, c.id)) assert.ok(changes.length > 0, `${e.id} ${u.side}: ${c.id} should move the figure`);
         else assert.deepEqual(changes, [], `${e.id} ${u.side}: ${c.id} should not move the figure`);
       }
@@ -495,12 +502,13 @@ test('C: each title contains its underlined terms in both languages, and each te
 
 test('C: the view model lists the tabs in order with their entries, headings and next tab', () => {
   const vm = V.buildViewModel(D);
-  assert.deepEqual(vm.tabs.map((t) => t.id), ['popout', 'search', 'gestalt', 'figure-ground', 'misread']);
-  assert.deepEqual(vm.tabs.map((t) => t.entries.length), [2, 1, 3, 2, 4]);
-  assert.deepEqual(vm.tabs.map((t) => (t.next ? t.next.labelKey : null)), ['tabSearch', 'tabGestalt', 'tabFigureGround', 'tabMisread', null]);
+  assert.deepEqual(vm.tabs.map((t) => t.id), ['popout', 'search', 'gestalt', 'figure-ground', 'misread', 'illusion']);
+  assert.deepEqual(vm.tabs.map((t) => t.entries.length), [3, 1, 3, 2, 4, 1]);
+  assert.deepEqual(vm.tabs.map((t) => (t.next ? t.next.labelKey : null)),
+    ['tabSearch', 'tabGestalt', 'tabFigureGround', 'tabMisread', 'tabIllusion', null]);
   assert.deepEqual(vm.tabs[4].leadKeys, ['misreadLead', 'misreadFictional']);
-  // The box at the end of the Misreading tab; the other tabs have none yet
-  assert.deepEqual(vm.tabs.map((t) => t.endBoxes.map((b) => b.id)), [[], [], [], [], ['chart-checks']]);
+  // The boxes at the end of the Figure-and-ground tab (clues for spotting camouflage) and the Misreading tab (checks when reading a chart)
+  assert.deepEqual(vm.tabs.map((t) => t.endBoxes.map((b) => b.id)), [[], [], [], ['camo-clues'], ['chart-checks'], []]);
   for (const tab of vm.tabs) {
     for (const e of tab.entries) {
       // The search time card has the showing side only, so its heading names that side alone
@@ -642,4 +650,45 @@ test('C: the legend keys of the result chart and the description of the small ch
     for (const lang of ['ja', 'en']) assert.ok(V.descText(M, lang, st, { view }, 'show').length > 10, view);
   }
   assert.equal(V.descCase(st, { view: 'feature' }, 'main'), null);
+});
+
+// ===== popout-motion: the view returns the right pose for an idle, a playing and a next-frame state =====
+test('C: motionPose maps the clock state to the drawing (idle → rest, playing → sinusoid, frames → full with a prev)', () => {
+  assert.deepEqual(V.motionPose({ phase: 'idle', t: 0, frame: 0 }, 3), { u: 0, env: 0, prev: null });
+  const mid = V.motionPose({ phase: 'playing', t: 1.5 }, 3);
+  assert.ok(mid.env === 1, 'env ramps to 1 after `ramp` seconds and stays there');
+  assert.ok(mid.u > 0, 'u advances');
+  const start = V.motionPose({ phase: 'playing', t: 0.1 }, 3);
+  assert.ok(start.env > 0 && start.env < 1, 'env ramps in from 0 over the first `ramp` seconds');
+  const end = V.motionPose({ phase: 'playing', t: 2.9 }, 3);
+  assert.ok(end.env > 0 && end.env < 1, 'env ramps back down to 0 in the last `ramp` seconds');
+  const frame = V.motionPose({ phase: 'frames', frame: 3 }, 3);
+  assert.deepEqual(frame, { u: 0.75, env: 1, prev: 0.5 });
+  const frame1 = V.motionPose({ phase: 'frames', frame: 1 }, 3);
+  assert.equal(frame1.prev, 0, 'the previous frame of frame 1 is 0 (the still figure)');
+});
+
+test('C: popout-motion keeps the same number of shapes while moving (so a redraw can patch attributes in place)', () => {
+  const motion = D.entries.find((e) => e.id === 'popout-motion');
+  const defaults = V.controlValues(motion);
+  const atRest = V.renderMain(motion, defaults, ctx, undefined, { pose: { u: 0, env: 0, prev: null } });
+  const inPlay = V.renderMain(motion, defaults, ctx, undefined, { pose: { u: 0.25, env: 1, prev: null } });
+  assert.equal(atRest.shapes.length, inPlay.shapes.length, 'no trails added when prev is null');
+  assert.equal(atRest.shapes.length, 36, 'six-by-six grid of circles');
+  const withPrev = V.renderMain(motion, defaults, ctx, undefined, { pose: { u: 0.5, env: 1, prev: 0.25 } });
+  const target = withPrev.shapes.filter((s) => s.cls === 'fig-trail').length;
+  assert.equal(target, 1, 'the one circle that moves adds one trail dot (amount=medium, others=still)');
+  const allTrails = V.renderMain(motion, { amount: 'medium', others: 'random' }, ctx, undefined, { pose: { u: 0.5, env: 1, prev: 0.25 } })
+    .shapes.filter((s) => s.cls === 'fig-trail').length;
+  assert.equal(allTrails, 36, 'with others=random every circle moves and leaves a trail dot');
+});
+
+test('C: popout-motion does not change the fill colors of the circles while the pose changes', () => {
+  const motion = D.entries.find((e) => e.id === 'popout-motion');
+  const defaults = V.controlValues(motion);
+  const fillsAt = (pose) => V.renderMain(motion, defaults, ctx, undefined, { pose })
+    .shapes.filter((s) => s.cls.startsWith('fill-')).map((s) => s.cls);
+  const rest = fillsAt({ u: 0, env: 0, prev: null });
+  const play = fillsAt({ u: 0.4, env: 1, prev: null });
+  assert.deepEqual(play, rest, 'motion never recolors a circle (no flashing)');
 });

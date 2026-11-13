@@ -17,12 +17,16 @@
     { id: 'popout', order: 10, labelKey: 'tabPopout', termKey: 'tabPopoutTerm', termTip: 'termPreattentive' },
     { id: 'search', order: 20, labelKey: 'tabSearch', termKey: 'tabSearchTerm', termTip: 'termVisualSearch' },
     { id: 'gestalt', order: 30, labelKey: 'tabGestalt', termKey: 'tabGestaltTerm', termTip: 'termGrouping' },
-    { id: 'figure-ground', order: 40, labelKey: 'tabFigureGround', termKey: 'tabFigureGroundTerm', termTip: 'termFigureGround' },
+    // 項目の後ろに、迷彩を見破る手がかりの箱を置く（2つ目の行は「目立つ」タブの動きの項目へ移る）
+    { id: 'figure-ground', order: 40, labelKey: 'tabFigureGround', termKey: 'tabFigureGroundTerm', termTip: 'termFigureGround',
+      endBoxes: [{ id: 'camo-clues', headingKey: 'camoCluesHeading', leadKey: 'camoCluesLead', items: [
+        { textKey: 'camoClue1', entry: 'figure-ground-symmetry' }, { textKey: 'camoClue2', entry: 'popout-motion' }] }] },
     // 誤読の「グラフ」は専門の言葉ではないので、解説を付けない。項目の後ろに、グラフを読むときの確かめ方の箱を置く
     { id: 'misread', order: 50, labelKey: 'tabMisread', termKey: 'tabMisreadTerm', termTip: null, leadKeys: ['misreadLead', 'misreadFictional'],
       endBoxes: [{ id: 'chart-checks', headingKey: 'chartChecksHeading', leadKey: 'chartChecksLead', items: [
         { textKey: 'chartCheck1', entry: 'misread-baseline' }, { textKey: 'chartCheck2', entry: 'misread-area' },
         { textKey: 'chartCheck3', entry: 'misread-dual-axis' }, { textKey: 'chartCheck4', entry: 'misread-aspect-range' }] }] },
+    { id: 'illusion', order: 60, labelKey: 'tabIllusion', termKey: 'tabIllusionTerm', termTip: 'termIllusion' },
   ];
 
   // endBoxes：タブの項目の後ろ（「次のタブへ」の上）に置く箱。見出し・1文・箇条（各行の末尾に、その項目へ移るボタン）。
@@ -76,6 +80,30 @@
       gapKey: 'asymGap',
       safety: still(),
       sources: ['treismanSouther1985', 'healeyEnns2012'],
+      related: ['day085'],
+    },
+    {
+      // 押したときだけ動く（3秒で止まる）。3つの図を同じ時計で動かす。動きを減らす設定では「次のコマ」で4コマを順に見せる。
+      // 止まっている間の絵は、つまみを動かしても変わらない（動きの大きさは、動かしたときに見える）
+      id: 'popout-motion', group: 'popout', order: 30,
+      titleTerms: [{ term: 'termMotion', ja: '運動', en: 'motion' }],
+      figure: { part: 'motionGrid', seed: 1303, params: {} },
+      controls: [
+        { id: 'amount', type: 'range', values: ['none', 'small', 'medium', 'large'], named: true, default: 'medium' },
+        { id: 'others', type: 'choice', options: ['still', 'random'], default: 'still' },
+      ],
+      actions: [],
+      read: { cases: 'motion' },
+      uses: [
+        { side: 'show', part: 'lineChart', params: { mode: 'motion', seed: 1391 }, bind: { amount: 'motionAmount', others: 'motionOthers' },
+          textKey: 'motionShow' },
+        // 物と似た模様の物が4つあり、「ばらばらに動く」ではそれらも動く（背景の斑点は動かさない）
+        { side: 'hide', part: 'camoScene', params: { seed: 1392 }, bind: { amount: 'motionAmount', others: 'motionOthers' }, textKey: 'motionHide',
+          noteKey: 'hideNote', link: 'day085' },
+      ],
+      gapKey: null,
+      safety: still({ motion: 'onPlay', maxSeconds: 3 }),
+      sources: ['wolfeHorowitz2004', 'wolfeHorowitz2017', 'hall2013'],
       related: ['day085'],
     },
     {
@@ -289,6 +317,28 @@
       sources: ['cleveland1988', 'cleveland1993', 'heerAgrawala2006', 'talbot2012', 'lo2022'],
       related: [],
     },
+    {
+      // 四角の灰色はどの段でも変えない。変わるのは周りだけ（0%では左右の周りが同じ）
+      id: 'illusion-lightness-contrast', group: 'illusion', order: 10,
+      titleTerms: [{ term: 'termLightnessContrast', ja: '明るさの対比', en: 'lightness contrast' }],
+      figure: { part: 'lightnessSquares', seed: 6101, params: {} },
+      controls: [
+        { id: 'diff', type: 'range', values: [0, 0.25, 0.5, 0.75, 1], default: 0.75, unit: 'percent' },
+        { id: 'compare', type: 'choice', options: ['apart', 'band'], default: 'apart' },
+      ],
+      actions: [],
+      read: { cases: 'lightness' },
+      uses: [
+        { side: 'show', part: 'heatmap', params: {}, bind: { diff: 'spread' }, textKey: 'lightShow' },
+        // 物の明るさは左の背景に合わせたまま、右の背景だけが明るくなる
+        { side: 'hide', part: 'camoScene', params: { seed: 6192 }, bind: { diff: 'splitDiff' }, textKey: 'lightHide', noteKey: 'hideNote',
+          link: 'day085' },
+      ],
+      gapKey: null,
+      safety: still(),
+      sources: ['adelson2000', 'mittelstadt2014', 'merilaita2017'],
+      related: ['day101', 'day085'],
+    },
   ];
 
   // 出典（level は確かめの度合い A・B・C。画面とREADMEには出さない）
@@ -307,6 +357,10 @@
       + 'search. Vision Research, 50(14), 1304–1311.', doi: '10.1016/j.visres.2009.11.002', level: 'B' },
     wolfeHorowitz2004: { cite: 'Wolfe, J. M., & Horowitz, T. S. (2004). What attributes guide the deployment of visual attention and how do they do '
       + 'it? Nature Reviews Neuroscience, 5(6), 495–501.', doi: '10.1038/nrn1411', level: 'A' },
+    wolfeHorowitz2017: { cite: 'Wolfe, J. M., & Horowitz, T. S. (2017). Five factors that guide attention in visual search. Nature Human Behaviour, '
+      + '1(3), 0058.', doi: '10.1038/s41562-017-0058', level: 'A' },
+    hall2013: { cite: 'Hall, J. R., Cuthill, I. C., Baddeley, R., Shohet, A. J., & Scott-Samuel, N. E. (2013). Camouflage, detection and '
+      + 'identification of moving targets. Proceedings of the Royal Society B, 280(1758), 20130064.', doi: '10.1098/rspb.2013.0064', level: 'A' },
     healeyEnns2012: { cite: 'Healey, C. G., & Enns, J. T. (2012). Attention and visual memory in visualization and computer graphics. IEEE '
       + 'Transactions on Visualization and Computer Graphics, 18(7), 1170–1188.', doi: '10.1109/TVCG.2011.127', level: 'A' },
     ratcliff1993: { cite: 'Ratcliff, R. (1993). Methods for dealing with reaction time outliers. Psychological Bulletin, 114(3), 510–532.',
@@ -351,6 +405,12 @@
       + 'Graphics, 12(5), 701–708.', doi: '10.1109/TVCG.2006.163', level: 'A' },
     talbot2012: { cite: 'Talbot, J., Gerth, J., & Hanrahan, P. (2012). An empirical model of slope ratio comparisons. IEEE Transactions on '
       + 'Visualization and Computer Graphics, 18(12), 2613–2620.', doi: '10.1109/TVCG.2012.196', level: 'B' },
+    adelson2000: { cite: 'Adelson, E. H. (2000). Lightness perception and lightness illusions. In M. Gazzaniga (Ed.), The New Cognitive '
+      + 'Neurosciences (2nd ed., pp. 339–351). MIT Press.', doi: null, level: 'A' },
+    mittelstadt2014: { cite: 'Mittelstädt, S., Stoffel, A., & Keim, D. A. (2014). Methods for compensating contrast effects in information '
+      + 'visualization. Computer Graphics Forum, 33(3), 231–240.', doi: '10.1111/cgf.12379', level: 'A' },
+    merilaita2017: { cite: 'Merilaita, S., Scott-Samuel, N. E., & Cuthill, I. C. (2017). How camouflage works. Philosophical Transactions of the '
+      + 'Royal Society B, 372(1724), 20160341.', doi: '10.1098/rstb.2016.0341', level: 'A' },
   };
 
   // 関連ツール（目の性質を扱うものだけ）。リンクは別タブ
@@ -395,6 +455,11 @@
     groupBars: [[60, 72, 50, 84], [66, 58, 78, 70], [52, 80, 64, 74]], // 2-1 の見せる側（3つの組×4本）
     scatter8: [[10, 30], [22, 42], [34, 38], [46, 56], [58, 52], [70, 70], [82, 66], [94, 84]], // 2-2 の散布図（順に並んだ8点）
     scatter12: [[12, 20], [20, 46], [28, 30], [36, 64], [44, 40], [52, 76], [60, 52], [68, 28], [76, 62], [84, 44], [88, 80], [94, 58]], // 3-2
+    // 明るさの対比の見せる側（5×5。'A'・'B'＝同じ値のマス、'L'＝Aを囲むマス、'H'＝Bを囲むマス、数＝決まった値）。
+    // A・Bは heatSame、Lは heatSame−heatStep×差、Hは heatSame＋heatStep×差（差＝周りの明るさの差 0〜1）。決まった値に heatSame はない
+    heat5: [['L', 'L', 'L', 40, 60], ['L', 'A', 'L', 60, 70], ['L', 'L', 'L', 'H', 'H'], [40, 30, 'H', 'B', 'H'], [30, 40, 'H', 'H', 'H']],
+    heatSame: 50,
+    heatStep: 40,
   };
 
   // 研究の値（参考の表。図形1つあたりのミリ秒）
@@ -410,7 +475,11 @@
   // camoSpots：迷彩の絵の背景の斑点の3色（岡部・伊藤の配色から選ばない）。camoObj：物と背景の色の差の4段（camoBase から camoFar へ 0・30・60・100%）
   // regionA・regionB：3-2 の1つおきの帯。areaDark・areaLight：3-1 の色の濃い扇形と薄い扇形（見せる側の棒と背景も同じ2色）。
   // 文が「色の濃い扇形」と呼ぶので、どちらのテーマでも areaDark のほうを暗くする。暗いテーマの areaDark は中間の明るさにして、
-  // 図の背景（paper）と2:1以上離す（背景と同じような色だと、扇形が穴のように見える）
+  // 図の背景（paper）と2:1以上離す（背景と同じような色だと、扇形が穴のように見える）。
+  // 明るさの対比（どちらのテーマでも同じ値）：lightGray＝四角と帯の灰色（どの段でも同じ）。lightLeft・lightRight＝周りの明るさの差の5段の
+  // 左（暗くなる）と右（明るくなる）の周り。0%は左右とも同じ #9e9e9e で、四角の灰色と分けて置くので、0%でも四角が見える。
+  // heat＝ヒートマップの値0〜100の10刻みの段（岡部・伊藤の配色の青 #0072b2 を白で薄める。値0で白90%、値100で0%）。heatText＝マスに書く数。
+  // veil＝迷彩の右の背景を明るくする薄い白（不透明度は図が付ける）
   const palette = {
     light: {
       paper: '#fffdf7', ink: '#152b45',
@@ -432,6 +501,12 @@
       camoSpotsLight: ['#8a9a5b', '#9ca974', '#adb88c'],
       camoObjSpots: ['#7b6a96', '#4f7a8f', '#9a6d55'],
       camoMarks: ['#33452f', '#4d3b5e', '#4a3424'],
+      lightGray: '#8c8c8c',
+      lightLeft: ['#9e9e9e', '#7b7b7b', '#575757', '#343434', '#101010'],
+      lightRight: ['#9e9e9e', '#b3b3b3', '#c7c7c7', '#dcdcdc', '#f0f0f0'],
+      heat: ['#e6f1f7', '#cfe4f0', '#b8d8e9', '#a1cbe3', '#8abedc', '#73b1d5', '#5ca5ce', '#4598c7', '#2e8bc0', '#177fb9', '#0072b2'],
+      heatText: '#152b45',
+      veil: '#ffffff',
     },
     dark: {
       paper: '#172940', ink: '#eaf1f6',
@@ -453,6 +528,12 @@
       camoSpotsLight: ['#6e7d4f', '#5e6a43', '#4d5837'],
       camoObjSpots: ['#9a88b5', '#6f9ab0', '#b88b70'],
       camoMarks: ['#cfe0b4', '#d9e4f0', '#f2e2c4'],
+      lightGray: '#8c8c8c',
+      lightLeft: ['#9e9e9e', '#7b7b7b', '#575757', '#343434', '#101010'],
+      lightRight: ['#9e9e9e', '#b3b3b3', '#c7c7c7', '#dcdcdc', '#f0f0f0'],
+      heat: ['#e6f1f7', '#cfe4f0', '#b8d8e9', '#a1cbe3', '#8abedc', '#73b1d5', '#5ca5ce', '#4598c7', '#2e8bc0', '#177fb9', '#0072b2'],
+      heatText: '#152b45',
+      veil: '#ffffff',
     },
   };
 

@@ -449,3 +449,67 @@ test('D: the summary of a real block goes through resultCases', () => {
   assert.deepEqual(cases[0].values, { fa: 3, fb: 10, ca: 20, cb: 50 });
   assert.deepEqual(cases[1].values, { d: 40 });
 });
+
+// ===== createMotion: the clock that moves popout-motion (push to play, stop after `seconds`, stop button and next-frame) =====
+
+test('D: createMotion: push to play, the state updates every frame, and it stops at seconds', () => {
+  const clock = fakeTime();
+  const events = [];
+  const motion = S.createMotion({ raf: clock.raf, seconds: 3, onChange: (st) => events.push(st) });
+  assert.deepEqual(motion.state(), { phase: 'idle', t: 0, frame: 0 });
+  motion.play();
+  assert.equal(motion.state().phase, 'playing');
+  // t0 is the first frame timestamp; after that t = (ts - t0) / 1000 (500 → 0, 1500 → 1, 2500 → 2, then 3600 → 3.1)
+  clock.frame(500); clock.frame(1500); clock.frame(2500);
+  assert.equal(motion.state().phase, 'playing');
+  assert.ok(Math.abs(motion.state().t - 2) < 0.001);
+  clock.frame(3600);
+  assert.equal(motion.state().phase, 'idle', 'stops once seconds elapse');
+  assert.equal(clock.pending(), 0, 'no more frames scheduled');
+});
+
+test('D: createMotion: a stop before the end goes idle immediately and drops the remaining frames', () => {
+  const clock = fakeTime();
+  const motion = S.createMotion({ raf: clock.raf, seconds: 3 });
+  motion.play();
+  clock.frame(500); clock.frame(1000);
+  motion.stop();
+  assert.equal(motion.state().phase, 'idle');
+  const before = clock.pending();
+  clock.frame(2000);
+  assert.equal(motion.state().phase, 'idle', 'the queued frame is a no-op (the new token dropped it)');
+  assert.ok(clock.pending() <= before);
+});
+
+test('D: createMotion: Next frame cycles 1 through 4 and starts over at 1 (stays in idle when stopped)', () => {
+  const clock = fakeTime();
+  const motion = S.createMotion({ raf: clock.raf, seconds: 3, frames: 4 });
+  for (const expected of [1, 2, 3, 4, 1, 2]) {
+    motion.nextFrame();
+    assert.equal(motion.state().phase, 'frames');
+    assert.equal(motion.state().frame, expected);
+  }
+  motion.stop();
+  assert.equal(motion.state().phase, 'idle');
+  assert.equal(motion.state().frame, 0, 'stop resets the frame counter');
+});
+
+test('D: createMotion: reset (the same as stop) ends a run without an extra onChange when nothing was playing', () => {
+  const clock = fakeTime();
+  const events = [];
+  const motion = S.createMotion({ raf: clock.raf, seconds: 3, onChange: (st) => events.push(st) });
+  motion.reset();
+  assert.equal(events.length, 0);
+  motion.play();
+  clock.frame(100);
+  const seen = events.length;
+  motion.reset();
+  assert.equal(events.length, seen + 1);
+  assert.equal(motion.state().phase, 'idle');
+});
+
+test('D: createMotion rejects out-of-range seconds (0 or more than 5)', () => {
+  const clock = fakeTime();
+  assert.throws(() => S.createMotion({ raf: clock.raf, seconds: 0 }), /0 < seconds <= 5/);
+  assert.throws(() => S.createMotion({ raf: clock.raf, seconds: 6 }), /0 < seconds <= 5/);
+});

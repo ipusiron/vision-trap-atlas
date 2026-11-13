@@ -29,7 +29,7 @@
       introRoute3: '「まとまる」タブ「輪郭」',
       introRoute3Note: 'グラフと迷彩の小さな図が、同じつまみで一緒に変わるのを見る。',
       introMore: 'くわしい説明を読む',
-      intro1: 'タブは左から、目立つ・探す時間・まとまる・図と地・誤読の順に並んでいます。はじめの4つのタブは、物が見つかるか、まとまって見えるかを扱います。最後の「誤読」タブは、見つけたあとで正しく読めるかを扱います。',
+      intro1: 'タブは左から、目立つ・探す時間・まとまる・図と地・誤読・目の錯覚の順に並んでいます。はじめの4つのタブは、物が見つかるか、まとまって見えるかを扱います。「誤読」タブは、見つけたあとで正しく読めるかを扱います。最後の「目の錯覚」タブは、同じものが周りによって違って見えることを扱います。',
       intro2: '見せることを目的とする代表例がグラフ、隠すことを目的とする代表例が迷彩です。どちらも目の同じ働きを使いますが、目的は反対です。グラフは、見せたいものを目立たせ、仲間どうしをまとめて見せます。迷彩は、物を目立たなくし、輪郭をわかりにくくします。各項目では、上の図のつまみを動かすと、'
         + 'グラフと迷彩の小さな図も一緒に変わります。',
       contrastLine: '目の働きごとに見た、グラフ（見せる側）と迷彩（隠す側）の使い方',
@@ -58,6 +58,8 @@
       tabFigureGroundTerm: '図と地の分化',
       tabMisread: '誤読',
       tabMisreadTerm: 'グラフ',
+      tabIllusion: '目の錯覚',
+      tabIllusionTerm: '錯視',
       tabNavHint: '押すと、その項目へ移ります',
       tabNavHeading: 'このタブの項目',
       backToList: '▲このタブの項目へ戻る',
@@ -77,6 +79,9 @@
       sourcesHeading: '出典と関連ツール',
       reshuffle: '並べ直す',
       findPress: '探して押す',
+      motionPlay: '動かす',
+      motionFrame: '次のコマ',
+      motionStop: '止める',
       findCover: 'ここを押すと始まります',
       findTime: '{t}秒で見つかりました。1回だけの時間なので、目安として見てください。',
       findWrong: '押した図形は、探す図形ではありませんでした。探す図形に印を付けました。',
@@ -97,6 +102,11 @@
       'item.popout-asymmetry.title': '線のある丸は目立ち、線のない丸は目立ちにくい（探索非対称性）',
       'item.popout-asymmetry.oneLine': '同じ2種類の図形でも、どちらを探すかで探しやすさが変わります。',
       'item.popout-asymmetry.howTo': '探すものを切り替え、「探して押す」で両方の時間を測って比べます。',
+      'item.popout-motion.title': '動くものは目立つ（運動）',
+      'item.popout-motion.oneLine': '止まった丸の中で1つだけ動くと、探す前に目に入ります。周りも動いていると、目に入りにくくなります。',
+      'item.popout-motion.howTo': '「動きの大きさ」と「周りの動き」を選んで「動かす」を押します。3秒たつと止まります。',
+      'item.popout-motion.howToReduced': '「動きの大きさ」と「周りの動き」を選んで「次のコマ」を押します。動きを4コマの静止画で順に見られます。',
+      'item.popout-motion.short': '動くものは目立つ',
       'item.search-time.title': '図形の数と探す時間（視覚探索）',
       'item.search-time.oneLine': '図形の数を変えて、探す時間がどう増えるかを測ります。',
       'item.search-time.howTo': '特徴の組を選び、特徴探索と結合探索を1回ずつ測ります。',
@@ -116,6 +126,7 @@
       'item.figure-ground-symmetry.title': '左右対称と外へのふくらみ（図と地）',
       'item.figure-ground-symmetry.oneLine': '左右対称な領域や、外にふくらむ領域は、図に見えやすくなります。',
       'item.figure-ground-symmetry.howTo': '「手がかり」で左右対称か外へのふくらみを選び、領域の数を2つか8つにします。「手がかりの側を入れ替える」を押すと、手がかりのある側とない側が入れ替わります。',
+      'item.figure-ground-symmetry.short': '左右対称と外へのふくらみ',
       'item.misread-baseline.title': '縦軸の始まり（縦軸の途中の省略）',
       'item.misread-baseline.oneLine': '縦軸の下端を上げると、小さな差が大きく見えます。',
       'item.misread-baseline.howTo': '「縦軸の下端」のつまみを動かします。「グラフの種類」と「軸が切れている印」も切り替えられます。',
@@ -132,6 +143,9 @@
       'item.misread-aspect-range.oneLine': '同じデータでも、グラフの縦横の比や期間によって、増え方や減り方が違って見えます。',
       'item.misread-aspect-range.howTo': '「縦横の比」のつまみと「期間」の切り替えを動かします。',
       'item.misread-aspect-range.short': '縦横の比と期間',
+      'item.illusion-lightness-contrast.title': '周りで変わる明るさ（明るさの対比）',
+      'item.illusion-lightness-contrast.oneLine': '同じ灰色でも、暗い周りの中では明るく、明るい周りの中では暗く見えます。',
+      'item.illusion-lightness-contrast.howTo': '「周りの明るさの差」のつまみを動かし、「見比べ方」で2つの四角を帯でつなぎます。',
 
       // ===== つまみと段の名前（ctl.<項目>.<操作>・ctl.<項目>.<操作>.<段>） =====
       'ctl.popout-feature.kind': '違いの種類',
@@ -163,6 +177,14 @@
       'ctl.popout-asymmetry.count.6': '6',
       'ctl.popout-asymmetry.count.12': '12',
       'ctl.popout-asymmetry.count.18': '18',
+      'ctl.popout-motion.amount': '動きの大きさ',
+      'ctl.popout-motion.amount.none': '止まる',
+      'ctl.popout-motion.amount.small': '小',
+      'ctl.popout-motion.amount.medium': '中',
+      'ctl.popout-motion.amount.large': '大',
+      'ctl.popout-motion.others': '周りの動き',
+      'ctl.popout-motion.others.still': '止まる',
+      'ctl.popout-motion.others.random': 'ばらばらに動く',
       'ctl.search-time.view': '探し方',
       'ctl.search-time.view.feature': '特徴探索',
       'ctl.search-time.view.conjunction': '結合探索',
@@ -210,6 +232,10 @@
       'ctl.misread-aspect-range.range': '期間',
       'ctl.misread-aspect-range.range.all': '24か月',
       'ctl.misread-aspect-range.range.last6': '最後の6か月',
+      'ctl.illusion-lightness-contrast.diff': '周りの明るさの差',
+      'ctl.illusion-lightness-contrast.compare': '見比べ方',
+      'ctl.illusion-lightness-contrast.compare.apart': '離して置く',
+      'ctl.illusion-lightness-contrast.compare.band': '帯でつなぐ',
 
       // ===== 図の題と軸の名前（fig.<項目>.<側>.*。main は上の図） =====
       'fig.popout-feature.main.title': '1つだけ違う図形を探す図',
@@ -218,6 +244,9 @@
       'fig.popout-asymmetry.main.title': '線のある丸と線のない丸の図',
       'fig.popout-asymmetry.show.title': '例外に印を付けた表',
       'fig.popout-asymmetry.hide.title': '背景の上の物を描いた迷彩の絵',
+      'fig.popout-motion.main.title': '6×6の同じ丸',
+      'fig.popout-motion.show.title': '終わりの点に印を付けた4本の折れ線',
+      'fig.popout-motion.hide.title': '背景の上の5つの物を描いた迷彩の絵',
       'fig.search-time.main.title': '探す実験の図',
       'fig.search-time.show.title': '6本の折れ線と凡例',
       'fig.gestalt-proximity-similarity.main.title': '6×6の点',
@@ -249,6 +278,9 @@
       'fig.misread-aspect-range.main.axisY': '貸出冊数（冊）',
       'fig.misread-aspect-range.main.month': '{n}か月目',
       'fig.misread-aspect-range.readable.title': '24か月・縦横の比1のグラフ',
+      'fig.illusion-lightness-contrast.main.title': '明るさの違う周りに置いた同じ灰色の四角2つ',
+      'fig.illusion-lightness-contrast.show.title': '同じ値のマスが2つある5×5のヒートマップ',
+      'fig.illusion-lightness-contrast.hide.title': '明るさの違う2つの背景にまたがる物を描いた迷彩の絵',
       month4: '4月',
       month5: '5月',
       month6: '6月',
@@ -271,6 +303,11 @@
       'asymRead.none': '「探して押す」で測った時間を、ここに並べて出します。',
       'asymRead.one': 'もう一方も測ると、2つの時間を比べられます。',
       'asymRead.both': '線のある丸は{t1}秒、線のない丸は{t2}秒でした。',
+      'motionRead.none': 'いまは、どの丸も動きません。「動きの大きさ」を小・中・大にすると、1つの丸だけが動きます。',
+      'motionRead.oneStill': '1つの丸だけが止まり、ほかの丸がばらばらに動きます。止まった1つが目に入るかを見てください。',
+      'motionRead.small': '1つの丸だけが少し動きます。止まった丸の中で、動く丸がすぐ目に入るかを見てください。',
+      'motionRead.large': '1つの丸だけが大きく動きます。探そうとする前に目に入りやすくなります。',
+      'motionRead.allMove': 'ほかの丸も動いています。動くことがその丸だけの違いではなくなるので、目に入りにくくなります。',
       'proxRead.even.none': '点は縦にも横にも同じ間隔で、形も同じです。行にも列にもまとまりにくい並びです。',
       'proxRead.rows.none': '横の点どうしが近いので、行にまとまって見えやすい並びです。',
       'proxRead.cols.none': '縦の点どうしが近いので、列にまとまって見えやすい並びです。',
@@ -318,6 +355,9 @@
       'aspectRead.flat': '線の傾きの平均は{deg}度で、線は平らに見えます。',
       'aspectRead.all': '24か月では、貸出冊数は{start}冊から{end}冊へ増えています。',
       'aspectRead.last6': '最後の6か月だけを見ると、{start6}冊から{end}冊へ減っています。24か月で見ると、{start}冊から{end}冊へ増えています。どの期間を見せるかで、受ける印象が逆になります。',
+      'lightRead.same': '左右の周りは同じ明るさです。2つの四角も同じに見えます。',
+      'lightRead.apart': '2つの四角は同じ灰色です。暗い周りの左の四角が明るく、明るい周りの右の四角が暗く見えるかを比べてください。',
+      'lightRead.band': '四角と同じ灰色の帯で2つをつなぎました。同じ灰色が続いているのをたどりながら、左右の四角の明るさを比べてください。',
       aspectCheck: '読むときに確かめること：期間の始まりと終わり、グラフの縦横の比',
 
       // ===== 小さな図の下の文 =====
@@ -326,6 +366,8 @@
       asymShow: '例外を示すときは、例外の行に印を足します。ほかの行すべてに印を付けて例外だけ外すと、例外が目に入りにくくなります。',
       asymHide: '物に、背景にない特徴（まっすぐな線など）があると目に入りやすくなります。迷彩では、そうした特徴を足さないようにします。',
       asymGap: '迷彩には「特徴がないことで見つけさせる」使い道がありません。迷彩でできるのは「目立つ特徴を足さない」ことだけです。',
+      motionShow: '1か所だけ印を動かすと、そこへ目が向きます。ほかの印も動いていると、どこを見ればよいかわからなくなるので、動きは見てほしい1か所だけに使います。',
+      motionHide: '背景によく似た模様の物も、動くと見つかりやすくなります。人が画面で動く的を探した実験では、止まった的のおよそ10分の1の時間で見つかりました。似た模様の物がほかにも動いていると、どれが探す物かを見分けるのに時間がかかりました。',
       searchShow: '凡例の「青の破線」のように、色と線の種類の組み合わせで系列を探させると、結合探索になります。線の端に系列の名前を書けば、探さずに済みます。',
       searchGap: '迷彩の研究で結合探索にあたる例は、今回の調査では確かめられませんでした。',
       proxShow: '比べてほしい棒を近づけ、同じ色にそろえると、まとまりとして読まれます。',
@@ -352,10 +394,16 @@
       chartCheck2: '値を長さで表しているかを見る。面積や絵の大きさで表しているときは、見た目の大きさでなく、数で比べる。',
       chartCheck3: '縦軸が左右に2つあるときは、それぞれの範囲を見る。2本の線が交わる位置や重なり方は、範囲の決め方で変わる。',
       chartCheck4: 'どの期間を切り出したか、縦横の比がどうかを見る。期間や縦横の比が違えば、増え方や減り方の印象も変わる。',
+      camoCluesHeading: '迷彩を見破る手がかり',
+      camoCluesLead: '研究で裏付けられているものだけを挙げています。',
+      camoClue1: '左右対称の模様を探す。背景に合わせた模様でも、左右対称にすると鳥に食べられやすかったという野外実験がある（Cuthill, Hiby & Lloyd 2006）。',
+      camoClue2: '動いている物を見る。背景によく似た模様でも、動くと見つかりやすい。人が画面で探した実験では、止まった物のおよそ10分の1の時間で見つかった（Hall et al. 2013）。',
       baseReadable: '棒グラフは縦軸を0から始めると、高さの比が値の比と同じになります。',
       areaReadable: '棒の長さで比べると、値の比をそのまま読めます。',
       dualReadable: '気温と雨の量を別々のグラフに分けると、線の交わりのような見かけの関係が出ません。値は、それぞれのグラフの縦軸で読めます。',
       aspectReadable: '24か月の全体を、縦横の比1で描いた形です。全体では増え、最後の数か月は減った、という流れが見えます。',
+      lightShow: '色の濃さで値を表すグラフでは、同じ値のマスでも、周りのマスの色によって違う値に見えます。この影響は知っていても補正しきれないので、値を正しく読ませたいときは、マスに数を書き添えます。',
+      lightHide: '物と背景の明るさの差は、物の縁を見つける手がかりになります。背景の明るさがまちまちな所では、物の明るさを片方に合わせても、もう片方との境で縁が見えてしまいます。',
 
       // ===== 探す時間のタブと実験の枠 =====
       searchWhy: '1つの特徴で見分けられるものは、図形が増えても、探す時間はほとんど増えません。特徴の組み合わせでしか見分けられないものは、図形が増えるほど時間がかかりやすくなります。図形の数を変えて、自分の時間で確かめます。',
@@ -476,6 +524,7 @@
       'glossGroup.gestalt': '「まとまる」タブ',
       'glossGroup.figure-ground': '「図と地」タブ',
       'glossGroup.misread': '「誤読」タブ',
+      'glossGroup.illusion': '「目の錯覚」タブ',
 
       // ===== 用語（画面の言葉・専門用語・意味） =====
       termTarget: '探すもの・探す棒',
@@ -541,6 +590,8 @@
       termGuidedMeaning: '特徴の手がかりが、探す物の候補へ注意を導く。導く強さによって、探す速さが連続的に変わる、という考え（Wolfe 1994・2021）',
       termAsymmetry: '探索非対称性',
       termAsymmetryMeaning: 'AをBの中から探すのと、BをAの中から探すのとで、速さが大きく違うこと',
+      termMotion: '運動',
+      termMotionMeaning: '物の動き。色・方向・大きさと並んで、探すときに注意を導く特徴に数えられる',
       termProximity: '近接',
       termProximityMeaning: '近くにあるものどうしが、まとまって見えること',
       termSimilarity: '類同',
@@ -563,11 +614,15 @@
       termDualAxisMeaning: '左右に別の縦軸を持つグラフ。片方の軸の範囲を変えるだけで、2本の線の関係が違って見える',
       termAspect: '縦横比',
       termAspectMeaning: 'グラフの縦と横の長さの比。同じデータでも、線の傾きの見え方が変わる',
+      termIllusion: '錯視',
+      termIllusionMeaning: '形・大きさ・明るさ・色が、実際と違って見えること',
+      termLightnessContrast: '明るさの対比',
+      termLightnessContrastMeaning: '同じ明るさの面が、周りが暗いと明るく、周りが明るいと暗く見えること',
       termFixation: '注視点',
       termFixationMeaning: '図が出る前に見ておく印（＋）',
 
       // ===== 関連ツール =====
-      relDay101: '色の差とコントラスト比は「無彩色」タブ、色覚多様性と色だけに頼らない設計は「雑学」タブ',
+      relDay101: '色の差とコントラスト比は「無彩色」タブ、色覚多様性と色だけに頼らない設計、色の錯覚効果は「雑学」タブ',
       relDay085: '実際の模様で、背景へのなじみを確かめる（「環境適合性チェック」タブ）',
       relDay070: '重ねた2枚の黒と灰の違いを、目が文字（図）として読む',
       relDay075: 'ゆがめた文字を、目は閉合とよい連続で読む',
@@ -633,8 +688,9 @@
       introRoute3: 'Grouping tab: Contours',
       introRoute3Note: 'Watch the small chart and the camouflage picture change together with the same controls.',
       introMore: 'Read more',
-      intro1: 'The tabs run from left to right: Pop out, Search time, Grouping, Figure and ground, Misreading. The first four ask whether something is '
-        + 'found or seen as a group; Misreading asks whether you read it correctly once you have found it.',
+      intro1: 'The tabs run from left to right: Pop out, Search time, Grouping, Figure and ground, Misreading, Optical illusions. The first four ask whether '
+        + 'something is found or seen as a group; Misreading asks whether you read it correctly once you have found it; Optical illusions shows how the same '
+        + 'thing can look different depending on what surrounds it.',
       intro2: 'Charts are the typical case of showing, and camouflage the typical case of hiding. Both use the same habits of the eye, for opposite ends. '
         + 'Charts make what matters stand out and show related things as a group. Camouflage keeps an object from standing out and makes its outline hard to '
         + 'see. In each entry, moving the controls of the main figure also changes a small chart and a small camouflage scene.',
@@ -664,6 +720,8 @@
       tabFigureGroundTerm: 'Figure–ground',
       tabMisread: 'Misreading',
       tabMisreadTerm: 'Charts',
+      tabIllusion: 'Optical illusions',
+      tabIllusionTerm: 'Visual illusions',
       tabNavHint: 'Tap to jump to that entry',
       tabNavHeading: 'Entries in this tab',
       backToList: '▲ Back to this tab\'s entries',
@@ -683,6 +741,9 @@
       sourcesHeading: 'Sources and related tools',
       reshuffle: 'Rearrange',
       findPress: 'Find and tap',
+      motionPlay: 'Play',
+      motionFrame: 'Next frame',
+      motionStop: 'Stop',
       findCover: 'Tap here to start',
       findTime: 'Found in {t} s. A single time is only a rough guide.',
       findWrong: 'That was not the different shape. The different shape is now marked.',
@@ -704,6 +765,11 @@
       'item.popout-asymmetry.title': 'An added line pops out; a missing line does not (search asymmetry)',
       'item.popout-asymmetry.oneLine': 'With the same two shapes, how easy the search is depends on which one you look for.',
       'item.popout-asymmetry.howTo': 'Switch what to find, then use "Find and tap" for each and compare the two times.',
+      'item.popout-motion.title': 'Moving things stand out (motion)',
+      'item.popout-motion.oneLine': 'Among still circles, the one that moves catches your eye before you search. When the others move too, it stands out less.',
+      'item.popout-motion.howTo': 'Choose "Amount of motion" and "Others", then press "Play". It stops after 3 seconds.',
+      'item.popout-motion.howToReduced': 'Choose "Amount of motion" and "Others", then press "Next frame" to step through the motion in four still frames.',
+      'item.popout-motion.short': 'Moving things stand out',
       'item.search-time.title': 'Number of items and search time (visual search)',
       'item.search-time.oneLine': 'Measure how the search time grows as the number of items changes.',
       'item.search-time.howTo': 'Choose a feature pair, then measure feature search and conjunction search once each.',
@@ -726,6 +792,7 @@
       'item.figure-ground-symmetry.oneLine': 'Symmetric regions and regions that bulge outward tend to look like figures.',
       'item.figure-ground-symmetry.howTo': 'Choose symmetry or convexity under "Cue" and set the number of regions to 2 or 8. "Swap the side with the cue" '
         + 'switches which side has the cue.',
+      'item.figure-ground-symmetry.short': 'Symmetry and convexity',
       'item.misread-baseline.title': 'Where the vertical axis starts (truncated axis)',
       'item.misread-baseline.oneLine': 'Raising the bottom of the vertical axis makes a small difference look large.',
       'item.misread-baseline.howTo': 'Move "Bottom of the vertical axis". You can also switch "Chart type" and "Axis-break mark".',
@@ -742,6 +809,9 @@
       'item.misread-aspect-range.oneLine': 'The same data can look like a different trend depending on the aspect ratio and the time range.',
       'item.misread-aspect-range.howTo': 'Move "Aspect ratio" and switch "Time range".',
       'item.misread-aspect-range.short': 'Aspect ratio and time range',
+      'item.illusion-lightness-contrast.title': 'Lightness that changes with the surroundings (lightness contrast)',
+      'item.illusion-lightness-contrast.oneLine': 'The same gray looks lighter on a dark surround and darker on a light one.',
+      'item.illusion-lightness-contrast.howTo': 'Move "Difference between the surrounds", and use "Compare" to join the two squares with a band.',
 
       // ===== Controls and their steps =====
       'ctl.popout-feature.kind': 'Kind of difference',
@@ -773,6 +843,14 @@
       'ctl.popout-asymmetry.count.6': '6',
       'ctl.popout-asymmetry.count.12': '12',
       'ctl.popout-asymmetry.count.18': '18',
+      'ctl.popout-motion.amount': 'Amount of motion',
+      'ctl.popout-motion.amount.none': 'None',
+      'ctl.popout-motion.amount.small': 'Small',
+      'ctl.popout-motion.amount.medium': 'Medium',
+      'ctl.popout-motion.amount.large': 'Large',
+      'ctl.popout-motion.others': 'Others',
+      'ctl.popout-motion.others.still': 'Still',
+      'ctl.popout-motion.others.random': 'Move at random',
       'ctl.search-time.view': 'Kind of search',
       'ctl.search-time.view.feature': 'Feature search',
       'ctl.search-time.view.conjunction': 'Conjunction search',
@@ -820,6 +898,10 @@
       'ctl.misread-aspect-range.range': 'Time range',
       'ctl.misread-aspect-range.range.all': '24 months',
       'ctl.misread-aspect-range.range.last6': 'Last 6 months',
+      'ctl.illusion-lightness-contrast.diff': 'Difference between the surrounds',
+      'ctl.illusion-lightness-contrast.compare': 'Compare',
+      'ctl.illusion-lightness-contrast.compare.apart': 'Apart',
+      'ctl.illusion-lightness-contrast.compare.band': 'Joined by a band',
 
       // ===== Figure titles and axis names =====
       'fig.popout-feature.main.title': 'Find the one different shape',
@@ -828,6 +910,9 @@
       'fig.popout-asymmetry.main.title': 'Circles with and without a line',
       'fig.popout-asymmetry.show.title': 'Table with the exception marked',
       'fig.popout-asymmetry.hide.title': 'Camouflage scene: an object on a background',
+      'fig.popout-motion.main.title': 'A 6 × 6 grid of identical circles',
+      'fig.popout-motion.show.title': 'Four lines with a marker on each last point',
+      'fig.popout-motion.hide.title': 'Camouflage scene: five objects on a background',
       'fig.search-time.main.title': 'Search experiment display',
       'fig.search-time.show.title': 'Six lines and a legend',
       'fig.gestalt-proximity-similarity.main.title': 'A 6 × 6 grid of dots',
@@ -859,6 +944,9 @@
       'fig.misread-aspect-range.main.axisY': 'Books lent',
       'fig.misread-aspect-range.main.month': 'Month {n}',
       'fig.misread-aspect-range.readable.title': '24 months at aspect ratio 1',
+      'fig.illusion-lightness-contrast.main.title': 'Two squares of the same gray on surrounds of different lightness',
+      'fig.illusion-lightness-contrast.show.title': 'A 5 × 5 heatmap with two cells of the same value',
+      'fig.illusion-lightness-contrast.hide.title': 'Camouflage scene: an object across two backgrounds of different lightness',
       month4: 'Apr',
       month5: 'May',
       month6: 'Jun',
@@ -883,6 +971,11 @@
       'asymRead.none': 'Use "Find and tap" and the times will appear here side by side.',
       'asymRead.one': 'Find and tap the other one too to compare the times side by side.',
       'asymRead.both': 'The circle with a line took {t1} s and the plain circle took {t2} s.',
+      'motionRead.none': 'Right now no circle moves. Set "Amount of motion" to Small, Medium or Large to make one circle move.',
+      'motionRead.oneStill': 'One circle stays still while the others move at random. See whether the one still circle catches your eye.',
+      'motionRead.small': 'Only one circle moves a little. See whether it catches your eye right away among the still circles.',
+      'motionRead.large': 'Only one circle moves, and by a lot. It tends to catch your eye before you start searching.',
+      'motionRead.allMove': 'The other circles move too. Moving no longer sets that one circle apart, so it stands out less.',
       'proxRead.even.none': 'The dots are evenly spaced both ways and have the same shape, so they group into neither rows nor columns.',
       'proxRead.rows.none': 'Dots side by side are closer, so they tend to group into rows.',
       'proxRead.cols.none': 'Dots one above the other are closer, so they tend to group into columns.',
@@ -943,6 +1036,10 @@
       'aspectRead.all': 'Over 24 months, the number of books lent rose from {start} to {end}.',
       'aspectRead.last6': 'Looking only at the last 6 months, the number of books lent fell from {start6} to {end}. Over all 24 months, it rose from {start} '
         + 'to {end}. The time range you show can reverse the impression.',
+      'lightRead.same': 'Both surrounds have the same lightness, so the two squares look the same.',
+      'lightRead.apart': 'The two squares are the same gray. Compare whether the left one, on the dark surround, looks lighter than the right one, on the '
+        + 'light surround.',
+      'lightRead.band': 'A band of the same gray now joins the squares. Follow the band from one to the other and compare the two squares again.',
       aspectCheck: 'When reading, check: where the time range starts and ends, and the chart\'s aspect ratio',
 
       // ===== Text under the small figures =====
@@ -951,6 +1048,11 @@
       asymShow: 'To flag an exception, add a mark to that row. Marking every other row and leaving the exception blank makes it harder to spot.',
       asymHide: 'A feature the background lacks, such as a straight line, makes an object easy to spot. Camouflage avoids adding such features.',
       asymGap: 'Camouflage has no use for "being found by a missing feature". All it can do is avoid adding conspicuous features.',
+      motionShow: 'Moving a single marker draws the eye to it. If other markers move too, it is unclear where to look, so use motion only on the one spot you '
+        + 'want people to see.',
+      motionHide: 'Even an object patterned much like its background is easier to find once it moves. In an experiment where people searched a screen for '
+        + 'moving targets, they found them in about a tenth of the time needed for still ones. When other objects with similar patterns moved too, it took '
+        + 'longer to tell which one was the target.',
       searchShow: 'Making readers find a series by a combination, such as "the blue dashed line" in a legend, turns reading into a conjunction search. '
         + 'Labels at the line ends remove the search.',
       searchGap: 'We have not confirmed an example of conjunction search in camouflage research.',
@@ -987,10 +1089,20 @@
       chartCheck2: 'See whether values are shown as lengths. If they are shown as areas or picture sizes, compare the numbers, not the sizes you see.',
       chartCheck3: 'When there are two vertical axes, look at the range of each. Where the two lines cross or overlap depends on how the ranges are set.',
       chartCheck4: 'See which period was cut out and what the aspect ratio is. A different period or aspect ratio changes how a rise or fall looks.',
+      camoCluesHeading: 'Clues for spotting camouflage',
+      camoCluesLead: 'Only clues backed by research are listed.',
+      camoClue1: 'Look for symmetric patterns. In a field experiment, background-matching targets were eaten by birds more often when their patterns were '
+        + 'symmetric (Cuthill, Hiby & Lloyd 2006).',
+      camoClue2: 'Watch for movement. Even a pattern much like the background is easier to find once it moves; in a screen experiment, people found moving '
+        + 'targets in about a tenth of the time needed for still ones (Hall et al. 2013).',
       baseReadable: 'When a bar chart\'s vertical axis starts at 0, the ratio of the heights equals the ratio of the values.',
       areaReadable: 'Compared as bar lengths, the value ratio can be read directly.',
       dualReadable: 'Separate charts for temperature and rain show no false relation such as crossings. Each value is read against its own chart\'s axis.',
       aspectReadable: 'All 24 months drawn at aspect ratio 1: an overall rise, with a fall in the last months.',
+      lightShow: 'In a chart that shows values by color, cells with the same value can look different depending on the cells around them. Knowing this does '
+        + 'not fully correct it, so write the numbers in the cells when the values must be read correctly.',
+      lightHide: 'A difference in lightness between an object and its background is a cue for finding the object\'s edge. Where the background varies in '
+        + 'lightness, matching the object to one part still leaves a visible edge against the other.',
 
       // ===== Search time tab and the experiment =====
       searchWhy: 'Something set apart by one feature takes barely longer to find as items are added. Something set apart only by a combination tends '
@@ -1127,6 +1239,7 @@
       'glossGroup.gestalt': 'Grouping tab',
       'glossGroup.figure-ground': 'Figure and ground tab',
       'glossGroup.misread': 'Misreading tab',
+      'glossGroup.illusion': 'Optical illusions tab',
 
       // ===== Terms =====
       termTarget: 'The item to find',
@@ -1196,6 +1309,8 @@
         + 'guidance is (Wolfe 1994, 2021)',
       termAsymmetry: 'Search asymmetry',
       termAsymmetryMeaning: 'Finding A among B can be much faster than finding B among A',
+      termMotion: 'Motion',
+      termMotionMeaning: 'The movement of an object. Counted with color, direction and size among the features that guide attention during search',
       termProximity: 'Proximity',
       termProximityMeaning: 'Things close together are seen as a group',
       termSimilarity: 'Similarity',
@@ -1219,12 +1334,16 @@
       termDualAxisMeaning: 'A chart with a different vertical axis on each side; changing one axis range alone changes how the two lines seem to relate',
       termAspect: 'Aspect ratio',
       termAspectMeaning: 'The ratio of a chart\'s height to its width; it changes how steep the same data looks',
+      termIllusion: 'Visual illusion',
+      termIllusionMeaning: 'Seeing a shape, size, lightness or color differently from what it is',
+      termLightnessContrast: 'Lightness contrast',
+      termLightnessContrastMeaning: 'A surface of the same lightness looks lighter on a dark surround and darker on a light one',
       termFixation: 'Fixation point',
       termFixationMeaning: 'The mark (+) you look at before the display appears',
 
       // ===== Related tools =====
-      relDay101: 'Color differences and contrast ratios are in the "Grayscale" tab; color vision diversity and design that does not rely on color '
-        + 'alone are in the "Trivia" tab',
+      relDay101: 'Color differences and contrast ratios are in the "Grayscale" tab; color vision diversity, design that does not rely on color alone, and '
+        + 'color illusions are in the "Trivia" tab',
       relDay085: 'Check how well a real pattern blends into its background (the "Environment check" tab)',
       relDay070: 'The eye reads the difference between black and gray in two stacked sheets as letters (a figure)',
       relDay075: 'The eye reads distorted letters through closure and good continuation',

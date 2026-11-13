@@ -11,7 +11,7 @@ const html = read('index.html');
 const SCRIPTS = ['theme-init.js', 'atlas-core.js', 'atlas-data.js', 'atlas-view.js', 'atlas-search.js', 'messages.js', 'app.js'];
 const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
   + "base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'; connect-src 'none'";
-const GROUPS = ['popout', 'search', 'gestalt', 'figure-ground', 'misread'];
+const GROUPS = ['popout', 'search', 'gestalt', 'figure-ground', 'misread', 'illusion'];
 const css = read('style.css');
 const cssRules = css.replace(/\/\*[\s\S]*?\*\//g, '');
 

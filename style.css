@@ -33,6 +33,13 @@
   --c-camoSpotsLight-0: #8a9a5b; --c-camoSpotsLight-1: #9ca974; --c-camoSpotsLight-2: #adb88c;
   --c-camoObjSpots-0: #7b6a96; --c-camoObjSpots-1: #4f7a8f; --c-camoObjSpots-2: #9a6d55;
   --c-camoMarks-0: #33452f; --c-camoMarks-1: #4d3b5e; --c-camoMarks-2: #4a3424;
+  --c-lightGray: #8c8c8c;
+  --c-lightLeft-0: #9e9e9e; --c-lightLeft-1: #7b7b7b; --c-lightLeft-2: #575757; --c-lightLeft-3: #343434; --c-lightLeft-4: #101010;
+  --c-lightRight-0: #9e9e9e; --c-lightRight-1: #b3b3b3; --c-lightRight-2: #c7c7c7; --c-lightRight-3: #dcdcdc; --c-lightRight-4: #f0f0f0;
+  --c-heat-0: #e6f1f7; --c-heat-1: #cfe4f0; --c-heat-2: #b8d8e9; --c-heat-3: #a1cbe3; --c-heat-4: #8abedc;
+  --c-heat-5: #73b1d5; --c-heat-6: #5ca5ce; --c-heat-7: #4598c7; --c-heat-8: #2e8bc0; --c-heat-9: #177fb9; --c-heat-10: #0072b2;
+  --c-heatText: #152b45;
+  --c-veil: #ffffff;
 }
 @media screen {
   :root[data-theme="dark"] {
@@ -68,6 +75,13 @@
     --c-camoSpotsLight-0: #6e7d4f; --c-camoSpotsLight-1: #5e6a43; --c-camoSpotsLight-2: #4d5837;
     --c-camoObjSpots-0: #9a88b5; --c-camoObjSpots-1: #6f9ab0; --c-camoObjSpots-2: #b88b70;
     --c-camoMarks-0: #cfe0b4; --c-camoMarks-1: #d9e4f0; --c-camoMarks-2: #f2e2c4;
+    --c-lightGray: #8c8c8c;
+    --c-lightLeft-0: #9e9e9e; --c-lightLeft-1: #7b7b7b; --c-lightLeft-2: #575757; --c-lightLeft-3: #343434; --c-lightLeft-4: #101010;
+    --c-lightRight-0: #9e9e9e; --c-lightRight-1: #b3b3b3; --c-lightRight-2: #c7c7c7; --c-lightRight-3: #dcdcdc; --c-lightRight-4: #f0f0f0;
+    --c-heat-0: #e6f1f7; --c-heat-1: #cfe4f0; --c-heat-2: #b8d8e9; --c-heat-3: #a1cbe3; --c-heat-4: #8abedc;
+    --c-heat-5: #73b1d5; --c-heat-6: #5ca5ce; --c-heat-7: #4598c7; --c-heat-8: #2e8bc0; --c-heat-9: #177fb9; --c-heat-10: #0072b2;
+    --c-heatText: #152b45;
+    --c-veil: #ffffff;
   }
 }
 *, *::before, *::after { box-sizing: border-box; }
@@ -194,18 +208,16 @@ table { width: 100%; border-collapse: collapse; word-break: keep-all; }
 th, td { padding: .35rem .4rem; border: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: break-word; }
 th { background: var(--bg); }
 
-/* Tabs: two lines each (the word, then the term in small letters). Below 720px a grid of six columns: three tabs on the first
-   row (two columns each) and two on the second (three columns each). Never a sideways scrolling row */
+/* Tabs: two lines each (the word, then the term in small letters). Below 720px a grid of six columns: three tabs on each of the two
+   rows (two columns each). Never a sideways scrolling row */
 .tabs {
   display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .15rem; margin-top: .7rem; padding: .15rem .2rem;
   background: var(--paper); border: 1px solid var(--line); box-shadow: 3px 3px 0 var(--shadow); scroll-margin-top: .5rem;
 }
-.tabs button:nth-child(-n+3) { grid-column: span 2; }
-.tabs button:nth-child(n+4) { grid-column: span 3; }
 /* A tab name breaks only at a <wbr> between its words (ゲシュタルト｜の法則) or at a space (keep-all, without auto-phrase, which
    would break ゲシュタルトの｜法則 before the page is ready) */
 .tabs button {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .05rem;
+  grid-column: span 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .05rem;
   min-width: 0; padding: .3rem .15rem; border: 0; border-radius: 0; line-height: 1.3; text-align: center;
   word-break: keep-all; overflow-wrap: anywhere;
 }
@@ -464,6 +476,10 @@ svg text { font-family: system-ui, sans-serif; }
 /* The marks of "Find and tap": the shape pressed has a thick circle, the shape to find a double rounded square (shapes, not colors) */
 .mark-pressed { fill: none; stroke: var(--ink); stroke-width: 4; }
 .mark-target { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+/* Next frame (reduced motion): a faint dot where a moving shape was in the frame before */
+.fig-trail { fill: var(--ink); opacity: .35; }
+/* The number written in a cell of the heatmap (its color is fill-heatText, dark on the light cells in both themes) */
+.fig-cellnum { font-size: 11px; font-weight: 700; }
 .fill-stimCool { fill: var(--c-stimCool); } .stroke-stimCool { stroke: var(--c-stimCool); }
 .fill-stimHot { fill: var(--c-stimHot); } .stroke-stimHot { stroke: var(--c-stimHot); }
 .fill-popColor-0 { fill: var(--c-popColor-0); } .stroke-popColor-0 { stroke: var(--c-popColor-0); }
@@ -515,6 +531,30 @@ svg text { font-family: system-ui, sans-serif; }
 .fill-camoMarks-0 { fill: var(--c-camoMarks-0); } .stroke-camoMarks-0 { stroke: var(--c-camoMarks-0); }
 .fill-camoMarks-1 { fill: var(--c-camoMarks-1); } .stroke-camoMarks-1 { stroke: var(--c-camoMarks-1); }
 .fill-camoMarks-2 { fill: var(--c-camoMarks-2); } .stroke-camoMarks-2 { stroke: var(--c-camoMarks-2); }
+.fill-lightGray { fill: var(--c-lightGray); } .stroke-lightGray { stroke: var(--c-lightGray); }
+.fill-lightLeft-0 { fill: var(--c-lightLeft-0); } .stroke-lightLeft-0 { stroke: var(--c-lightLeft-0); }
+.fill-lightLeft-1 { fill: var(--c-lightLeft-1); } .stroke-lightLeft-1 { stroke: var(--c-lightLeft-1); }
+.fill-lightLeft-2 { fill: var(--c-lightLeft-2); } .stroke-lightLeft-2 { stroke: var(--c-lightLeft-2); }
+.fill-lightLeft-3 { fill: var(--c-lightLeft-3); } .stroke-lightLeft-3 { stroke: var(--c-lightLeft-3); }
+.fill-lightLeft-4 { fill: var(--c-lightLeft-4); } .stroke-lightLeft-4 { stroke: var(--c-lightLeft-4); }
+.fill-lightRight-0 { fill: var(--c-lightRight-0); } .stroke-lightRight-0 { stroke: var(--c-lightRight-0); }
+.fill-lightRight-1 { fill: var(--c-lightRight-1); } .stroke-lightRight-1 { stroke: var(--c-lightRight-1); }
+.fill-lightRight-2 { fill: var(--c-lightRight-2); } .stroke-lightRight-2 { stroke: var(--c-lightRight-2); }
+.fill-lightRight-3 { fill: var(--c-lightRight-3); } .stroke-lightRight-3 { stroke: var(--c-lightRight-3); }
+.fill-lightRight-4 { fill: var(--c-lightRight-4); } .stroke-lightRight-4 { stroke: var(--c-lightRight-4); }
+.fill-heat-0 { fill: var(--c-heat-0); } .stroke-heat-0 { stroke: var(--c-heat-0); }
+.fill-heat-1 { fill: var(--c-heat-1); } .stroke-heat-1 { stroke: var(--c-heat-1); }
+.fill-heat-2 { fill: var(--c-heat-2); } .stroke-heat-2 { stroke: var(--c-heat-2); }
+.fill-heat-3 { fill: var(--c-heat-3); } .stroke-heat-3 { stroke: var(--c-heat-3); }
+.fill-heat-4 { fill: var(--c-heat-4); } .stroke-heat-4 { stroke: var(--c-heat-4); }
+.fill-heat-5 { fill: var(--c-heat-5); } .stroke-heat-5 { stroke: var(--c-heat-5); }
+.fill-heat-6 { fill: var(--c-heat-6); } .stroke-heat-6 { stroke: var(--c-heat-6); }
+.fill-heat-7 { fill: var(--c-heat-7); } .stroke-heat-7 { stroke: var(--c-heat-7); }
+.fill-heat-8 { fill: var(--c-heat-8); } .stroke-heat-8 { stroke: var(--c-heat-8); }
+.fill-heat-9 { fill: var(--c-heat-9); } .stroke-heat-9 { stroke: var(--c-heat-9); }
+.fill-heat-10 { fill: var(--c-heat-10); } .stroke-heat-10 { stroke: var(--c-heat-10); }
+.fill-heatText { fill: var(--c-heatText); } .stroke-heatText { stroke: var(--c-heatText); }
+.fill-veil { fill: var(--c-veil); } .stroke-veil { stroke: var(--c-veil); }
 .fig-nofill, svg .fig-nofill { fill: none; }
 /* A month without data in the small chart of the contour entry: a light band behind the lines (the color of the lines of the page, see-through) */
 .fig-missing { fill: var(--line); fill-opacity: .45; }
@@ -661,8 +701,8 @@ svg.res-key { display: block; width: 32px; height: 14px; }
 @media (min-width: 720px) {
   .masthead { flex-direction: row; justify-content: space-between; }
   .masthead h1 { text-align: left; }
-  .tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .tabs button:nth-child(n) { grid-column: auto; }
+  .tabs { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .tabs button { grid-column: auto; }
   .tab-name { font-size: 1rem; }
   .contrast-table .col-trait { width: 16%; }
   .section-nav-buttons { display: flex; flex-wrap: wrap; }

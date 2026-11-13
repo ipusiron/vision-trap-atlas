@@ -1,5 +1,5 @@
 /* Vision Trap Atlas - MIT (c) 2026 ipusiron. */
-// 「探して押す」（1-1・1-2）と探す実験の進行（UMD・DOM非依存）。
+// 「探して押す」（1-1・1-2）と探す実験の進行、押したときだけの動き（UMD・DOM非依存）。
 // 時計（now）・描画の予約（raf）・乱数の種（seed32）を外から受け取る。テストでは偽の時計と偽の raf を渡す。
 // 時刻はどれも performance.now() と同じ時計：表示の開始＝図を見えるようにしたフレームの次の raf の引数、押した時刻＝event.timeStamp。
 (function (root, factory) {
@@ -224,5 +224,47 @@
     return { start, proceed, respond, setHidden, resume, abort, summary, state, seed };
   }
 
-  return Object.freeze({ TIMING, createFind, createExperiment });
+  // ===== 動き（押したときだけ動き、seconds 秒で止まる。動きを減らす設定ではコマ送り） =====
+  // 段：idle（止まっている）→ playing（t＝最初のフレームからの秒）→ idle。コマ送りは frames（frame＝1〜frames。押すごとに次のコマへ進み、
+  // 最後のコマの次は1コマ目）。自分からは動き出さない：play を呼んだときだけ raf で進み、seconds 秒たつか stop で止まる。
+  // reset（つまみを動かしたとき）は、動いていれば止め、コマ送りなら止まった絵に戻す
+  function createMotion({ raf, seconds, frames = 4, onChange = () => {} }) {
+    if (!(seconds > 0 && seconds <= 5)) throw new Error('motion needs 0 < seconds <= 5');
+    const s = { phase: 'idle', t: 0, frame: 0 };
+    let token = 0;
+    const emit = () => onChange({ ...s });
+    function play() {
+      if (s.phase === 'playing') return;
+      token += 1;
+      const my = token;
+      let t0 = null;
+      Object.assign(s, { phase: 'playing', t: 0, frame: 0 });
+      emit();
+      const step = (ts) => {
+        if (my !== token) return;
+        if (t0 === null) t0 = ts;
+        const t = (ts - t0) / 1000;
+        if (t >= seconds) { Object.assign(s, { phase: 'idle', t: 0 }); emit(); return; }
+        s.t = t;
+        emit();
+        raf(step);
+      };
+      raf(step);
+    }
+    function stop() {
+      if (s.phase === 'idle') return;
+      token += 1;
+      Object.assign(s, { phase: 'idle', t: 0, frame: 0 });
+      emit();
+    }
+    function nextFrame() {
+      token += 1;
+      Object.assign(s, { phase: 'frames', t: 0, frame: s.frame % frames + 1 });
+      emit();
+    }
+    const reset = stop;
+    return { play, stop, nextFrame, reset, state: () => ({ ...s }) };
+  }
+
+  return Object.freeze({ TIMING, createFind, createExperiment, createMotion });
 }));
