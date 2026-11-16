@@ -19,9 +19,11 @@
   const groups = [
     { id: 'popout', order: 10, labelKey: 'tabPopout', termKey: 'tabPopoutTerm', termTip: 'termPreattentive',
       checks: [
+        // ほかの7本は6つの色（4本目の色は、7つある色の1つになる。どの色も図の背景と3:1以上）
         { id: 'popout-color-bars', choices: ['a', 'b', 'c'], answer: 'a',
           figures: [{ part: 'barChart', params: { mode: 'popout', popKind: 'color', popDiff: 'large', popVariety: 'mixed',
-            values: [46, 60, 52, 88, 57, 66, 50, 63] } }] },
+            values: [46, 60, 52, 88, 57, 66, 50, 63],
+            others: ['popOthers-0', 'popColor-1', 'popColor-2', 'popOthers-2', 'popOthers-1', 'popLight-3', 'popColor-2'] } }] },
         { id: 'popout-added-line', choices: ['a', 'b', 'c'], answer: 'a',
           figures: [{ label: 'A', part: 'camoScene', params: { seed: 1593, objLevel: 1 } },
             { label: 'B', part: 'camoScene', params: { seed: 1593, objLevel: 1, addedLine: true } }] },
@@ -77,7 +79,9 @@
   // predict：「動かす前に予想する」の選択肢と正しい選択肢。文は messages.js の predict.<id>.question・.choice.<選択肢>・.explain。
   // 「なぜそうなるか」の文は item.<id>.why（値で変わらない）
   // uses の bind：{ つまみの id: 小さな図の設定の名前 } か { つまみの id: { to: 設定の名前, map: { つまみの値: 設定の値 } } }。
-  // bindWhen：{ つまみの id: [値…] }。いまの値がどれにも当たらないとき、その図はつながらない（既定の絵のまま）
+  // bindWhen：{ つまみの id: [値…] }。いまの値がどれにも当たらないとき、その図はつながらない（既定の絵のまま）。linkedNoneKey：つながらない
+  // ときの図の下の行（既定は linkedNone）。textKeyWhen：[{ when: { つまみの id: [値…] }, key }]。いまの値に当たる場合があれば、図の下の文を
+  // textKey の代わりにその key の文にする
   const entries = [
     {
       id: 'popout-feature', group: 'popout', order: 10,
@@ -85,7 +89,8 @@
       figure: { part: 'popoutGrid', seed: 1101, params: {} },
       controls: [
         { id: 'kind', type: 'choice', options: ['color', 'direction', 'size', 'shape', 'lightness'], default: 'color' },
-        { id: 'shape', type: 'choice', options: ['circleSquare', 'tl'], default: 'circleSquare', enabledWhen: { kind: ['shape'] } },
+        { id: 'shape', type: 'choice', options: ['circleSquare', 'tl'], default: 'circleSquare', enabledWhen: { kind: ['shape'] },
+          disabledNoteKey: 'shapeOnly' },
         { id: 'diff', type: 'range', values: ['same', 'small', 'medium', 'large'], named: true, default: 'large',
           disabledWhen: { kind: ['shape'] }, disabledNoteKey: 'shapeNotUsed' },
         { id: 'variety', type: 'range', values: ['uniform', 'some', 'mixed'], named: true, default: 'uniform',
@@ -94,11 +99,12 @@
       ],
       actions: ['reshuffle', 'find'],
       read: { cases: 'popout' },
+      // 方向と形の違いは小さな図に描かない（つながらないときの行で、その理由を書く）
       uses: [
         { side: 'show', part: 'barChart', params: { mode: 'popout', seed: 1191 }, bind: { kind: 'popKind', diff: 'popDiff', variety: 'popVariety' },
-          bindWhen: { kind: ['color', 'lightness', 'size'] }, textKey: 'popShow' },
+          bindWhen: { kind: ['color', 'lightness', 'size'] }, linkedNoneKey: 'popLinkedNone', textKey: 'popShow' },
         { side: 'hide', part: 'camoScene', params: { seed: 1192 }, bind: { kind: 'popKind', diff: 'popDiff', variety: 'popVariety' },
-          bindWhen: { kind: ['color', 'lightness', 'size'] }, textKey: 'popHide', noteKey: 'hideNote', link: 'day085' },
+          bindWhen: { kind: ['color', 'lightness', 'size'] }, linkedNoneKey: 'popLinkedNone', textKey: 'popHide', noteKey: 'hideNote', link: 'day085' },
       ],
       gapKey: null,
       safety: still({ colorOnly: true, colorOnlyWhen: { kind: ['color'] }, colorAlt: { control: 'kind', values: ['direction', 'size'] },
@@ -164,8 +170,10 @@
       ],
       actions: ['startFeature', 'startConj'],
       read: null,
+      // 図の下の文は探し方ごと（特徴探索の形には青の破線がないので、別の文）
       uses: [
-        { side: 'show', part: 'lineChart', params: { mode: 'search' }, bind: { view: 'search' }, textKey: 'searchShow' },
+        { side: 'show', part: 'lineChart', params: { mode: 'search' }, bind: { view: 'search' }, textKey: 'searchShow',
+          textKeyWhen: [{ when: { view: ['feature'] }, key: 'searchShowFeature' }] },
       ],
       gapKey: 'searchGap',
       safety: still({ colorOnly: true, colorAlt: { experimentSet: 'fill' }, colorHintKey: 'setHint' }),
@@ -253,8 +261,10 @@
       ],
       actions: [],
       read: { cases: 'contour' },
+      // グラフの小さな図の文は、輪郭の途切れが0%のとき（欠けた月をまたいで線を結ぶ形）と、0%より上のとき（線を切る形）で分ける
       uses: [
-        { side: 'show', part: 'lineChart', params: { mode: 'contour' }, bind: { gap: 'gap', crossing: 'crossing' }, textKey: 'contourShow' },
+        { side: 'show', part: 'lineChart', params: { mode: 'contour' }, bind: { gap: 'gap', crossing: 'crossing' }, textKey: 'contourShowGap',
+          textKeyWhen: [{ when: { gap: [0] }, key: 'contourShow0' }] },
         { side: 'hide', part: 'camoScene', params: { seed: 2392, objLevel: 2 }, bind: { gap: 'edgePatches' }, textKey: 'contourHide',
           noteKey: 'hideNote', link: 'day085' },
       ],
@@ -292,7 +302,7 @@
       controls: [
         { id: 'cue', type: 'choice', options: ['none', 'symmetric', 'convex'], default: 'none' },
         { id: 'regions', type: 'choice', options: [2, 8], default: 8 },
-        // 手がかりが「なし」の間は、入れ替える手がかりがないので押せない（押せない理由を下に書く）
+        // 手がかりが「なし」の間は、入れ替える手がかりがないので押せない（押せない理由を横か下に書く）
         // 押せない間は、図が使っている値（オフ）を押された形で見せる。押せるようになったら前の選択に戻る
         { id: 'swap', type: 'toggle', default: false, disabledWhen: { cue: ['none'] }, disabledNoteKey: 'cueNeeded', offValue: false },
       ],
@@ -319,7 +329,7 @@
         // 既定は誤読しやすい設定（下端40＝高さの比1.50倍）。開いた直後に、上の図と読みやすい形の違いが見える
         { id: 'bottom', type: 'range', values: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50], default: 40 },
         { id: 'chart', type: 'choice', options: ['bar', 'line'], default: 'bar' },
-        // 縦軸が0から始まるときは切れていないので、印を押せない（押せない理由を下に書く）。押せない間は、図が使っている値（なし）を
+        // 縦軸が0から始まるときは切れていないので、印を押せない（押せない理由を横か下に書く）。押せない間は、図が使っている値（なし）を
         // 押された形で見せ、押せるようになったら前の選択に戻る
         { id: 'mark', type: 'choice', options: ['none', 'shown'], default: 'none', disabledWhen: { bottom: [0] }, disabledNoteKey: 'bottomNeeded',
           offValue: 'none' },
@@ -566,7 +576,8 @@
   // popColor：1-1 の色の4段（ほかの図形の色から探すものの色へ 0・30・60・100% 混ぜる）。popLight：明るさの4段。
   // camoMarks：3-2 の物の斑点の3色（物の地の色 camoObj-1 と3:1以上離す）。
   // camoSpots：迷彩の絵の背景の斑点の3色（岡部・伊藤の配色から選ばない）。camoObj：物と背景の色の差の4段（camoBase から camoFar へ 0・30・60・100%）
-  // regionA・regionB：3-2 の1つおきの帯。areaDark・areaLight：3-1 の色の濃い扇形と薄い扇形（見せる側の棒と背景も同じ2色）。
+  // regionA・regionB：3-2 の1つおきの帯。文が「濃い色の帯」「薄い色の帯」と呼ぶので、どちらのテーマでも regionA のほうを暗くする（暗いテーマ
+  // の regionA は中間の明るさにして、図の背景（paper）と3:1以上離す）。areaDark・areaLight：3-1 の色の濃い扇形と薄い扇形（見せる側の棒と背景も同じ2色）。
   // 文が「色の濃い扇形」と呼ぶので、どちらのテーマでも areaDark のほうを暗くする。暗いテーマの areaDark は中間の明るさにして、
   // 図の背景（paper）と2:1以上離す（背景と同じような色だと、扇形が穴のように見える）。
   // 明るさの対比（どちらのテーマでも同じ値）：lightGray＝四角と帯の灰色（どの段でも同じ）。lightLeft・lightRight＝周りの明るさの差の5段の
@@ -615,7 +626,7 @@
       seriesTarget: '#56b4e9',
       seriesOthers: ['#e69f00', '#009e73', '#cc79a7'],
       groups: ['#56b4e9', '#e69f00', '#009e73', '#cc79a7'],
-      regionA: '#c9d6e2', regionB: '#2c405a',
+      regionA: '#5c7792', regionB: '#c9d6e2',
       areaDark: '#4f6782', areaLight: '#c9d6e2',
       band: '#24384f',
       camoBase: '#4a5240', camoFar: '#d08a5c',

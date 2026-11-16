@@ -61,8 +61,12 @@ test('B: controls have a known type, a default among their values, and messages 
         }
       }
       if (c.disabledNoteKey) assert.ok(inBoth(c.disabledNoteKey));
+      // Every control that can be off says why (the shape pairs of "Kind and size of the difference" as well: only for the shape)
+      if (c.enabledWhen || c.disabledWhen) assert.ok(c.disabledNoteKey, `${e.id}.${c.id} says why it cannot be pressed`);
     }
   }
+  assert.equal(D.entries[0].controls.find((c) => c.id === 'shape').disabledNoteKey, 'shapeOnly');
+  assert.equal(M.ja.shapeOnly, '「形」を選んだときだけ押せます');
 });
 
 test('B: the boxes at the end of a tab: a heading and a sentence, and lines that each name an existing entry with its short name', () => {
@@ -104,6 +108,15 @@ test('B: uses have a known side, registered parts, binds to existing controls, a
       }
       for (const k of Object.keys(u.bindWhen || {})) assert.ok(e.controls.some((x) => x.id === k), `${e.id} bindWhen ${k}`);
       if (u.textKey) assert.ok(inBoth(u.textKey), u.textKey);
+      // The cases of the sentence under the small figure: existing controls and values, and texts in both languages
+      for (const c of u.textKeyWhen || []) {
+        assert.ok(inBoth(c.key) && u.textKey, `${e.id} ${c.key}`);
+        for (const [k, list] of Object.entries(c.when)) {
+          const control = e.controls.find((x) => x.id === k);
+          assert.ok(control && list.every((v) => V.controlOptions(control).includes(v)), `${e.id} textKeyWhen ${k}`);
+        }
+      }
+      if (u.linkedNoneKey) assert.ok(inBoth(u.linkedNoneKey) && u.bindWhen, `${e.id} ${u.linkedNoneKey}`);
       if (u.noteKey) assert.ok(inBoth(u.noteKey), u.noteKey);
       if (u.side === 'hide') assert.equal(u.noteKey, 'hideNote', `${e.id}: the hiding side always carries hideNote`);
       if (u.link) assert.ok(Object.hasOwn(D.relatedTools, u.link));
@@ -389,15 +402,20 @@ test('B: every tab ends with two questions: figures of known parts, two or three
       }
     }
     assert.equal(ids.size, 12);
-    // The view model: each tab with its two questions, each entry with its prediction (the experiments say to run the test) and why
+    // The view model: each tab with its two questions, each entry with its prediction and why. The line after a choice: the experiments say
+    // to run the test, the moving entry to switch and press Play (Next frame with reduced motion), the others to make the change in the question
     const vm = V.buildViewModel(D);
     assert.deepEqual(vm.tabs.map((t) => t.checks.length), [2, 2, 2, 2, 2, 2]);
     for (const tab of vm.tabs) {
       for (const e of tab.entries) {
         assert.equal(e.whyKey, `item.${e.id}.why`);
-        assert.equal(e.predict.chosenKey, e.experiment ? 'predictChosenTest' : 'predictChosen', e.id);
+        const moving = e.safety.actions.some((a) => a.id === 'play');
+        assert.equal(e.predict.chosenKey, e.experiment ? 'predictChosenTest' : moving ? 'predictChosenPlay' : 'predictChosen', e.id);
+        assert.equal(e.predict.chosenReducedKey, moving ? 'predictChosenFrame' : null, e.id);
+        for (const key of [e.predict.chosenKey, e.predict.chosenReducedKey].filter(Boolean)) assert.ok(inBoth(key), key);
       }
     }
+    assert.deepEqual(vm.tabs.flatMap((t) => t.entries).filter((e) => e.predict.chosenReducedKey).map((e) => e.id), ['popout-motion']);
     assert.deepEqual(vm.tabs[2].checks[0].choices.map((c) => [c.id, c.label, c.key]),
       [['A', 'A', null], ['B', 'B', null], ['same', null, 'check.gestalt-store-bars.choice.same']]);
     // A group without questions (the shape of another group) has none

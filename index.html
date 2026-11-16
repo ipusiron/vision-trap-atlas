@@ -51,7 +51,7 @@
         <h2 id="intro-features-heading" class="intro-features-heading" data-i18n="introFeaturesHeading">この図鑑でできること</h2>
         <ul class="intro-features-list">
           <li data-i18n="introFeature1">つまみを動かして、物が目立つ条件、まとまって見える条件、手前に見える条件を図で確かめる。</li>
-          <li data-i18n="introFeature2">見せることを目的とする代表例としてグラフを、隠すことを目的とする代表例として迷彩を取り上げる。同じつまみで、両方の小さな図が一緒に変わるのを見比べる。</li>
+          <li data-i18n="introFeature2">グラフは見せるために、迷彩は隠すために、目の同じ働きを使う。同じ操作で、両方の小さな図が一緒に変わるのを見比べる。</li>
           <li data-i18n="introFeature3">「探す時間」タブで、自分が探すのにかかる時間を測り、研究の値と比べる。</li>
           <li data-i18n="introFeature4">「誤読」タブで、縦軸や面積の見せ方によってグラフが実際と違って見える例を、数で確かめる。</li>
         </ul>
@@ -62,7 +62,7 @@
           <li><button class="route-button" type="button" data-route="popout-feature" data-key="route:popout-feature" data-i18n="introRoute1">「目立つ」タブ「違いの種類と大きさ」</button>
             <p class="route-note" data-i18n="introRoute1Note">つまみを動かし、1つだけ違う図形が目に入るかを見る。</p></li>
           <li><button class="route-button" type="button" data-route="search-time" data-key="route:search-time" data-i18n="introRoute2">「探す時間」タブ「図形の数と探す時間」</button>
-            <p class="route-note" data-i18n="introRoute2Note">結合探索にかかる時間を測る。</p></li>
+            <p class="route-note" data-i18n="introRoute2Note">2つの特徴の組み合わせで探す時間（結合探索）を測る。</p></li>
           <li><button class="route-button" type="button" data-route="gestalt-contour" data-key="route:gestalt-contour" data-i18n="introRoute3">「まとまる」タブ「輪郭」</button>
             <p class="route-note" data-i18n="introRoute3Note">グラフと迷彩の小さな図が、同じつまみで一緒に変わるのを見る。</p></li>
         </ol>
@@ -144,7 +144,7 @@
     </div>
     <div id="help-panel-help" class="help-body" role="tabpanel" aria-labelledby="help-tab-help" tabindex="0">
       <h3 id="help-first" tabindex="-1" data-i18n="helpFirst">はじめて読むとき</h3>
-      <p data-i18n="helpFirstText">まず「目立つ」タブの「違いの種類と大きさ」でつまみを動かします。次に「探す時間」タブで結合探索にかかる時間を測ります。最後に「まとまる」タブの「輪郭」で、グラフと迷彩の小さな図が一緒に変わるのを見ます。</p>
+      <p data-i18n="helpFirstText">まず「目立つ」タブの「違いの種類と大きさ」でつまみを動かします。次に「探す時間」タブで、2つの特徴の組み合わせで探す時間（結合探索）を測ります。最後に「まとまる」タブの「輪郭」で、グラフと迷彩の小さな図が一緒に変わるのを見ます。</p>
       <h3 id="help-ops" tabindex="-1" data-i18n="helpKeysHeading">操作</h3>
       <ul class="help-list">
         <li data-i18n="helpKey.tabs">タブと項目は、押して選ぶ。タブは、キーボードの←→でも切り替えられる。</li>
@@ -152,7 +152,7 @@
         <li data-i18n="helpKey.experiment">探す実験では、探す棒があればJか→、なければFか←を押す。迷彩の実験では、矢印キーで場所を選び、EnterかSpaceで押す。Escで中断する。</li>
       </ul>
       <h3 id="help-about" tabindex="-1" data-i18n="helpAboutHeading">この図鑑について</h3>
-      <p data-i18n="helpAbout">この図鑑は学習用です。探す実験の記録はこのページの中だけにあり、保存も送信もしません。点滅する表示や、ひとりでに動く表示は使っていません。色の違いを使う図には、色を使わない切り替えを付けています。</p>
+      <p data-i18n="helpAbout">この図鑑は学習用です。探す実験と迷彩の実験の記録はこのページの中だけにあり、保存も送信もしません。点滅する表示や、ひとりでに動く表示は使っていません。色の違いを使う図には、色を使わない切り替えを付けています。</p>
     </div>
     <div id="help-panel-glossary" class="help-body" role="tabpanel" aria-labelledby="help-tab-glossary" tabindex="0" hidden>
       <p class="gloss-lead" data-i18n="glossLead">用語を、主に出てくるタブごとに分けています。</p>
@@ -211,6 +211,12 @@
           <dd data-i18n="termFitMeaning">色や方向などの特徴は、まず特徴ごとに別々に、視野全体で一度に処理される。特徴を組み合わせるには、1つずつ注意を向ける必要がある、という考え（Treisman &amp; Gelade 1980）</dd>
           <dt><span data-i18n="termGuided">誘導探索</span></dt>
           <dd data-i18n="termGuidedMeaning">特徴の手がかりが、探す物の候補へ注意を導く。導く強さによって、探す速さが連続的に変わる、という考え（Wolfe 1994・2021）</dd>
+          <dt><span data-i18n="termLegend">凡例</span></dt>
+          <dd data-i18n="termLegendMeaning">グラフで、どの色や線の種類がどの系列を表すかを示した見本</dd>
+          <dt><span data-i18n="termSeries">系列</span></dt>
+          <dd data-i18n="termSeriesMeaning">グラフで、1本の線や1種類の印で描く、ひとまとまりの値</dd>
+          <dt><span data-i18n="termMothTarget">的</span></dt>
+          <dd data-i18n="termMothTargetMeaning">迷彩の実験で探させる物。野外の実験では、ガの形の紙にえさを付けたもので、鳥に探させる。画面の実験では、似た形を画面に出し、人に探させる</dd>
         </dl>
       </section>
       <section class="gloss-group" aria-labelledby="gloss-gestalt">
@@ -231,7 +237,7 @@
           <dt><span data-i18n="termContinuation">よい連続</span></dt>
           <dd data-i18n="termContinuationMeaning">線は、なめらかにつながるほうへ続いて見えること</dd>
           <dt><span data-i18n="termDisruptive">輪郭を途切れさせる模様</span><span class="term-expert"><span class="term-expert-label" data-i18n="glossExpertLabel">専門用語</span><span data-i18n="termDisruptiveExpert">分断色</span></span></dt>
-          <dd data-i18n="termDisruptiveMeaning">偽の縁を見せ、本当の輪郭を見つけにくくする模様（Stevens &amp; Merilaita 2009の定義）</dd>
+          <dd data-i18n="termDisruptiveMeaning">本当はない縁を見せ、本当の輪郭を見つけにくくする模様（Stevens &amp; Merilaita 2009の定義）</dd>
         </dl>
       </section>
       <section class="gloss-group" aria-labelledby="gloss-figure-ground">
@@ -241,6 +247,8 @@
           <dd data-i18n="termFigureGroundMeaning">境目を分け合う2つの領域のうち、手前の形に見える側が図、背景に見える側が地</dd>
           <dt><span data-i18n="termRubin">ルビンの壺</span></dt>
           <dd data-i18n="termRubinMeaning">向かい合う2つの顔にも、1つの壺にも見える図。図と地が入れ替わる例として、Rubin 1915で知られる</dd>
+          <dt><span data-i18n="termScatter">散布図</span></dt>
+          <dd data-i18n="termScatterMeaning">2つの値の組を、横と縦の位置で1つの点として描いたグラフ</dd>
         </dl>
       </section>
       <section class="gloss-group" aria-labelledby="gloss-misread">
@@ -277,8 +285,8 @@
       </div>
       <div id="exp-stage" class="exp-stage" tabindex="-1"></div>
       <div id="exp-feedback" class="exp-feedback"></div>
-      <button id="exp-absent" class="exp-answer exp-absent" type="button" data-i18n="expAbsent">ない（F・←）</button>
-      <button id="exp-present" class="exp-answer exp-present" type="button" data-i18n="expPresent">ある（J・→）</button>
+      <button id="exp-absent" class="exp-answer exp-absent" type="button"><span class="answer-word" data-i18n="expAbsent">ない</span><span class="answer-keys" data-i18n="expAbsentKeys">F・←</span></button>
+      <button id="exp-present" class="exp-answer exp-present" type="button"><span class="answer-word" data-i18n="expPresent">ある</span><span class="answer-keys" data-i18n="expPresentKeys">J・→</span></button>
     </div>
   </dialog>
 </body>

@@ -18,14 +18,14 @@
         + '目の罠を知っておくと、グラフで見せたいことを正しく伝えられ、誤解を招くグラフにも気づけるようになります。',
       introFeaturesHeading: 'この図鑑でできること',
       introFeature1: 'つまみを動かして、物が目立つ条件、まとまって見える条件、手前に見える条件を図で確かめる。',
-      introFeature2: '見せることを目的とする代表例としてグラフを、隠すことを目的とする代表例として迷彩を取り上げる。同じつまみで、両方の小さな図が一緒に変わるのを見比べる。',
+      introFeature2: 'グラフは見せるために、迷彩は隠すために、目の同じ働きを使う。同じ操作で、両方の小さな図が一緒に変わるのを見比べる。',
       introFeature3: '「探す時間」タブで、自分が探すのにかかる時間を測り、研究の値と比べる。',
       introFeature4: '「誤読」タブで、縦軸や面積の見せ方によってグラフが実際と違って見える例を、数で確かめる。',
       introRouteHeading: 'はじめて読むときの順路',
       introRoute1: '「目立つ」タブ「違いの種類と大きさ」',
       introRoute1Note: 'つまみを動かし、1つだけ違う図形が目に入るかを見る。',
       introRoute2: '「探す時間」タブ「図形の数と探す時間」',
-      introRoute2Note: '結合探索にかかる時間を測る。',
+      introRoute2Note: '2つの特徴の組み合わせで探す時間（結合探索）を測る。',
       introRoute3: '「まとまる」タブ「輪郭」',
       introRoute3Note: 'グラフと迷彩の小さな図が、同じつまみで一緒に変わるのを見る。',
       introMore: 'くわしい説明を読む',
@@ -75,6 +75,7 @@
       showNote: '説明のための絵です。',
       linkedTo: 'この図を変える操作：{names}',
       linkedNone: 'いまの設定では、この図は変わりません。',
+      popLinkedNone: '「方向」と「形」の違いは小さな図に描いていないので、いまの設定ではこの図は変わりません。',
       linkedNever: 'この図は、操作しても変わりません。',
       gapHeading: 'グラフと迷彩で対応しない点',
       sourcesHeading: '出典と関連ツール',
@@ -85,11 +86,12 @@
       motionStop: '止める',
       findCover: 'ここを押すと始まります',
       findTime: '{t}秒で見つかりました。1回だけの時間なので、目安として見てください。',
-      findWrong: '押した図形は、探す図形ではありませんでした。探す図形に印を付けました。',
-      findReveal: '答えを見る',
+      findWrong: '押した図形は、探す図形ではありませんでした。押した図形に丸、探す図形に四角の印を付けました。',
+      findReveal: '探す図形を見る',
       findShown: '探す図形に印を付けました。この回の時間は記録しません。',
       findKeyboard: 'キーボードで時間を測るときは、「探す時間」タブの実験を使います（F・Jで答えます）。',
       shapeNotUsed: '形を選んだときは使いません',
+      shapeOnly: '「形」を選んだときだけ押せます',
       cueNeeded: '手がかりが「なし」のときは押せません',
       bottomNeeded: '縦軸の下端が0のときは押せません',
       itemCount: '図形の数',
@@ -125,10 +127,10 @@
       'item.gestalt-contour.howTo': '「輪郭の途切れ」のつまみで丸と四角の輪郭を途切れさせ、「交わり方」で2本の線の交わり方を切り替えます。',
       'item.figure-ground-area.title': '狭いほう・囲まれたほうが図に見える（図と地）',
       'item.figure-ground-area.oneLine': '2つの領域が境目を分け合うと、片方が手前の形（図）、もう片方が背景（地）に見えます。'
-        + '面積が小さいこと、囲まれていることは、図になりやすい要因です。',
+        + '面積が小さいこと、囲まれていることは、手前の形に見えやすくなる要因です。',
       'item.figure-ground-area.howTo': '「色の濃い扇形の割合」のつまみで、2種類の扇形の広さを変えます。',
       'item.figure-ground-symmetry.title': '左右対称と外へのふくらみ（図と地）',
-      'item.figure-ground-symmetry.oneLine': '左右対称な領域や、外にふくらむ領域は、図に見えやすくなります。',
+      'item.figure-ground-symmetry.oneLine': '左右対称な領域や、外にふくらむ領域は、手前の形（図）に見えやすくなります。',
       'item.figure-ground-symmetry.howTo': '「手がかり」で左右対称か外へのふくらみを選び、領域の数を2つか8つにします。「手がかりの側を入れ替える」を押すと、手がかりのある側とない側が入れ替わります。',
       'item.figure-ground-symmetry.short': '左右対称と外へのふくらみ',
       'item.misread-baseline.title': '縦軸の始まり（縦軸の途中の省略）',
@@ -308,7 +310,8 @@
       'popRead.S.uniform': '違いは小さく、周りはそろっています。見つかることもありますが、時間がかかりやすい設定です。',
       'popRead.S.some': '違いは小さく、周りが少しばらついています。探すものは周りに紛れやすい設定です。',
       'popRead.S.mixed': '違いは小さく、周りがばらばらです。探すものは周りのばらつきに埋もれ、見つけにくい設定です。',
-      'popRead.shapeCurve': '丸と四角は、輪郭が曲がっているかどうかが違います。輪郭の曲がりを、探すときの手がかりになる特徴に数える資料もあります。',
+      'popRead.shapeCurve': '丸と四角は、輪郭が曲がっているかどうかが違います。輪郭の曲がりを、探すときの手がかりになる特徴に数える資料もあります。'
+        + '「色」のときと比べて、丸がすぐ目に入るかを確かめてください。',
       'popRead.shapeTL': 'TとLは、2本の線のつなぎ方だけが違います。こうした形は目立ちにくく、図形が増えるほど探す時間が長くなりやすいことが知られています。',
       'asymRead.withLine': 'いまは、線のない丸の中から、線のある丸を探します。線があることは、それだけで目に入りやすい手がかりです。',
       'asymRead.noLine': 'いまは、線のある丸の中から、線のない丸を探します。「線がない」ことは手がかりになりにくく、1つずつ確かめることが多くなります。',
@@ -317,8 +320,9 @@
       'asymRead.both': '線のある丸は{t1}秒、線のない丸は{t2}秒でした。',
       'motionRead.none': 'いまは、どの丸も動きません。「動きの大きさ」を小・中・大にすると、1つの丸だけが動きます。',
       'motionRead.oneStill': '1つの丸だけが止まり、ほかの丸がばらばらに動きます。止まった1つが目に入るかを見てください。',
-      'motionRead.small': '1つの丸だけが少し動きます。止まった丸の中で、動く丸がすぐ目に入るかを見てください。',
-      'motionRead.large': '1つの丸だけが大きく動きます。探そうとする前に目に入りやすくなります。',
+      'motionRead.small': '1つの丸だけが左右に少し動きます。止まった丸の中で、動く丸がすぐ目に入るかを見てください。',
+      'motionRead.medium': '1つの丸だけが左右に動きます。探そうとする前に目に入りやすくなります。',
+      'motionRead.large': '1つの丸だけが左右に大きく動きます。探そうとする前に目に入りやすくなります。',
       'motionRead.allMove': 'ほかの丸も動いています。動くことがその丸だけの違いではなくなるので、目に入りにくくなります。',
       'camoRead.match': '背景と同じ色と大きさの斑点で描いた模様です。物の面は背景になじみますが、三角形の縁では斑点がまっすぐ途切れます。',
       'camoRead.disrupt': '背景に合わせた模様の斑点の一部を縁の上へ移し、樹皮で最も濃い色と最も明るい色に塗ったので、三角形の縁が途切れて見えます。',
@@ -340,16 +344,27 @@
       'contourRead.gapHigh': '輪郭の{p}%が途切れています。まだ丸と四角に見えるか、ばらばらの線に見えるかを比べてください。',
       'contourRead.smooth': '2本の線はなめらかに交わっています。目は、それぞれの線を交わる所の先までまっすぐたどりやすくなります（よい連続）。',
       'contourRead.corner': '2本とも交わる所で折れています。目はなめらかに続くほうへ線をたどるので、実際とは別の組み合わせで線をつないで見てしまうことがあります（よい連続）。',
-      'areaRead.darkNarrow': '色の濃い扇形のほうが狭いので、色の濃い扇形が図（手前の形）に見えやすい並びです。',
-      'areaRead.equal': '2種類の扇形は同じ広さです。どちらが図に見えるかは、入れ替わりやすくなります。',
-      'areaRead.lightNarrow': '色の薄い扇形のほうが狭いので、色の薄い扇形が図に見えやすい並びです。色が濃いか薄いかによらず、狭いほうが図に見えやすいことが知られています。',
-      'symRead.none': '手がかりはありません。どちらの側も、同じくらい図に見えます。',
-      'symRead.symmetric': '左右対称な側が、図に見えやすい並びです。',
-      'symRead.convex2': '外にふくらむ側が、図に見えやすい並びです。100ミリ秒だけ見せた実験では、領域が2つのとき、ふくらむ側を図と答えた割合は57%でした。',
-      'symRead.convex8': '外にふくらむ側が、図に見えやすい並びです。100ミリ秒だけ見せた実験では、領域が8つのとき、ふくらむ側を図と答えた割合は89%でした。',
+      'areaRead.darkNarrow': '色の濃い扇形のほうが狭いので、色の濃い扇形が手前の形（図）に見えやすい並びです。',
+      'areaRead.equal': '2種類の扇形は同じ広さです。どちらが手前の形（図）に見えるかは、入れ替わりやすくなります。',
+      'areaRead.lightNarrow': '色の薄い扇形のほうが狭いので、色の薄い扇形が手前の形（図）に見えやすい並びです。色が濃いか薄いかによらず、狭いほうが手前の形に見えやすい'
+        + 'ことが知られています。',
+      // 左右対称と外へのふくらみ：手がかりを持つのは濃い色の帯（入れ替えると薄い色の帯）
+      'symRead.none': '手がかりはありません。どちらの色の帯も、同じくらい手前の形（図）に見えます。',
+      'symRead.symmetric.dark': '濃い色の帯が左右対称なので、濃い色の帯が手前の形（図）に見えやすい並びです。',
+      'symRead.symmetric.light': '薄い色の帯が左右対称なので、薄い色の帯が手前の形（図）に見えやすい並びです。',
+      'symRead.convex2.dark': '濃い色の帯が外にふくらむので、濃い色の帯が手前の形（図）に見えやすい並びです。ただし、領域が2つでは差が小さく、100ミリ秒だけ見せた'
+        + '実験で、ふくらむ側を手前の形と答えた割合は57%で、半分より少し多い程度でした。',
+      'symRead.convex2.light': '薄い色の帯が外にふくらむので、薄い色の帯が手前の形（図）に見えやすい並びです。ただし、領域が2つでは差が小さく、100ミリ秒だけ見せた'
+        + '実験で、ふくらむ側を手前の形と答えた割合は57%で、半分より少し多い程度でした。',
+      'symRead.convex8.dark': '濃い色の帯が外にふくらむので、濃い色の帯が手前の形（図）に見えやすい並びです。100ミリ秒だけ見せた実験では、領域が8つのとき、ふくらむ'
+        + '側を手前の形と答えた割合は89%でした。',
+      'symRead.convex8.light': '薄い色の帯が外にふくらむので、薄い色の帯が手前の形（図）に見えやすい並びです。100ミリ秒だけ見せた実験では、領域が8つのとき、ふくらむ'
+        + '側を手前の形と答えた割合は89%でした。',
       baseNumbers: '値の比：58÷52＝1.12倍／下端からの高さの比：{r}倍',
       'baseRead.zero': '縦軸は0から始まっています。下端からの高さの比は、値の比と同じ1.12倍です。',
       'baseRead.raised': '縦軸を{b}から始めたので、下端からの高さの比は{r}倍になり、値の比の1.12倍より大きく見えます。',
+      'baseRead.raisedSmall': '縦軸を{b}から始めたので、下端からの高さの比は{r}倍です。値の比の1.12倍との差は{d}で、まだ小さく、見た目もほとんど変わりません。'
+        + '下端を上げるほど、差が大きく見えるようになります。',
       'baseRead.mark': '軸が切れている印を付けても、差が大きく見える傾向は残った、という実験があります。',
       'baseRead.line': '折れ線グラフでも、縦軸の下端を上げるほど差が大きく感じられた、と報告されています。',
       baseCheck: '読むときに確かめること：縦軸がどこから始まっているか',
@@ -378,9 +393,13 @@
       // ===== なぜそうなるか・動かす前に予想する =====
       whyHeading: 'なぜそうなるか',
       predictSummary: '動かす前に予想する',
-      predictChosen: '予想：{choice}。つまみを動かして確かめてください。',
+      predictChosen: '予想：{choice}。問いのとおりに操作して確かめてください。',
+      predictChosenPlay: '予想：{choice}。問いのとおりに切り替えてから「動かす」を押して確かめてください。',
+      predictChosenFrame: '予想：{choice}。問いのとおりに切り替えてから「次のコマ」を押して確かめてください。',
       predictChosenTest: '予想：{choice}。実験をしてから確かめてください。',
       predictReveal: '答えを見る',
+      predictMatch: '予想どおりでした。',
+      predictMismatch: '予想と違いました。',
       predictAnswer: '答え：{choice}',
       'item.popout-feature.why': '色・方向・大きさなどの違いは、どこに目を向けるかを決める手がかりになります。探すものと周りの違いが大きく、周りどうしがそろっているほど、探すものに目が向きやすくなります。',
       'predict.popout-feature.question': '違いの種類が「色」、違いの大きさが「大」のまま、「周りのばらつき」を「そろっている」から「ばらばら」にすると、1つだけ違う図形はどうなりますか。',
@@ -400,49 +419,56 @@
       'predict.popout-motion.choice.b': '目に入りにくくなる',
       'predict.popout-motion.choice.c': '変わらない',
       'predict.popout-motion.explain': 'ほかの丸も同じ「中」の大きさでそれぞれ違う方向に動き、色と形もすべて同じなので、左右に動く丸だけを見分ける手がかりがほとんど残りません。研究では、周りで動く物の模様が探す物と違えば、周りが動いていても速く見分けられました。',
-      'item.search-time.why': '1つの特徴だけで違う棒には、その特徴がすぐ目を向けさせます。2つの特徴の組み合わせで違う棒は、片方の特徴で探す範囲を絞れても、その中でもう片方が合うかを確かめる手間が残るので、図形が増えるほど時間が延びやすくなります。',
+      'item.search-time.why': '1つの特徴だけで違う図形には、その特徴がすぐ目を向けさせます。2つの特徴の組み合わせで違う図形は、片方の特徴で探す範囲を絞れても、'
+        + 'その中でもう片方が合うかを確かめる手間が残るので、図形が増えるほど時間が延びやすくなります。',
       'predict.search-time.question': '結合探索で、探す棒が「ない」回と「ある」回を比べると、図形が1つ増えるごとに延びる時間（傾き）はどうなりますか。',
       'predict.search-time.choice.a': '「ある」回のほうが大きい',
       'predict.search-time.choice.b': '「ない」回のほうが大きい',
       'predict.search-time.choice.c': 'どちらも同じくらい',
       'predict.search-time.explain': '研究では「ない」回の傾きのほうが大きく、結合探索で図形1つあたり「ある」は28.7ミリ秒、「ない」は67.1ミリ秒でした（Treisman & Gelade 1980）。探す棒がないときは、'
         + 'ないと決めて探すのをやめるまでに時間がかかるためと説明されています。',
-      'item.search-camo.why': '背景に合わせた模様は目を引く特徴と縁を減らし、縁にかかる模様は偽の縁を作って本当の輪郭を見つけにくくします。左右対称の並びは生き物に多く背景には少ないので、見つける手がかりになります。',
+      'item.search-camo.why': '背景に合わせた模様は目を引く特徴と縁を減らし、縁にかかる模様は本当はない縁を作って、本当の輪郭を見つけにくくします。左右対称の並びは'
+        + '生き物に多く背景には少ないので、見つける手がかりになります。',
       'predict.search-camo.question': '3つの模様のうち、見つけるまでに最も時間がかかるのはどれですか。',
       'predict.search-camo.choice.a': '背景に合わせた模様',
       'predict.search-camo.choice.b': '輪郭を途切れさせる模様',
       'predict.search-camo.choice.c': '左右対称の模様',
-      'predict.search-camo.explain': '人が画面で探した実験では、縁に模様を付けた的に最も時間がかかりました（Fraser et al. 2007）。左右対称の模様は、鳥の野外実験で、非対称の模様より食べられやすくなりました（Cuthill, Hiby & Lloyd 2006）'
-        + '。',
+      'predict.search-camo.explain': '縁にかかる模様は、本当はない縁を作って、本当の輪郭を見つけにくくします。人が画面で探した実験では、縁に模様を付けた的に最も時間が'
+        + 'かかりました（Fraser et al. 2007）。左右対称の模様は、鳥の野外実験で、非対称の模様より食べられやすくなりました（Cuthill, Hiby & Lloyd 2006）。',
       'item.gestalt-proximity-similarity.why': 'まとまって見える働きは、何を1つの物や部分として見るかを決めています。自然の写真の輪郭を調べた研究では、近いことが最も強い手がかりで、似ていることも手がかりになっていました。',
       'predict.gestalt-proximity-similarity.question': '「点の間隔」を「縦横で同じ」から「横がとても狭い」にすると、点はどうまとまって見えますか。',
       'predict.gestalt-proximity-similarity.choice.a': '行ごとにまとまる',
       'predict.gestalt-proximity-similarity.choice.b': '列ごとにまとまる',
       'predict.gestalt-proximity-similarity.choice.c': 'どちらにもまとまらない',
-      'predict.gestalt-proximity-similarity.explain': '「横がとても狭い」では、横に並んだ点の間隔が、縦に並んだ点の間隔の半分より狭くなります（0.6対1.4）。形はすべて丸のままなので、まとまりを作っているのは間隔だけです。',
+      'predict.gestalt-proximity-similarity.explain': '「横がとても狭い」では、横に並んだ点の間隔が、縦に並んだ点の間隔の半分より狭くなります（横の間隔0.6に'
+        + '対して、縦の間隔1.4）。形はすべて丸のままなので、まとまりを作っているのは間隔だけです。',
       'item.gestalt-region-connection.why': '同じ枠の中にあるもの（ヒョウの斑点や顔の部品など）は1つの物の表面にあることが多く、つながっているものは1つの物の部分として一緒に動くことが多い、という理由が挙げられています。',
       'predict.gestalt-region-connection.question': '「囲む・つなぐ」を「なし」から「隣り合う組の点を枠で囲む」にすると、枠で囲んだ2つの点はどう見えますか。',
       'predict.gestalt-region-connection.choice.a': '1つの組に見えやすくなる',
       'predict.gestalt-region-connection.choice.b': '近い点どうしの組のまま変わらない',
       'predict.gestalt-region-connection.choice.c': '8つの点が1つにまとまる',
       'predict.gestalt-region-connection.explain': '枠で囲んだ2つの点は、近さで組になった2つの点より2倍以上離れています。近さだけで決まるなら、この2つが組に見えることはありません。',
-      'item.gestalt-contour.why': '目は、明るさや色が急に変わる所を縁として拾い、なめらかに続く縁や閉じる縁を1つの輪郭にまとめます。縁にかかる模様は偽の縁を作るので、本当の輪郭が見つかりにくくなります。',
+      'item.gestalt-contour.why': '目は、明るさや色が急に変わる所を縁として拾い、なめらかに続く縁や閉じる縁を1つの輪郭にまとめます。縁にかかる模様は本当はない縁を'
+        + '作るので、本当の輪郭が見つかりにくくなります。',
       'predict.gestalt-contour.question': '「交わり方」を「なめらかに交わる」から「交わる所で折れる」にすると、左上の端から出た線は、右のどちらの端につながりますか。',
       'predict.gestalt-contour.choice.a': '右上の端',
       'predict.gestalt-contour.choice.b': '右下の端',
       'predict.gestalt-contour.explain': '折れる形では、左上から来た線は真ん中で折れて、右上の端へ戻ります。2本が同じ色で端の印も同じなら、まっすぐ交わる2本と同じ絵になり、どちらなのか見分けられません。',
-      'item.figure-ground-area.why': '境目は片方の領域の輪郭として見え、その側が手前の図になります。人が写真の中で物と背景を分けた結果を調べると、物の側は背景の側より狭いことが多くありました。',
-      'predict.figure-ground-area.question': '「色の濃い扇形の割合」を50%から30%にすると、図（手前の形）に見えやすいのはどちらの扇形ですか。',
+      'item.figure-ground-area.why': '境目は片方の領域の輪郭として見え、その側が手前の形（図）になります。人が写真の中で物と背景を分けた結果を調べると、物の側は背景の側より'
+        + '狭いことが多くありました。',
+      'predict.figure-ground-area.question': '「色の濃い扇形の割合」を50%から30%にすると、手前の形（図）に見えやすいのはどちらの扇形ですか。',
       'predict.figure-ground-area.choice.a': '色の濃い扇形',
       'predict.figure-ground-area.choice.b': '色の薄い扇形',
       'predict.figure-ground-area.choice.c': 'どちらも同じ',
-      'predict.figure-ground-area.explain': '30%では、色の濃い扇形1つが27度、薄い扇形1つが63度で、濃いほうが狭くなります。70%にすると、こんどは薄い扇形が27度で狭くなり、図に見えやすい側が入れ替わります。',
+      'predict.figure-ground-area.explain': '30%では、色の濃い扇形1つが27度、薄い扇形1つが63度で、濃いほうが狭くなります。70%にすると、こんどは薄い扇形が27度で狭くなり、'
+        + '手前の形に見えやすい側が入れ替わります。',
       'item.figure-ground-symmetry.why': '人が写真の中で物と背景を分けた結果を調べると、物の側は外へふくらんでいることが多くありました。左右対称の並びも、生き物には多く、背景には少ないものです。',
-      'predict.figure-ground-symmetry.question': '「手がかり」を「なし」から「左右対称」にすると、どちらの側が図に見えやすくなりますか。',
+      'predict.figure-ground-symmetry.question': '「手がかり」を「なし」から「左右対称」にすると、どちらの側が手前の形（図）に見えやすくなりますか。',
       'predict.figure-ground-symmetry.choice.a': '左右対称な側',
       'predict.figure-ground-symmetry.choice.b': '左右対称でない側',
       'predict.figure-ground-symmetry.choice.c': 'どちらの側も変わらない',
-      'predict.figure-ground-symmetry.explain': '2つの領域を短い時間だけ見せた実験では、左右対称な側を図と答えた割合が約4分の3でした。ただし、外へのふくらみと競わせると、左右対称の手がかりのほうが弱くなります。',
+      'predict.figure-ground-symmetry.explain': '2つの領域を短い時間だけ見せた実験では、左右対称な側を手前の形と答えた割合が約4分の3でした。ただし、外へのふくらみと競わせると、'
+        + '左右対称の手がかりのほうが弱くなります。',
       'item.misread-baseline.why': '人は、図の上で見える差から差の大きさを感じ取ります。値を正しく読めた人でも差を大きく感じ、軸が切れている印を付けても、その傾向は残りました。',
       'predict.misread-baseline.question': '「縦軸の下端」を40から50に上げると、6月の棒の高さは4月の棒の何倍になりますか。',
       'predict.misread-baseline.choice.a': '約1.12倍（値の比と同じ）',
@@ -481,12 +507,13 @@
       checkFictional: '架空の値',
       checkBookstoreTitle: '架空の書店の販売冊数（百冊）',
       'check.popout-color-bars.title': '8本の棒グラフ',
-      'check.popout-color-bars.desc': '8本の棒グラフ。左から4本目がいちばん高く、ほかと違う色で塗ってある。ほかの7本も、3つの色が順に入れ替わる。',
-      'check.popout-color-bars.question': '左から4本目の棒（いちばん高い棒）だけをほかと違う色にしたのに、この図でその棒が目立ちにくい主な理由はどれですか。',
+      'check.popout-color-bars.desc': '8本の棒グラフ。左から4本目がいちばん高く、ほかと違う色で塗ってある。ほかの7本も、6つの色に分かれている。',
+      'check.popout-color-bars.question': '左から4本目の棒（いちばん高い棒）だけをほかと違う色にしたのに、この図でその棒がそれほど目立たない主な理由はどれですか。',
       'check.popout-color-bars.choice.a': 'ほかの棒どうしも色が違う',
       'check.popout-color-bars.choice.b': '棒が8本と多い',
-      'check.popout-color-bars.choice.c': '4本目の棒がほかより低い',
-      'check.popout-color-bars.explain': 'ほかの7本は3つの色に分かれているので、4本目の色は、4つある色の1つにすぎません。ほかの7本を1つの色にそろえれば、同じ8本のままでも、色が違うのは4本目だけになります。',
+      'check.popout-color-bars.choice.c': '棒と棒の間が狭い',
+      'check.popout-color-bars.explain': 'ほかの7本も6つの色に分かれているので、4本目の色は、7つある色の1つにすぎません。ほかの7本を1つの色にそろえれば、同じ8本のままでも、'
+        + '色が違うのは4本目だけになります。',
       'check.popout-added-line.title': '迷彩の絵2つ',
       'check.popout-added-line.desc': '迷彩の絵2つ。どちらも、丸い斑点の背景の真ん中に、背景より少しだけ色の違う楕円の物がある。背景と物はAとBで同じで、Bだけ物の上に濃いまっすぐな線が1本引いてある。',
       'check.popout-added-line.question': 'AとBの迷彩の絵で、Bの物のほうが見つけやすい理由はどれですか。',
@@ -523,9 +550,10 @@
       'check.gestalt-edge-spots.explain': '斑点が背景の斑点と同じ色なので、縁にかかった所は背景の模様の続きに見え、物の輪郭がそこで途切れます。人が画面で探した実験では、背景に合わない黒の模様を付けた的は、最も早く見つかりました（Fraser et al. 2007）。',
       'check.figure-ground-markers.title': '同じ12個の点の散布図2つ',
       'check.figure-ground-markers.desc': '同じ12個の点の散布図2つ。Aの点の印は、閉じていない、いびつな折れ線。Bの点の印は、塗りつぶした、外へふくらむ六角形に近い形。',
-      'check.figure-ground-markers.question': '同じ12個の点を違う印で描いたAとBのうち、図に見えやすい手がかりを持つ印はどちらですか。',
+      'check.figure-ground-markers.question': '同じ12個の点を違う印で描いたAとBのうち、手前の形（図）に見えやすい手がかりを持つ印はどちらですか。',
       'check.figure-ground-markers.choice.same': 'どちらも同じ',
-      'check.figure-ground-markers.explain': 'Bの印は閉じていて外へふくらむ形なので、図に見えやすい手がかりを持っています。Aの印は閉じていない折れ線なので、囲まれた領域がなく、図になる形がありません。',
+      'check.figure-ground-markers.explain': 'Bの印は閉じていて外へふくらむ形なので、手前の形に見えやすい手がかりを持っています。Aの印は閉じていない折れ線なので、囲まれた領域が'
+        + 'なく、手前の形に見える部分がありません。',
       'check.figure-ground-mirror.title': '迷彩の絵2つ',
       'check.figure-ground-mirror.desc': '迷彩の絵2つ。どちらも、丸い斑点の背景に大きな楕円の物があり、物の左半分と右半分に大きな斑点が4つずつある。左半分の斑点はAとBで同じ。Aは右半分の斑点が左半分と別の並びで、Bは右半分が左半分の鏡写し（左右対称）になっている。',
       'check.figure-ground-mirror.question': '物の右半分の模様だけが違うAとBのうち、鳥の野外実験で食べられやすかったのは、どちらの作り方ですか。',
@@ -533,7 +561,7 @@
       'check.figure-ground-mirror.explain': 'Bの物は、右半分の斑点が左半分を鏡に写した並びになっています。鳥の野外実験では、このように模様を左右対称にした的が非対称の的より食べられやすく、'
         + '5日間で生き残る確率が6〜15%低くなりました（Cuthill, Hiby & Lloyd 2006）。',
       'check.misread-value-ratio.title': '架空の書店の販売冊数の棒グラフ',
-      'check.misread-value-ratio.desc': '架空の書店の販売冊数の棒グラフ。縦軸は45から60まで（百冊）で、目盛りは45・50・60。棒の値は4月が50、5月が55、6月が60。',
+      'check.misread-value-ratio.desc': '架空の書店の販売冊数の棒グラフ。縦軸は45から60まで（百冊）で、目盛りは45・50・55・60。棒の値は4月が50、5月が55、6月が60。',
       'check.misread-value-ratio.question': '縦軸が45から始まるこの棒グラフで、6月の値は4月の値の何倍ですか。',
       'check.misread-value-ratio.choice.a': '3倍',
       'check.misread-value-ratio.choice.b': '2倍',
@@ -570,8 +598,11 @@
       asymGap: '迷彩には「特徴がないことで見つけさせる」使い道がありません。迷彩でできるのは「目立つ特徴を足さない」ことだけです。',
       motionShow: '1か所だけ印を動かすと、そこへ目が向きます。ほかの印も動いていると、どこを見ればよいかわからなくなるので、動きは見てほしい1か所だけに使います。',
       motionHide: '背景によく似た模様の物も、動くと見つかりやすくなります。人が画面で動く的を探した実験では、止まった的のおよそ10分の1の時間で見つかりました。似た模様の物がほかにも動いていると、どれが探す物かを見分けるのに時間がかかりました。',
-      searchShow: '凡例の「青の破線」のように、色と線の種類の組み合わせで系列を探させると、結合探索になります。線の端に系列の名前を書けば、探さずに済みます。',
-      searchGap: '迷彩の研究で結合探索にあたる例は、今回の調査では確かめられませんでした。',
+      // 結合探索の形（既定）と特徴探索の形
+      searchShow: '凡例の「B」は青の破線です。青の線もほかの破線もあるので、色と線の種類の組み合わせで探すことになります（結合探索）。線の端に系列の名前を'
+        + '書けば、探さずに済みます。',
+      searchShowFeature: '凡例の「B」は、青の線が1本だけなので、色だけで見つかります（特徴探索）。線の端に系列の名前を書けば、凡例と見比べずに済みます。',
+      searchGap: '迷彩の研究で結合探索にあたる例は、このツールを作るときに調べた範囲では見つかりませんでした。',
       camoGapHeading: '研究の実験と違う点',
       camoGap: '画面の模様は本物の樹皮や蛾ではなく、鳥が探した野外の実験とも違います。見つけるまでの時間は、画面の大きさや明るさ、押し方でも変わるので、'
         + '研究の時間の値とは並べていません。',
@@ -581,11 +612,14 @@
       regionShow: '期間を背景の帯で囲むと、ひとまとまりに読めます。散布図の点を線でつなぐと、点に順番があるように見えます。',
       regionHide: '物を囲む線があると、物の模様が1つにまとまり、背景から分かれて見えます。輪郭を途切れさせる模様（分断色）はその逆で、本当の輪郭を見つけにくくします。',
       regionGap: '迷彩の研究で、共通領域や連結性を取り上げた例は見つかりませんでした。迷彩の図は、物を囲む線があると物が目立つことを示すための絵です。',
-      contourShow: '0%の図のように、データが欠けた月をまたいで線を結ぶと、ないデータがあるように見えます。そこで0%より上では、欠けた月を薄い帯で示して線を切り、値を上げるほど欠けた月を増やします。線が途切れたり交わったりすると、どこが同じ線かを目で追いにくくなるので、線の種類を変え、'
-        + '線の端に名前を付けて、どちらの線かわかるようにします。',
+      // 輪郭の途切れが0%のとき（欠けた月をまたいで線を結ぶ）と、0%より上のとき（欠けた月で線を切る）
+      contourShow0: 'いまは、データが欠けた9月と10月をまたいで線を結んでいるので、ないデータがあるように見えます。線の種類と線の端の名前で、交わっても'
+        + 'どちらの線かがわかります。',
+      contourShowGap: '丸と四角の輪郭と同じく、グラフの線も欠けた月で途切れます。欠けた月は薄い帯で示し、「輪郭の途切れ」を上げるほど増やします。線の種類と'
+        + '線の端の名前で、途切れてもどちらの線かがわかります。',
       contourHide: '縁にかかる模様で輪郭が途切れると、物の形を見つけにくくなります（分断色）。縁に模様を付けた的（ガの形の紙にえさを付けたもの）は、鳥に食べられにくかった、という野外実験があります。',
       areaShow: '棒が細くすき間が広いと、棒の形がデータとして目に入ります。棒を太くしてすき間を狭くすると、すき間のほうが形として目に入ることがあります。',
-      areaHide: '物が小さく、背景に囲まれているほど、図に見える条件がそろいます。',
+      areaHide: '物が小さく、背景に囲まれているほど、手前の形（図）に見える条件がそろいます。',
       areaGap: '迷彩で隠す物は、もともと背景より狭く、背景に囲まれています。迷彩では面積を変えにくいので、境目の手がかり（色の差や輪郭）を減らします。',
       symShow: '散布図の点の印を、閉じた左右対称の形にすると、背景から分かれて読みやすくなります。',
       symHide: '「左右対称」を選ぶと、物の模様が左右対称になります。模様が左右対称な的は、鳥に食べられやすかった、という野外実験があります。迷彩では、模様の左右対称を避けます。',
@@ -607,7 +641,8 @@
       areaReadable: '棒の長さで比べると、値の比をそのまま読めます。',
       dualReadable: '気温と雨の量を別々のグラフに分けると、線の交わりのような見かけの関係が出ません。値は、それぞれのグラフの縦軸で読めます。',
       aspectReadable: '24か月の全体を、縦横の比1で描いた形です。全体では増え、最後の数か月は減った、という流れが見えます。',
-      lightShow: '色の濃さで値を表すグラフでは、同じ値のマスでも、周りのマスの色によって違う値に見えます。この影響は知っていても補正しきれないので、値を正しく読ませたいときは、マスに数を書き添えます。',
+      lightShow: '色の濃さで値を表すグラフでは、同じ値のマスでも、周りのマスの色によって違う値に見えます。この見え方は、知っていても目では直しきれないので、'
+        + '値を正しく読ませたいときは、マスに数を書き添えます。',
       lightHide: '物と背景の明るさの差は、物の縁を見つける手がかりになります。背景の明るさがまちまちな所では、物の明るさを片方に合わせても、もう片方との境で縁が見えてしまいます。',
 
       // ===== 探す時間のタブと実験の枠 =====
@@ -628,15 +663,19 @@
       expDuration: '1回は練習8回と本番32回で、約1分半かかります。',
       expReplace: '同じ探し方を測り直すと、前の結果は新しい結果に置き換わります。',
       expTitle: '{search}（{set}）',
-      expInstr: '図が出たら、探す棒があるかどうかを、できるだけ速く、正確に答えます。ある＝J・→・右のボタン、ない＝F・←・左のボタン。',
-      expReader: 'この実験は、目で探す時間を測るものです。画面の読み上げでは試せませんが、結果の表は読み上げられます。',
+      expInstr: '図が出たら、探す棒があるかどうかを、できるだけ速く、正確に答えます。探す棒があれば右の「ある」、なければ左の「ない」を押します。',
+      // キーの文と答えのボタンのキー：キーボードとマウスを使う画面（hover: hover かつ pointer: fine）だけに出す
+      expKeys: 'キーボードでは、あればJか→、なければFか←を押します。',
+      expReader: '画面を音声で読み上げる機能では、この実験は試せません。結果の表は読み上げられます。',
       expStart: '始める',
       expPractice: '練習{i}／8',
       expMain: '本番{i}／32',
       expPracticeDone: '練習が終わりました。ここから記録します。',
       expContinue: '続ける',
-      expAbsent: 'ない（F・←）',
-      expPresent: 'ある（J・→）',
+      expAbsent: 'ない',
+      expAbsentKeys: 'F・←',
+      expPresent: 'ある',
+      expPresentKeys: 'J・→',
       fbCorrect: '○ {t}秒',
       fbMiss: '× 探す棒はありました',
       fbFalse: '× 探す棒はありませんでした',
@@ -685,15 +724,16 @@
       resCmpLarger: '「ない」の傾きは、結合探索のほうが{d}ミリ秒大きくなりました。組み合わせでしか見分けられない棒は、図形が増えるほど探す時間が長くなりやすい、という研究の結果と同じ傾向です。',
       resCmpSimilar: '「ない」の傾きは、2つの探し方で同じくらいでした。回数が少ないと結果はぶれます。もう一度測ると変わることがあります。',
       resCmpSmaller: '今回は、「ない」の傾きが特徴探索のほうで大きくなりました。回数が少ないと結果はぶれます。順番を入れ替えて測り直すと比べやすくなります。',
-      resRatioNone: '{search}では、「ある」の傾きが1ミリ秒未満なので、「ない」との比は出しません。',
-      resRatioLow: '{search}では、「ない」の傾きが「ある」より小さくなりました（{r}倍）。',
+      resRatioNone: '{search}では、「ある」の傾きが1ミリ秒未満なので、「ない」の傾きが「ある」の何倍かは出しません。',
+      resRatioLow: '{search}では、「ない」の傾きが「ある」の{r}倍で、「ある」より小さくなりました。',
       resRatioZeroOrLess: '{search}では、「ない」の傾きが「ある」より小さくなりました。',
       resRatioMid: '{search}では、「ない」の傾きが「ある」の{r}倍でした。研究では2倍より少し大きいことが多く、ふつうは3倍より小さい値です。',
       resRatioTypical: '{search}では、「ない」の傾きが「ある」の{r}倍で、研究でよく見られる2〜3倍の範囲にあります。',
       resRatioHigh: '{search}では、「ない」の傾きが「ある」の{r}倍で、研究でよく見られる2〜3倍より大きくなりました。',
-      resNegative: '傾きがマイナスになった行があります。回数が少ないと、本来は平らな線が少し右下がりになることもあります。',
-      resNoSlope: '「{row}」は、真ん中の値を出せた図形の数が3つ未満なので、傾きを出しません。',
-      resNoSlopeMany: '{rows}は、真ん中の値を出せた図形の数が3つ未満なので、傾きを出しません。',
+      resNegative: '傾きがマイナスになった表の行があります。回数が少ないと、本来は平らな線が少し右下がりになることもあります。',
+      resNoSlope: '「{row}」は、表の4つの列（3個・6個・12個・18個）のうち、真ん中の値が出た列が3つに届かないので、傾きを出しません。',
+      resNoSlopeMany: '{rows}は、表の4つの列（3個・6個・12個・18個）のうち、真ん中の値が出た列が3つに届かないので、傾きを出しません。',
+      resNoSlopeWhy: '真ん中の値は、正しく答えた回が3回以上ある列にだけ出ます。早すぎた回や時間切れ、押し間違いが多いと「－」になります。',
       resRowQuoted: '「{row}」',
       resPartial: '途中で止めたので、測れた所までを出しています。',
       resMixed: 'キーでの答えと、タッチ（またはマウス）での答えがまざっています。反応の遅れが違うので、どちらかにそろえて測り直すと比べやすくなります。',
@@ -701,8 +741,8 @@
       resErrorsBoth: '押し間違いは、特徴探索が{fn}回（{fp}%）、結合探索が{cn}回（{cp}%）でした。急ぐと間違いが増えるので、間違えない程度の速さで答えてください。',
       resCoarse: 'このブラウザーは、時刻を約{g}ミリ秒単位で丸めています。傾きは出せますが、ぶれが大きくなります。',
       resDevice: '端末による遅れは、線の高さを変えますが、傾きはほとんど変えません。ほかの端末で測った結果とは、線の高さを比べられません。',
-      resLimits: '1人が32回測った結果は、ぶれが大きくなります。研究の値と比べるときは、傾きと、「ない」と「ある」の傾きの比だけを見てください。',
-      resRefHeading: '研究の値（参考）。図形も表示の大きさも違うので、傾きと比だけを比べます。',
+      resLimits: '1人が32回測った結果は、ぶれが大きくなります。研究の値と比べるときは、傾きと、「ない」の傾きが「ある」の傾きの何倍かだけを見てください。',
+      resRefHeading: '研究の値（参考）。研究とは図形も表示の大きさも違うので、比べるのは傾きと、「ない」の傾きが「ある」の傾きの何倍かだけです。',
       resRowFeatureYes: '特徴・ある',
       resRowFeatureNo: '特徴・ない',
       resRowConjYes: '結合・ある',
@@ -712,7 +752,8 @@
       resColExcluded: '除いた回数',
       resTableMedian: '真ん中の値（ミリ秒）',
       resTableSlope: '傾き・正答率・除いた回数',
-      resExcludedNote: '除いた回数は、早すぎた回・時間切れの回・押し間違えた回の合計です。真ん中の値と傾きには使っていません。',
+      resExcludedNote: '除いた回数は、早すぎた回・時間切れの回・押し間違えた回の合計です。真ん中の値と傾きには使っていません。早すぎた回は同じ回をやり直す'
+        + 'ので、1つの探し方の除いた回数を足すと、本番の32回より多くなることがあります。',
       resSets: '測った特徴の組：{list}',
       resSetItem: '{search}＝{set}',
       resSetsDiffer: '特徴の組が違うので、同じ組で測り直すと比べやすくなります。',
@@ -726,7 +767,7 @@
       resLegend: '凡例',
       resRefTreisman: 'Treisman & Gelade 1980',
       resRefWolfe: 'Wolfe 1998',
-      resRefNote: 'Treisman & Gelade 1980は、文字の刺激で測った値です。Wolfe 1998は、約100万回の平均を図5から読んだ概数です。',
+      resRefNote: 'Treisman & Gelade 1980は、文字を探す実験で測った値です。Wolfe 1998は、約100万回の実験の平均を、論文のグラフから読み取ったおおよその値です。',
       resApprox: '約{v}',
       searchMeasureHeading: '測る',
       searchReadHeading: '見方',
@@ -745,10 +786,11 @@
       camoTableMedian: '真ん中の値と有効な回',
       camoTableMisses: '見つからなかった回と違う場所を押した回',
       camoValidNote: '有効な回は、正しい場所を0.2秒以上10秒未満で押した回です。真ん中の値は、有効な回が3回以上ある模様だけに出します。',
-      camoResLonger: '「{pattern}」は、背景に合わせた模様より{d}秒長くかかりました。',
-      camoResShorter: '「{pattern}」は、背景に合わせた模様より{d}秒早く見つかりました。',
-      camoResSimilar: '「{pattern}」と背景に合わせた模様では、はっきりした差はありませんでした。',
+      camoResLonger: '「{pattern}」は、「背景に合わせた模様」より{d}秒長くかかりました。',
+      camoResShorter: '「{pattern}」は、「背景に合わせた模様」より{d}秒早く見つかりました。',
+      camoResSimilar: '「{pattern}」と「背景に合わせた模様」では、はっきりした差はありませんでした。',
       camoResFew: '有効な回が3回に届かない模様があるので、その模様の真ん中の値は出していません。',
+      camoResEarly: '早すぎて数えなかった回が{n}回ありました。早すぎた回は1回だけやり直し、やり直しも早すぎたときは数えません。',
       camoResPartial: '途中で止めたので、測れた回までを出しています。',
       camoResearchHeading: '研究で知られていること',
       camoResearch: '人が画面で探した実験では、背景に合わせたうえで縁に模様を付けた的が、見つかる数が最も少なく、見つけるまでの時間も最も長く'
@@ -762,11 +804,13 @@
       helpFirst: 'はじめて読むとき',
       helpTabHelp: 'ヘルプ',
       helpTabGlossary: '用語集',
-      helpFirstText: 'まず「目立つ」タブの「違いの種類と大きさ」でつまみを動かします。次に「探す時間」タブで結合探索にかかる時間を測ります。最後に「まとまる」タブの「輪郭」で、グラフと迷彩の小さな図が一緒に変わるのを見ます。',
+      helpFirstText: 'まず「目立つ」タブの「違いの種類と大きさ」でつまみを動かします。次に「探す時間」タブで、2つの特徴の組み合わせで探す時間（結合探索）'
+        + 'を測ります。最後に「まとまる」タブの「輪郭」で、グラフと迷彩の小さな図が一緒に変わるのを見ます。',
       'helpKey.tabs': 'タブと項目は、押して選ぶ。タブは、キーボードの←→でも切り替えられる。',
       'helpKey.slider': 'つまみは、指かマウスで動かす。キーボードでは←→で動かす。',
       'helpKey.experiment': '探す実験では、探す棒があればJか→、なければFか←を押す。迷彩の実験では、矢印キーで場所を選び、EnterかSpaceで押す。Escで中断する。',
-      helpAbout: 'この図鑑は学習用です。探す実験の記録はこのページの中だけにあり、保存も送信もしません。点滅する表示や、ひとりでに動く表示は使っていません。色の違いを使う図には、色を使わない切り替えを付けています。',
+      helpAbout: 'この図鑑は学習用です。探す実験と迷彩の実験の記録はこのページの中だけにあり、保存も送信もしません。点滅する表示や、ひとりでに動く表示は'
+        + '使っていません。色の違いを使う図には、色を使わない切り替えを付けています。',
       glossLead: '用語を、主に出てくるタブごとに分けています。',
       glossExpertLabel: '専門用語',
       'glossGroup.all': '全体',
@@ -822,7 +866,7 @@
       termBackgroundMeaning: '物の色や模様を、周りの背景に似せる迷彩',
       termDisruptive: '輪郭を途切れさせる模様',
       termDisruptiveExpert: '分断色',
-      termDisruptiveMeaning: '偽の縁を見せ、本当の輪郭を見つけにくくする模様（Stevens & Merilaita 2009の定義）',
+      termDisruptiveMeaning: '本当はない縁を見せ、本当の輪郭を見つけにくくする模様（Stevens & Merilaita 2009の定義）',
       termMasquerade: '別の物に見せる',
       termMasqueradeExpert: '擬態（マスカレード）',
       termMasqueradeMeaning: '見つかっても、別の物（枝や葉など）と思わせる迷彩',
@@ -871,12 +915,20 @@
       termLightnessContrastMeaning: '同じ明るさの面が、周りが暗いと明るく、周りが明るいと暗く見えること',
       termFixation: '注視点',
       termFixationMeaning: '図が出る前に見ておく印（＋）',
+      termLegend: '凡例',
+      termLegendMeaning: 'グラフで、どの色や線の種類がどの系列を表すかを示した見本',
+      termSeries: '系列',
+      termSeriesMeaning: 'グラフで、1本の線や1種類の印で描く、ひとまとまりの値',
+      termScatter: '散布図',
+      termScatterMeaning: '2つの値の組を、横と縦の位置で1つの点として描いたグラフ',
+      termMothTarget: '的',
+      termMothTargetMeaning: '迷彩の実験で探させる物。野外の実験では、ガの形の紙にえさを付けたもので、鳥に探させる。画面の実験では、似た形を画面に出し、人に探させる',
 
       // ===== 関連ツール =====
-      relDay101: '色の差とコントラスト比は「無彩色」タブ、色覚多様性と色だけに頼らない設計、色の錯覚効果は「雑学」タブ',
+      relDay101: '色の差とコントラスト比は「無彩色」タブ、色の見え方の違い（色覚多様性）・色だけに頼らない設計・色の錯覚効果は「雑学」タブ',
       relDay085: '実際の模様で、背景へのなじみを確かめる（「環境適合性チェック」タブ）',
       relDay070: '重ねた2枚の黒と灰の違いを、目が文字（図）として読む',
-      relDay075: 'ゆがめた文字を、目は閉合とよい連続で読む',
+      relDay075: 'CAPTCHA（人かプログラムかを見分けるための、ゆがめた文字）を、目は閉合とよい連続で読む',
       relDay125: '重ねて目で読む。重ねた白は50%の灰で、コントラストが半分になる',
 
       // ===== 画面の枠（見出しのボタンの組・タブの列・ヘルプの見出し・出典の並び） =====
@@ -927,15 +979,15 @@
         + 'say what you mean and spot charts that mislead.',
       introFeaturesHeading: 'What you can do here',
       introFeature1: 'Move the controls to see when something stands out, looks like a group, or looks like the shape in front.',
-      introFeature2: 'Charts stand for uses that aim to show, and camouflage for uses that aim to hide. Watch one set of controls change a small chart and a '
-        + 'small camouflage scene together.',
+      introFeature2: 'Charts use the habits of the eye to show, and camouflage uses the same habits to hide. Watch one set of controls change a small chart '
+        + 'and a small camouflage scene together.',
       introFeature3: 'In the Search time tab, measure how long you take to find a target and compare it with research values.',
       introFeature4: 'In the Misreading tab, check with numbers how the vertical axis or area can make a chart look different from the data.',
       introRouteHeading: 'Where to start',
       introRoute1: 'Pop out tab: Kind and size of the difference',
       introRoute1Note: 'Move the controls and see whether the one different shape catches your eye.',
       introRoute2: 'Search time tab: Number of items and search time',
-      introRoute2Note: 'Measure how long conjunction search takes you.',
+      introRoute2Note: 'Measure how long it takes you to search by a combination of two features (conjunction search).',
       introRoute3: 'Grouping tab: Contours',
       introRoute3Note: 'Watch the small chart and the camouflage picture change together with the same controls.',
       introMore: 'Read more',
@@ -988,6 +1040,7 @@
       showNote: 'This is an illustration.',
       linkedTo: 'Changes with: {names}',
       linkedNone: 'With the current settings, this figure does not change.',
+      popLinkedNone: 'The small figures do not draw Direction or Shape, so this one does not change.',
       linkedNever: 'This figure does not change with the controls.',
       gapHeading: 'Where charts and camouflage do not match',
       sourcesHeading: 'Sources and related tools',
@@ -998,11 +1051,12 @@
       motionStop: 'Stop',
       findCover: 'Tap here to start',
       findTime: 'Found in {t} s. A single time is only a rough guide.',
-      findWrong: 'That was not the different shape. The different shape is now marked.',
-      findReveal: 'Show the answer',
+      findWrong: 'That was not the shape to find. A circle marks the one you tapped, a square the one to find.',
+      findReveal: 'Show the target',
       findShown: 'The shape to find is now marked. This try is not timed.',
       findKeyboard: 'With a keyboard, use the experiment in the Search time tab to measure your time (answer with F and J).',
       shapeNotUsed: 'Not used for shape',
+      shapeOnly: 'Available only for Shape',
       cueNeeded: 'Not available while the cue is None',
       bottomNeeded: 'Not available while the axis starts at 0',
       itemCount: 'Number of items',
@@ -1041,10 +1095,10 @@
         + 'cross.',
       'item.figure-ground-area.title': 'The smaller, enclosed region becomes the figure (figure and ground)',
       'item.figure-ground-area.oneLine': 'When two regions share a border, one looks like a shape in front (figure) and the other like the background '
-        + '(ground). A small area and being enclosed are factors that make a region tend to become the figure.',
+        + '(ground). A small area and being enclosed are factors that make a region tend to look like the shape in front.',
       'item.figure-ground-area.howTo': 'Use "Share of dark wedges" to change the areas of the two kinds of wedge.',
       'item.figure-ground-symmetry.title': 'Symmetry and convexity (figure and ground)',
-      'item.figure-ground-symmetry.oneLine': 'Symmetric regions and regions that bulge outward tend to look like figures.',
+      'item.figure-ground-symmetry.oneLine': 'Symmetric regions and regions that bulge outward tend to look like the shape in front (the figure).',
       'item.figure-ground-symmetry.howTo': 'Choose symmetry or convexity under "Cue" and set the number of regions to 2 or 8. "Swap the side with the cue" '
         + 'switches which side has the cue.',
       'item.figure-ground-symmetry.short': 'Symmetry and convexity',
@@ -1225,7 +1279,8 @@
       'popRead.S.uniform': 'Small difference, uniform surroundings. Uniform surroundings can help, but finding it tends to take time.',
       'popRead.S.some': 'Small difference, somewhat varied surroundings. The shape to find blends in easily.',
       'popRead.S.mixed': 'Small difference, very varied surroundings. The shape to find is lost among the variety and is hard to find.',
-      'popRead.shapeCurve': 'A circle and a square differ in whether the outline curves. Some sources count curvature as a feature that guides search.',
+      'popRead.shapeCurve': 'A circle and a square differ in whether the outline curves. Some sources count curvature as a feature that guides search. '
+        + 'Compare with "Color" to see whether the circle catches your eye as quickly.',
       'popRead.shapeTL': 'T and L differ only in how their two lines join. Shapes like these do not pop out, and finding one tends to take longer as '
         + 'the number grows.',
       'asymRead.withLine': 'Now you look for a circle with a line among plain circles. The added line is a cue that catches the eye on its own.',
@@ -1236,8 +1291,9 @@
       'asymRead.both': 'The circle with a line took {t1} s and the plain circle took {t2} s.',
       'motionRead.none': 'Right now no circle moves. Set "Amount of motion" to Small, Medium or Large to make one circle move.',
       'motionRead.oneStill': 'One circle stays still while the others move at random. See whether the one still circle catches your eye.',
-      'motionRead.small': 'Only one circle moves a little. See whether it catches your eye right away among the still circles.',
-      'motionRead.large': 'Only one circle moves, and by a lot. It tends to catch your eye before you start searching.',
+      'motionRead.small': 'Only one circle moves a little from side to side. See whether it catches your eye right away among the still circles.',
+      'motionRead.medium': 'Only one circle moves from side to side. It tends to catch your eye before you start searching.',
+      'motionRead.large': 'Only one circle moves from side to side, and by a lot. It tends to catch your eye before you start searching.',
       'motionRead.allMove': 'The other circles move too. Moving no longer sets that one circle apart, so it stands out less.',
       'camoRead.match': 'Drawn with patches of the same colors and sizes as the background, so the surface blends in, though the patches stop in straight '
         + 'lines at the edges of the triangle.',
@@ -1265,20 +1321,27 @@
       'contourRead.smooth': 'The two lines cross smoothly, so the eye tends to follow each line straight on (good continuation).',
       'contourRead.corner': 'Both lines bend where they meet. Because the eye tends to follow the smoothest path, you may trace the bent lines in the '
         + 'wrong pairs (good continuation).',
-      'areaRead.darkNarrow': 'The dark wedges are narrower, so they tend to look like the figure (the shape in front).',
-      'areaRead.equal': 'The two kinds of wedge are equal in area, so which one looks like the figure tends to flip.',
-      'areaRead.lightNarrow': 'The light wedges are narrower, so they tend to look like the figure. The narrower side tends to be the figure whether it is '
-        + 'dark or light.',
-      'symRead.none': 'There is no cue, so both sides are about equally likely to look like the figure.',
-      'symRead.symmetric': 'The symmetric side tends to look like the figure.',
-      'symRead.convex2': 'The side that bulges outward tends to look like the figure. In an experiment with 100 ms displays, the bulging side was '
-        + 'reported as the figure 57% of the time with two regions.',
-      'symRead.convex8': 'The side that bulges outward tends to look like the figure. In an experiment with 100 ms displays, the bulging side was '
-        + 'reported as the figure 89% of the time with eight regions.',
+      'areaRead.darkNarrow': 'The dark wedges are narrower, so they tend to look like the shape in front (the figure).',
+      'areaRead.equal': 'The two kinds of wedge are equal in area, so which one looks like the shape in front (the figure) tends to flip.',
+      'areaRead.lightNarrow': 'The light wedges are narrower, so they tend to look like the shape in front (the figure). The narrower side tends to look '
+        + 'like the shape in front whether it is dark or light.',
+      'symRead.none': 'There is no cue, so both sides are about equally likely to look like the shape in front (the figure).',
+      'symRead.symmetric.dark': 'The side in the dark color is symmetric, so it tends to look like the shape in front (the figure).',
+      'symRead.symmetric.light': 'The side in the light color is symmetric, so it tends to look like the shape in front (the figure).',
+      'symRead.convex2.dark': 'The side in the dark color bulges outward, so it tends to look like the shape in front (the figure). With two regions, '
+        + 'though, the effect is small: in an experiment with 100 ms displays, the bulging side was seen in front only 57% of the time, a little over half.',
+      'symRead.convex2.light': 'The side in the light color bulges outward, so it tends to look like the shape in front (the figure). With two regions, '
+        + 'though, the effect is small: in an experiment with 100 ms displays, the bulging side was seen in front only 57% of the time, a little over half.',
+      'symRead.convex8.dark': 'The side in the dark color bulges outward, so it tends to look like the shape in front (the figure). In an experiment with '
+        + '100 ms displays, the bulging side was seen in front 89% of the time with eight regions.',
+      'symRead.convex8.light': 'The side in the light color bulges outward, so it tends to look like the shape in front (the figure). In an experiment with '
+        + '100 ms displays, the bulging side was seen in front 89% of the time with eight regions.',
       baseNumbers: 'Value ratio: 58 ÷ 52 = 1.12× / Height ratio above the bottom: {r}×',
       'baseRead.zero': 'The vertical axis starts at 0. The height ratio above the bottom matches the value ratio of 1.12×.',
       'baseRead.raised': 'The vertical axis now starts at {b}, so the height ratio above the bottom is {r}×, which looks larger than the value ratio of '
         + '1.12×.',
+      'baseRead.raisedSmall': 'The vertical axis now starts at {b}, so the height ratio above the bottom is {r}×. It differs from the value ratio of 1.12× '
+        + 'by only {d}, so the chart still looks almost the same. The higher the bottom, the larger the difference looks.',
       'baseRead.mark': 'In an experiment, marking the axis as broken did not remove the sense of a larger difference.',
       'baseRead.line': 'The same effect has been reported for line charts: the higher the bottom of the axis, the larger the difference feels.',
       baseCheck: 'When reading, check: where the vertical axis starts',
@@ -1314,9 +1377,13 @@
       // ===== Why, and predict before you try =====
       whyHeading: 'Why',
       predictSummary: 'Predict before you try',
-      predictChosen: 'Your prediction: {choice}. Move the controls to check.',
+      predictChosen: 'Your prediction: {choice}. Make the change in the question to check.',
+      predictChosenPlay: 'Your prediction: {choice}. Make the change in the question, then press "Play" to check.',
+      predictChosenFrame: 'Your prediction: {choice}. Make the change in the question, then press "Next frame" to check.',
       predictChosenTest: 'Your prediction: {choice}. Run the test to check.',
       predictReveal: 'Show the answer',
+      predictMatch: 'That matches your prediction.',
+      predictMismatch: 'That differs from your prediction.',
       predictAnswer: 'Answer: {choice}',
       'item.popout-feature.why': 'Differences in color, direction, size and the like are cues that decide where the eye goes. The bigger the difference '
         + 'between the target and the others, and the more alike the others are, the more readily the eye goes to the target.',
@@ -1344,8 +1411,8 @@
       'predict.popout-motion.explain': 'The other circles then move by the same Medium amount, each in its own direction, and all circles look alike, so '
         + 'little is left to tell the sideways one apart. In research, when the other moving objects had a pattern different from the target\'s, the target '
         + 'was still identified quickly even though they moved.',
-      'item.search-time.why': 'A bar that differs by one feature draws the eye straight to itself. For a bar that differs by a combination of two features, '
-        + 'one feature narrows the search, but you still have to check the other within that set, so the time tends to grow as items are added.',
+      'item.search-time.why': 'A shape that differs by one feature draws the eye straight to itself. For a shape that differs by a combination of two '
+        + 'features, one feature narrows the search, but you still have to check the other within that set, so the time tends to grow as items are added.',
       'predict.search-time.question': 'In conjunction search, how does the time added per item (the slope) compare between rounds where the bar is absent and '
         + 'rounds where it is present?',
       'predict.search-time.choice.a': 'Larger when present',
@@ -1354,14 +1421,16 @@
       'predict.search-time.explain': 'In research the absent slope is larger: conjunction search took 28.7 ms per item when the target was present and 67.1 '
         + 'ms when it was absent (Treisman & Gelade 1980). The usual explanation is that, with no target, it takes time to decide it is not there and stop '
         + 'searching.',
-      'item.search-camo.why': 'Background-matching patterns reduce eye-catching features and edges, and patches across the edge create false edges that make '
-        + 'the true outline hard to find. Symmetric layouts are common in animals but rare in backgrounds, so they help you spot the target.',
+      'item.search-camo.why': 'Background-matching patterns reduce eye-catching features and edges, and patches across the edge create edges that are not '
+        + 'really there, which makes the true outline hard to find. Symmetric layouts are common in animals but rare in backgrounds, so they help you spot '
+        + 'the target.',
       'predict.search-camo.question': 'Which of the three patterns takes longest to find?',
       'predict.search-camo.choice.a': 'Background-matching pattern',
       'predict.search-camo.choice.b': 'Pattern that breaks up the outline',
       'predict.search-camo.choice.c': 'Symmetric pattern',
-      'predict.search-camo.explain': 'In a screen experiment, targets with patterns on their edges took the longest to find (Fraser et al. 2007). In a field '
-        + 'experiment with birds, symmetric patterns were eaten more often than asymmetric ones (Cuthill, Hiby & Lloyd 2006).',
+      'predict.search-camo.explain': 'Patches on the edge create edges that are not really there and make the true outline hard to find. In a screen '
+        + 'experiment, targets with patterns on their edges took the longest to find (Fraser et al. 2007). In a field experiment with birds, symmetric '
+        + 'patterns were eaten more often than asymmetric ones (Cuthill, Hiby & Lloyd 2006).',
       'item.gestalt-proximity-similarity.why': 'Grouping decides what we see as one object or part. A study of contours in natural photographs found that '
         + 'nearness was the strongest cue, and similarity was also a cue.',
       'predict.gestalt-proximity-similarity.question': 'How do the dots group when you change "Dot spacing" from Even to Very tight across?',
@@ -1369,7 +1438,7 @@
       'predict.gestalt-proximity-similarity.choice.b': 'Into columns',
       'predict.gestalt-proximity-similarity.choice.c': 'Neither way',
       'predict.gestalt-proximity-similarity.explain': 'With Very tight across, the gap between dots side by side is less than half the gap between dots one '
-        + 'above the other (0.6 to 1.4). All dots are still circles, so spacing alone makes the grouping.',
+        + 'above the other (a gap of 0.6 across against 1.4 down). All dots are still circles, so spacing alone makes the grouping.',
       'item.gestalt-region-connection.why': 'One reason given is that things inside one boundary, like a leopard\'s spots or the parts of a face, usually lie '
         + 'on one object\'s surface, and things that are connected usually move together as parts of one object.',
       'predict.gestalt-region-connection.question': 'How do the two dots inside a frame look when you change "Enclose or join" from None to Enclose dots of '
@@ -1380,7 +1449,7 @@
       'predict.gestalt-region-connection.explain': 'The two framed dots are more than twice as far apart as the two dots of a pair. If spacing alone decided, '
         + 'these two would never look like a pair.',
       'item.gestalt-contour.why': 'The eye picks up edges where lightness or color changes abruptly, and joins edges that continue smoothly or close up into '
-        + 'one outline. Patches across the edge create false edges, which makes the true outline harder to find.',
+        + 'one outline. Patches across the edge create edges that are not really there, which makes the true outline harder to find.',
       'predict.gestalt-contour.question': 'When you change "Crossing" from Cross smoothly to Bend where they meet, which end on the right does the line from '
         + 'the upper-left end reach?',
       'predict.gestalt-contour.choice.a': 'The upper-right end',
@@ -1388,22 +1457,23 @@
       'predict.gestalt-contour.explain': 'With the bend, the line from the upper left turns in the middle and goes back up to the upper right. Drawn in one '
         + 'color with the same end marks, the two lines would make the same picture as two lines crossing straight, and you could not tell which you were '
         + 'looking at.',
-      'item.figure-ground-area.why': 'A shared border is seen as the outline of one region, and that side becomes the figure in front. When people marked '
-        + 'objects and backgrounds in photographs, the object side was usually the smaller one.',
-      'predict.figure-ground-area.question': 'When you move "Share of dark wedges" from 50% to 30%, which wedges tend to look like the figure (the shape in '
-        + 'front)?',
+      'item.figure-ground-area.why': 'A shared border is seen as the outline of one region, and that side becomes the shape in front (the figure). When '
+        + 'people marked objects and backgrounds in photographs, the object side was usually the smaller one.',
+      'predict.figure-ground-area.question': 'When you move "Share of dark wedges" from 50% to 30%, which wedges tend to look like the shape in front (the '
+        + 'figure)?',
       'predict.figure-ground-area.choice.a': 'The dark wedges',
       'predict.figure-ground-area.choice.b': 'The light wedges',
       'predict.figure-ground-area.choice.c': 'Neither more than the other',
       'predict.figure-ground-area.explain': 'At 30%, each dark wedge spans 27 degrees and each light wedge 63, so the dark ones are narrower. At 70%, the '
-        + 'light wedges become the 27-degree ones, and the side that tends to look like the figure switches.',
+        + 'light wedges become the 27-degree ones, and the side that tends to look like the shape in front switches.',
       'item.figure-ground-symmetry.why': 'When people marked objects and backgrounds in photographs, the object side usually bulged outward. Symmetric '
         + 'layouts, too, are common in animals and rare in backgrounds.',
-      'predict.figure-ground-symmetry.question': 'When you change "Cue" from None to Symmetric, which side tends to look like the figure?',
+      'predict.figure-ground-symmetry.question': 'When you change "Cue" from None to Symmetric, which side tends to look like the shape in front (the '
+        + 'figure)?',
       'predict.figure-ground-symmetry.choice.a': 'The symmetric side',
       'predict.figure-ground-symmetry.choice.b': 'The side that is not symmetric',
       'predict.figure-ground-symmetry.choice.c': 'Neither changes',
-      'predict.figure-ground-symmetry.explain': 'In an experiment that briefly showed two regions, the symmetric side was reported as the figure about three '
+      'predict.figure-ground-symmetry.explain': 'In an experiment that briefly showed two regions, the symmetric side was seen in front about three '
         + 'quarters of the time. Pitted against bulging outward, though, symmetry is the weaker cue.',
       'item.misread-baseline.why': 'People judge the size of a difference from the gap they see. Even people who read the values correctly felt the '
         + 'difference was larger, and a broken-axis mark did not remove the effect.',
@@ -1455,14 +1525,14 @@
       checkFictional: 'Fictional values',
       checkBookstoreTitle: 'Books sold at a fictional bookstore (hundreds)',
       'check.popout-color-bars.title': 'Bar chart with eight bars',
-      'check.popout-color-bars.desc': 'Bar chart with eight bars. The fourth from the left is the tallest and has its own color; the other seven cycle '
-        + 'through three other colors.',
-      'check.popout-color-bars.question': 'The fourth bar from the left (the tallest) is the only one in its color, yet it does not stand out well in this '
+      'check.popout-color-bars.desc': 'Bar chart with eight bars. The fourth from the left is the tallest and has its own color; the other seven come in '
+        + 'six other colors.',
+      'check.popout-color-bars.question': 'The fourth bar from the left (the tallest) is the only one in its color, yet it does not stand out much in this '
         + 'chart; what is the main reason?',
       'check.popout-color-bars.choice.a': 'The other bars differ in color too',
       'check.popout-color-bars.choice.b': 'There are too many bars (eight)',
-      'check.popout-color-bars.choice.c': 'The fourth bar is shorter than the others',
-      'check.popout-color-bars.explain': 'The other seven bars come in three colors, so the fourth bar\'s color is just one of four. Give the other seven one '
+      'check.popout-color-bars.choice.c': 'The bars are too close together',
+      'check.popout-color-bars.explain': 'The other seven bars come in six colors, so the fourth bar\'s color is just one of seven. Give the other seven one '
         + 'color, and even with eight bars the fourth is the only one that differs.',
       'check.popout-added-line.title': 'Two camouflage scenes',
       'check.popout-added-line.desc': 'Two camouflage scenes. Each has an oval object, slightly different in color from the background, in the middle of a '
@@ -1514,10 +1584,11 @@
       'check.figure-ground-markers.title': 'Two scatter plots of the same twelve points',
       'check.figure-ground-markers.desc': 'Two scatter plots of the same twelve points. In A, each point is marked with an open, irregular zigzag. In B, each '
         + 'point is a filled shape that bulges outward, close to a hexagon.',
-      'check.figure-ground-markers.question': 'A and B mark the same twelve points differently; which markers carry a cue for being seen as figures?',
+      'check.figure-ground-markers.question': 'A and B mark the same twelve points differently; which markers carry a cue for being seen as shapes in front '
+        + '(figures)?',
       'check.figure-ground-markers.choice.same': 'Both the same',
-      'check.figure-ground-markers.explain': 'B\'s markers are closed and bulge outward, which is a cue for being seen as a figure. A\'s markers are open '
-        + 'zigzags that enclose no region, so they form no shape to become a figure.',
+      'check.figure-ground-markers.explain': 'B\'s markers are closed and bulge outward, which is a cue for being seen as a shape in front. A\'s markers are '
+        + 'open zigzags that enclose no region, so nothing in them can be seen as a shape in front.',
       'check.figure-ground-mirror.title': 'Two camouflage scenes',
       'check.figure-ground-mirror.desc': 'Two camouflage scenes. Each has a large oval object on a background of round spots, with four large spots on each '
         + 'half of the object. The left-half spots are the same in A and B. In A, the right-half spots are arranged differently from the left; in B, the '
@@ -1530,7 +1601,7 @@
         + 'Hiby & Lloyd 2006).',
       'check.misread-value-ratio.title': 'Bar chart of books sold at a fictional bookstore',
       'check.misread-value-ratio.desc': 'Bar chart of books sold at a fictional bookstore. The vertical axis runs from 45 to 60 (hundreds), with ticks at 45, '
-        + '50 and 60. The bars are 50 for April, 55 for May and 60 for June.',
+        + '50, 55 and 60. The bars are 50 for April, 55 for May and 60 for June.',
       'check.misread-value-ratio.question': 'In this bar chart, whose vertical axis starts at 45, how many times April\'s value is June\'s value?',
       'check.misread-value-ratio.choice.a': '3 times',
       'check.misread-value-ratio.choice.b': '2 times',
@@ -1580,9 +1651,11 @@
       motionHide: 'Even an object patterned much like its background is easier to find once it moves. In an experiment where people searched a screen for '
         + 'moving targets, they found them in about a tenth of the time needed for still ones. When other objects with similar patterns moved too, it took '
         + 'longer to tell which one was the target.',
-      searchShow: 'Making readers find a series by a combination, such as "the blue dashed line" in a legend, turns reading into a conjunction search. '
-        + 'Labels at the line ends remove the search.',
-      searchGap: 'We have not confirmed an example of conjunction search in camouflage research.',
+      searchShow: 'Line B in the legend is the blue dashed line. Other lines are blue or dashed too, so it has to be found by the combination of color '
+        + 'and line style (conjunction search). Labels at the line ends remove the search.',
+      searchShowFeature: 'Line B in the legend is the only blue line, so color alone finds it (feature search). Labels at the line ends remove the need to '
+        + 'look back at the legend.',
+      searchGap: 'In the research we checked while making this tool, we found no example of conjunction search in camouflage.',
       camoGapHeading: 'How this differs from the studies',
       camoGap: 'The pattern on the screen is not real bark or a real moth, and this is not a field experiment with birds. The time to find the shape '
         + 'also changes with the size and brightness of the screen and how you tap, so it is not set beside the times from the studies.',
@@ -1594,14 +1667,16 @@
         + '(disruptive coloration) do the opposite and make the true outline hard to find.',
       regionGap: 'We did not find camouflage research on common region or connectedness. The camouflage figure only illustrates how a line around an object '
         + 'makes it stand out.',
-      contourShow: 'As in the 0% chart, joining a line across months with missing data makes it look as if the data were there. Above 0%, missing months are '
-        + 'shown as light bands and the line is cut there, and more months go missing as the value rises. When lines break off or cross, it gets hard to '
-        + 'follow which piece belongs to which line, so each line gets its own style and a name at its end.',
+      contourShow0: 'Right now the line is joined across September and October, where data is missing, so it looks as if the data were there. The line '
+        + 'styles and the names at the line ends tell the two lines apart where they cross.',
+      contourShowGap: 'Like the outlines of the circle and the square, the lines of the chart break at the missing months. The missing months are shown as '
+        + 'light bands, and more of them go missing as "Gap in the outline" rises. The line styles and the names at the line ends tell the two lines apart.',
       contourHide: 'Patches that break the outline make an object\'s shape hard to find (disruptive coloration). In a field experiment, targets with '
         + 'patterns at the edge were less often eaten by birds.',
       areaShow: 'Narrow bars with wide gaps are seen as the shape of the data. Make the bars wide and the gaps narrow, and the gaps may catch the eye '
         + 'instead.',
-      areaHide: 'The smaller an object is and the more the background surrounds it, the more it meets the conditions for being seen as a figure.',
+      areaHide: 'The smaller an object is and the more the background surrounds it, the more it meets the conditions for being seen as the shape in front '
+        + '(the figure).',
       areaGap: 'An object hidden by camouflage is usually smaller than its background and surrounded by it. Since area is hard to change, camouflage weakens '
         + 'the cues at the border, such as color differences and outlines.',
       symShow: 'Closed, symmetric markers in a scatter plot stand apart from the background and are easier to read.',
@@ -1653,17 +1728,20 @@
       expDuration: 'Each run has 8 practice tries and 32 recorded tries and takes about a minute and a half.',
       expReplace: 'Measuring the same search again replaces the earlier result.',
       expTitle: '{search} ({set})',
-      expInstr: 'When the display appears, answer as quickly and accurately as you can whether the bar to find is there. Yes = J, → or the right button; '
-        + 'No = F, ← or the left button.',
-      expReader: 'This experiment measures how long your eyes take to search, so it cannot be done with a screen reader. The results table can be read '
-        + 'aloud.',
+      expInstr: 'When the display appears, answer as quickly and accurately as you can whether the bar to find is there. Press "Yes" (right) or "No" '
+        + '(left).',
+      // The keys: shown only on a screen with a keyboard and a mouse (hover: hover and pointer: fine)
+      expKeys: 'With a keyboard, press J or → if it is there, and F or ← if not.',
+      expReader: 'This experiment cannot be done with a screen reader, which reads the screen aloud. The results table can be read aloud.',
       expStart: 'Start',
       expPractice: 'Practice {i} / 8',
       expMain: 'Recorded {i} / 32',
       expPracticeDone: 'Practice is over. Recording starts now.',
       expContinue: 'Continue',
-      expAbsent: 'No (F, ←)',
-      expPresent: 'Yes (J, →)',
+      expAbsent: 'No',
+      expAbsentKeys: 'F, ←',
+      expPresent: 'Yes',
+      expPresentKeys: 'J, →',
       fbCorrect: '○ {t} s',
       fbMiss: '× The bar was there',
       fbFalse: '× The bar was not there',
@@ -1718,16 +1796,18 @@
         + 'this.',
       resCmpSmaller: 'This time, with the bar absent, feature search had the larger slope. Small numbers of tries give noisy results; measuring again in '
         + 'the other order makes comparison easier.',
-      resRatioNone: 'For {search}, the slope with the bar present is under 1 ms, so no ratio is given.',
-      resRatioLow: 'For {search}, the slope with the bar absent was smaller than with it present ({r}×).',
+      resRatioNone: 'For {search}, the slope with the bar present is under 1 ms, so the absent slope is not given as a multiple of it.',
+      resRatioLow: 'For {search}, the slope with the bar absent was {r}× the slope with it present, so it was smaller.',
       resRatioZeroOrLess: 'For {search}, the slope with the bar absent was smaller than with it present.',
       resRatioMid: 'For {search}, the slope with the bar absent was {r}× the slope with it present. In research it is often a little over 2× and usually '
         + 'under 3×.',
       resRatioTypical: 'For {search}, the slope with the bar absent was {r}× the slope with it present, within the 2× to 3× often seen in research.',
       resRatioHigh: 'For {search}, the slope with the bar absent was {r}× the slope with it present, larger than the 2× to 3× often seen in research.',
-      resNegative: 'Some slopes are negative. With few tries, a flat line can tilt slightly downward.',
-      resNoSlope: '"{row}" has fewer than three measured numbers of items, so no slope is given.',
-      resNoSlopeMany: '{rows} have fewer than three measured numbers of items, so no slopes are given.',
+      resNegative: 'Some rows of the table have a negative slope. With few tries, a flat line can tilt slightly downward.',
+      resNoSlope: '"{row}" has a middle value in fewer than three of the four columns of the table (3, 6, 12 and 18 items), so no slope is given.',
+      resNoSlopeMany: '{rows} have middle values in fewer than three of the four columns of the table (3, 6, 12 and 18 items), so no slopes are given.',
+      resNoSlopeWhy: 'A middle value appears only in a column with 3 or more right answers. With many too-early presses, time-outs or wrong answers, the '
+        + 'column shows "–".',
       resRowQuoted: '"{row}"',
       resPartial: 'The run was stopped, so only the measured numbers of items are shown.',
       resMixed: 'Keys and touch (or mouse) were mixed. They have different delays, so measuring again with one of them makes comparison easier.',
@@ -1737,9 +1817,10 @@
       resCoarse: 'This browser rounds times to about {g} ms. Slopes are still given but will be noisier.',
       resDevice: 'Device delays shift the height of the lines but barely change their slopes. Do not compare line heights with results from other '
         + 'devices.',
-      resLimits: 'Thirty-two tries by one person give noisy results. When comparing with research, look only at the slopes and the ratio of the '
-        + 'absent slope to the present slope.',
-      resRefHeading: 'Research values (for reference). The stimuli and display sizes differ, so compare only slopes and ratios.',
+      resLimits: 'Thirty-two tries by one person give noisy results. When comparing with research, look only at the slopes and at the absent slope as a '
+        + 'multiple of the present slope.',
+      resRefHeading: 'Research values (for reference). The shapes and the display sizes differ from those of the studies, so compare only the slopes and '
+        + 'the absent slope as a multiple of the present slope.',
       resRowFeatureYes: 'Feature, there',
       resRowFeatureNo: 'Feature, not there',
       resRowConjYes: 'Conjunction, there',
@@ -1750,7 +1831,7 @@
       resTableMedian: 'Middle values (ms)',
       resTableSlope: 'Slope, accuracy and excluded',
       resExcludedNote: 'Excluded counts the tries that were too early, timed out or got a wrong answer. They are not used for the middle values or '
-        + 'the slopes.',
+        + 'the slopes. A too-early try is done again, so the excluded counts of one search can add up to more than its 32 recorded tries.',
       resSets: 'Measured with {list}.',
       resSetItem: '{set} for {search}',
       resSetsDiffer: 'The feature pairs differ, so measuring again with the same pair makes comparison easier.',
@@ -1764,8 +1845,8 @@
       resLegend: 'Legend',
       resRefTreisman: 'Treisman & Gelade 1980',
       resRefWolfe: 'Wolfe 1998',
-      resRefNote: 'Treisman & Gelade 1980 measured with letters. Wolfe 1998 is the mean of about a million trials, read approximately from '
-        + 'Fig. 5.',
+      resRefNote: 'Treisman & Gelade 1980 measured searches for letters. Wolfe 1998 gives the means of about a million trials, read approximately from '
+        + 'a graph in the paper.',
       resApprox: 'about {v}',
       searchMeasureHeading: 'Measure',
       searchReadHeading: 'How to read',
@@ -1785,10 +1866,11 @@
       camoTableMisses: 'Rounds not found and taps on a wrong spot',
       camoValidNote: 'A valid round is one where you tapped the right spot after at least 0.2 s and within 10 s. A middle value is given only for '
         + 'patterns with 3 or more valid rounds.',
-      camoResLonger: 'The {pattern} took {d} s longer than the background-matching pattern.',
-      camoResShorter: 'The {pattern} was found {d} s sooner than the background-matching pattern.',
-      camoResSimilar: 'You found no clear difference between the {pattern} and the background-matching pattern.',
+      camoResLonger: 'The "{pattern}" took {d} s longer than the "background-matching pattern".',
+      camoResShorter: 'The "{pattern}" was found {d} s sooner than the "background-matching pattern".',
+      camoResSimilar: 'You found no clear difference between the "{pattern}" and the "background-matching pattern".',
       camoResFew: 'Some patterns have fewer than 3 valid rounds, so no middle value is shown for them.',
+      camoResEarly: 'Rounds too early to count: {n}. A round that is too early is done once more; if that is too early as well, the round is not counted.',
       camoResPartial: 'The run was stopped, so only the rounds measured so far are shown.',
       camoResearchHeading: 'What studies have found',
       camoResearch: 'In screen experiments, targets that matched the background and also had patterns on their edges were found least often and took '
@@ -1803,13 +1885,14 @@
       helpTabHelp: 'Help',
       helpTabGlossary: 'Glossary',
       helpFirstText: 'First, move the controls in "Kind and size of the difference" in the Pop out tab. Next, in the Search time tab, measure how long '
-        + 'conjunction search takes you. Finally, in "Contours" in the Grouping tab, watch the small chart and the small camouflage scene change together.',
+        + 'it takes you to search by a combination of two features (conjunction search). Finally, in "Contours" in the Grouping tab, watch the small '
+        + 'chart and the small camouflage scene change together.',
       'helpKey.tabs': 'Tabs and entries: tap or click to choose. The ← and → keys also switch tabs.',
       'helpKey.slider': 'Sliders: move them with a finger or the mouse, or with the ← and → keys.',
       'helpKey.experiment': 'Search experiment: press J or → if the bar to find is there, and F or ← if it is not. Camouflage test: choose a spot with '
         + 'the arrow keys and press Enter or Space. Esc stops the run.',
-      helpAbout: 'This atlas is for learning. Search experiment records exist only on this page and are neither saved nor sent. Nothing flashes or '
-        + 'moves on its own. Every figure that relies on color differences has a switch that avoids color.',
+      helpAbout: 'This atlas is for learning. Records of the search experiment and the camouflage test exist only on this page and are neither saved nor '
+        + 'sent. Nothing flashes or moves on its own. Every figure that relies on color differences has a switch that avoids color.',
       glossLead: 'The terms are grouped by the tab where they mainly appear.',
       glossExpertLabel: 'Technical term',
       'glossGroup.all': 'Across the atlas',
@@ -1867,7 +1950,8 @@
       termBackgroundMeaning: 'Camouflage that makes an object\'s colors and patterns resemble its surroundings',
       termDisruptive: 'Pattern that breaks up the outline',
       termDisruptiveExpert: 'disruptive coloration',
-      termDisruptiveMeaning: 'Markings that create false edges and hinder detection of the true outline (as defined by Stevens & Merilaita, 2009)',
+      termDisruptiveMeaning: 'Markings that create edges that are not really there and hinder detection of the true outline (as defined by Stevens & '
+        + 'Merilaita, 2009)',
       termMasquerade: 'Looking like something else',
       termMasqueradeExpert: 'masquerade',
       termMasqueradeMeaning: 'Camouflage that, even when seen, makes an object pass for something else, such as a twig or leaf',
@@ -1919,13 +2003,22 @@
       termLightnessContrastMeaning: 'A surface of the same lightness looks lighter on a dark surround and darker on a light one',
       termFixation: 'Fixation point',
       termFixationMeaning: 'The mark (+) you look at before the display appears',
+      termLegend: 'Legend',
+      termLegendMeaning: 'The key of a chart that shows which color or line style stands for which series',
+      termSeries: 'Series',
+      termSeriesMeaning: 'One set of values that a chart draws as one line or one kind of mark',
+      termScatter: 'Scatter plot',
+      termScatterMeaning: 'A chart that draws each pair of two values as one point, by its position across and up',
+      termMothTarget: 'Target (in camouflage studies)',
+      termMothTargetMeaning: 'The object that a camouflage study has someone find. In field experiments it is a moth-shaped piece of paper with bait, '
+        + 'found by birds; in screen experiments a similar shape is shown on a screen and found by people',
 
       // ===== Related tools =====
       relDay101: 'Color differences and contrast ratios are in the "Grayscale" tab; color vision diversity, design that does not rely on color alone, and '
         + 'color illusions are in the "Trivia" tab',
       relDay085: 'Check how well a real pattern blends into its background (the "Environment check" tab)',
       relDay070: 'The eye reads the difference between black and gray in two stacked sheets as letters (a figure)',
-      relDay075: 'The eye reads distorted letters through closure and good continuation',
+      relDay075: 'The eye reads CAPTCHAs (distorted letters that tell people from programs) through closure and good continuation',
       relDay125: 'Read by stacking. Stacked white becomes 50% gray, so the contrast is halved',
 
       // ===== Page frame (header buttons, tab bar, help headings, sources) =====

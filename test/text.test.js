@@ -150,15 +150,34 @@ test('E: charts stand for showing and camouflage for hiding: the sentences besid
   assert.doesNotMatch(M.en.helpFirstText, /showing and hiding/);
 });
 
-test('E: the first steps of the help measure the time that conjunction search takes', () => {
-  assert.match(M.ja.helpFirstText, /次に「探す時間」タブで結合探索にかかる時間を測ります。/);
-  assert.match(M.en.helpFirstText, /measure how long conjunction search takes you\./);
+test('E: the first steps of the help and of "Where to start" say what conjunction search is before they name it', () => {
+  assert.match(M.ja.helpFirstText, /次に「探す時間」タブで、2つの特徴の組み合わせで探す時間（結合探索）を測ります。/);
+  assert.match(M.en.helpFirstText, /measure how long it takes you to search by a combination of two features \(conjunction search\)\./);
+  assert.equal(M.ja.introRoute2Note, '2つの特徴の組み合わせで探す時間（結合探索）を測る。');
+  assert.equal(M.en.introRoute2Note, 'Measure how long it takes you to search by a combination of two features (conjunction search).');
+  // The second of "What you can do here": why charts and camouflage stand side by side (the same habits of the eye, opposite ends)
+  assert.equal(M.ja.introFeature2.split('。').filter(Boolean).length, 2);
+  assert.match(M.ja.introFeature2, /^グラフは見せるために、迷彩は隠すために、目の同じ働きを使う。/);
 });
 
 test('E: the short table, the chart beside the contours and the checks when reading a chart', () => {
   assert.equal(M.en['contrastRow2.hide'], 'Break up the outline and make the object\'s pattern part of the background');
-  assert.match(M.ja.contourShow, /^0%の図のように、/);
-  assert.equal(M.ja.contourShow.split('。').filter(Boolean).length, 3);
+  // The sentence of the small chart of the contours: one for 0% (the line joined across the missing months, which the chart shows then) and
+  // one above 0% (the line cut there); neither speaks of a chart that is not shown
+  const contour = D.entries.find((e) => e.id === 'gestalt-contour').uses.find((u) => u.side === 'show');
+  assert.deepEqual([0, 0.1, 0.3, 0.6].map((gap) => V.useTextKey(contour, { gap, crossing: 'smooth' })),
+    ['contourShow0', 'contourShowGap', 'contourShowGap', 'contourShowGap']);
+  for (const key of ['contourShow0', 'contourShowGap']) {
+    assert.doesNotMatch(M.ja[key], /0%の図/, key);
+    assert.ok(M.ja[key].split('。').filter(Boolean).length <= 3, key);
+  }
+  assert.match(M.ja.contourShow0, /^いまは、データが欠けた9月と10月をまたいで線を結んでいる/);
+  assert.equal(M.ja.contourShow, undefined);
+  // The sentence of the small chart of the search card follows the kind of search: no blue dashed line to speak of in feature search
+  const search = D.entries.find((e) => e.id === 'search-time').uses[0];
+  assert.deepEqual(['feature', 'conjunction'].map((view) => V.useTextKey(search, { view })), ['searchShowFeature', 'searchShow']);
+  assert.doesNotMatch(M.ja.searchShowFeature, /破線/);
+  assert.match(M.ja.searchShow, /青の破線/);
   assert.equal(V.fill(M.ja.toEntry, { name: M.ja['item.misread-baseline.short'] }), '「縦軸の始まり」へ');
   assert.equal(V.fill(M.en.toEntry, { name: M.en['item.misread-baseline.short'] }), 'Go to "Where the vertical axis starts"');
   // The short name of an entry is its title without the term in parentheses
@@ -221,7 +240,7 @@ test('E: every result sentence is filled in, with the search names and the row n
     }
     cases.forEach((c) => seen.add(c.key));
   }
-  assert.equal(seen.size, 21, [...seen].join(', '));
+  assert.equal(seen.size, 22, [...seen].join(', '));
   const t = (lang, sc) => V.resultTexts(M, lang, C.resultCases(sc));
   assert.equal(t('ja', { feature: block(3.1, 25.1) })[0],
     '特徴探索の傾き（図形1つあたりに増えた時間）は、「ある」で3.1ミリ秒、「ない」で25.1ミリ秒でした。結合探索も測ると、2つを比べられます。');
@@ -234,10 +253,23 @@ test('E: every result sentence is filled in, with the search names and the row n
   assert.equal(both[0], '図形1つあたりの傾きは、特徴探索が「ある」3.0ミリ秒・「ない」20.0ミリ秒、結合探索が「ある」4.0ミリ秒・「ない」25.0ミリ秒でした。');
   assert.equal(both[1], '「ない」の傾きは、2つの探し方で同じくらいでした。回数が少ないと結果はぶれます。もう一度測ると変わることがあります。');
   const odd = t('ja', { feature: block(-1.24, 5, { aborted: true, mixedInput: true, granularity: 16.667 }), conjunction: block(10, null) });
-  assert.ok(odd.includes('「結合・ない」は、真ん中の値を出せた図形の数が3つ未満なので、傾きを出しません。'));
+  // A row without a slope: the columns of the table, then why a column has no middle value (once)
+  assert.ok(odd.includes('「結合・ない」は、表の4つの列（3個・6個・12個・18個）のうち、真ん中の値が出た列が3つに届かないので、傾きを出しません。'));
+  assert.ok(odd.includes('真ん中の値は、正しく答えた回が3回以上ある列にだけ出ます。早すぎた回や時間切れ、押し間違いが多いと「－」になります。'));
+  assert.equal(odd.indexOf(M.ja.resNoSlopeWhy), odd.findIndex((x) => x.startsWith('「結合・ない」')) + 1, 'why, right after the row');
   assert.ok(odd.includes('このブラウザーは、時刻を約16.7ミリ秒単位で丸めています。傾きは出せますが、ぶれが大きくなります。'));
+  assert.ok(odd.includes('傾きがマイナスになった表の行があります。回数が少ないと、本来は平らな線が少し右下がりになることもあります。'));
   assert.ok(t('en', { feature: block(-1.24, 5), conjunction: block(10, null) }).includes(
-    '"Conjunction, not there" has fewer than three measured numbers of items, so no slope is given.'));
+    '"Conjunction, not there" has a middle value in fewer than three of the four columns of the table (3, 6, 12 and 18 items), so no slope is given.'));
+  // The numbers in the sentence are those of the calculation: the four numbers of items, the 3 columns of a slope, the 3 right answers of a value
+  assert.ok(M.ja.resNoSlope.includes(C.SET_SIZES.map((n) => n + '個').join('・')) && M.ja.resNoSlope.includes(`${C.MIN_POINTS}つに届かない`));
+  assert.ok(M.ja.resNoSlopeWhy.includes(`${C.MIN_VALID}回以上`) && M.ja.resNoSlopeWhy.includes(`「${M.ja.resNoValue}」`));
+  assert.ok(M.en.resNoSlopeWhy.includes(`"${M.en.resNoValue}"`));
+  // The ratio says which slope is how many times which; no bare "ratio" and no "行" without the table
+  assert.equal(t('ja', { feature: block(0.5, 8) }).find((x) => x.startsWith('特徴探索では')),
+    '特徴探索では、「ある」の傾きが1ミリ秒未満なので、「ない」の傾きが「ある」の何倍かは出しません。');
+  for (const key of ['resRatioNone', 'resLimits', 'resRefHeading']) assert.match(M.ja[key], /「ない」の傾きが「ある」の(?:傾きの)?何倍か/, key);
+  for (const [key, text] of Object.entries(M.ja)) if (/^res/.test(key)) assert.doesNotMatch(text, /(?<!表の)行が|との比|傾きと比/, key);
 });
 
 test('E: repeated result sentences are joined into one, and a negative value has the minus sign', () => {
@@ -259,17 +291,18 @@ test('E: repeated result sentences are joined into one, and a negative value has
   // One wrong answer in a short, stopped run: the English sentence does not depend on singular or plural
   assert.deepEqual(t('en', { feature: block(3, 20, { errors: 1, answered: 5, aborted: true }) }).filter((x) => x.includes('Wrong answers')),
     ['Wrong answers in feature search: 1 (20%). Rushing adds mistakes; answer at a pace that keeps you accurate.']);
-  // Rows without a slope: one sentence naming them (two or more), the sentence of the row (one)
+  // Rows without a slope: one sentence naming them (two or more), the sentence of the row (one); why, once after it
+  const cols = '表の4つの列（3個・6個・12個・18個）のうち、真ん中の値が出た列が3つに届かないので、傾きを出しません。';
+  const colsEn = 'fewer than three of the four columns of the table (3, 6, 12 and 18 items), so no slopes are given.';
   const three = { feature: block(3, null), conjunction: block(null, null, { aborted: true }) };
-  assert.ok(t('ja', three).includes('「特徴・ない」「結合・ある」「結合・ない」は、真ん中の値を出せた図形の数が3つ未満なので、傾きを出しません。'));
-  assert.ok(t('en', three).includes('"Feature, not there", "Conjunction, there" and "Conjunction, not there" have fewer than three measured numbers of '
-    + 'items, so no slopes are given.'));
+  assert.ok(t('ja', three).includes('「特徴・ない」「結合・ある」「結合・ない」は、' + cols));
+  assert.ok(t('en', three).includes('"Feature, not there", "Conjunction, there" and "Conjunction, not there" have middle values in ' + colsEn));
   const two = { feature: block(3, 20), conjunction: block(null, null, { aborted: true }) };
-  assert.ok(t('ja', two).includes('「結合・ある」「結合・ない」は、真ん中の値を出せた図形の数が3つ未満なので、傾きを出しません。'));
-  assert.ok(t('en', two).includes('"Conjunction, there" and "Conjunction, not there" have fewer than three measured numbers of items, so no slopes '
-    + 'are given.'));
+  assert.ok(t('ja', two).includes('「結合・ある」「結合・ない」は、' + cols));
+  assert.ok(t('en', two).includes('"Conjunction, there" and "Conjunction, not there" have middle values in ' + colsEn));
   assert.equal(t('ja', two).filter((x) => x.includes('傾きを出しません')).length, 1);
-  assert.ok(t('ja', { feature: block(3, null) }).includes('「特徴・ない」は、真ん中の値を出せた図形の数が3つ未満なので、傾きを出しません。'));
+  assert.equal(t('ja', two).filter((x) => x === M.ja.resNoSlopeWhy).length, 1);
+  assert.ok(t('ja', { feature: block(3, null) }).includes('「特徴・ない」は、' + cols));
   // The one search with both slopes opens the sentences even when the other search was measured too
   assert.equal(t('ja', two)[0], '特徴探索の傾き（図形1つあたりに増えた時間）は、「ある」で3.0ミリ秒、「ない」で20.0ミリ秒でした。結合探索も測ると、2つを比べられます。');
   // Negative values: the minus sign (U+2212) in both languages, also in a ratio
@@ -284,7 +317,9 @@ test('E: repeated result sentences are joined into one, and a negative value has
     assert.ok(t('en', { feature: block(10, b) }).includes('For feature search, the slope with the bar absent was smaller than with it present.'), String(b));
     assert.ok(!t('ja', { feature: block(10, b) }).some((x) => x.includes('倍）')), String(b));
   }
-  assert.ok(t('ja', { feature: block(10, 1) }).includes('特徴探索では、「ない」の傾きが「ある」より小さくなりました（0.1倍）。'));
+  assert.ok(t('ja', { feature: block(10, 1) }).includes('特徴探索では、「ない」の傾きが「ある」の0.1倍で、「ある」より小さくなりました。'));
+  assert.ok(t('en', { feature: block(10, 1) }).includes('For feature search, the slope with the bar absent was 0.1× the slope with it present, '
+    + 'so it was smaller.'));
   assert.equal(t('en', { feature: block(3, 20), conjunction: block(-4, -1.2) })[0],
     'Slopes per item: feature search 3.0 ms (there) and 20.0 ms (not there); conjunction search \u22124.0 ms (there) and \u22121.2 ms (not there).');
   for (const lang of ['ja', 'en']) {
@@ -304,7 +339,9 @@ test('E: the line of the feature pairs over the chart, and the note under the ta
   assert.deepEqual(sets('ja', null, 'color'), ['測った特徴の組：結合探索＝色×方向']);
   assert.deepEqual(sets('en', null, 'fill'), ['Measured with fill × direction for conjunction search.']);
   assert.deepEqual(sets('ja', null, null), []);
-  assert.equal(M.ja.resExcludedNote, '除いた回数は、早すぎた回・時間切れの回・押し間違えた回の合計です。真ん中の値と傾きには使っていません。');
+  assert.equal(M.ja.resExcludedNote, '除いた回数は、早すぎた回・時間切れの回・押し間違えた回の合計です。真ん中の値と傾きには使っていません。'
+    + '早すぎた回は同じ回をやり直すので、1つの探し方の除いた回数を足すと、本番の32回より多くなることがあります。');
+  assert.ok(M.ja.resExcludedNote.includes(`本番の${C.SET_SIZES.length * 2 * C.MAIN_REPS}回`) && M.en.resExcludedNote.includes('its 32 recorded tries'));
   // The note matches the calculation: the excluded count is early + time-outs + wrong answers; a hidden try is not counted at all
   const r = (setSize, present, outcome, rt) => ({ setSize, present, outcome, rt, input: 'key' });
   const rows = [3, 6, 12, 18].flatMap((n) => [600, 610, 620, 630].map((rt) => r(n, true, 'correct', rt)));
@@ -448,22 +485,27 @@ const camoRows = (match, disrupt, symmetric, extra = {}) => ({ rows: { match: { 
 const camoTexts = (lang, summary) => V.camoResultTexts(M, lang, C.camoResultCases(summary));
 
 test('E: the sentences of the camouflage results: the two patterns against the background-matching one, in seconds with one decimal', () => {
-  assert.deepEqual(camoTexts('ja', camoRows(2000, 2400, 1600)), ['「輪郭を途切れさせる模様」は、背景に合わせた模様より0.4秒長くかかりました。',
-    '「左右対称の模様」は、背景に合わせた模様より0.4秒早く見つかりました。']);
+  // Both names of the patterns compared are in brackets (in English, in quotation marks)
+  assert.deepEqual(camoTexts('ja', camoRows(2000, 2400, 1600)), ['「輪郭を途切れさせる模様」は、「背景に合わせた模様」より0.4秒長くかかりました。',
+    '「左右対称の模様」は、「背景に合わせた模様」より0.4秒早く見つかりました。']);
   assert.deepEqual(camoTexts('en', camoRows(2000, 2400, 1600)), [
-    'The pattern that breaks up the outline took 0.4 s longer than the background-matching pattern.',
-    'The symmetric pattern was found 0.4 s sooner than the background-matching pattern.']);
-  assert.deepEqual(camoTexts('ja', camoRows(2000, 2300, 2100)), ['「輪郭を途切れさせる模様」と背景に合わせた模様では、はっきりした差はありませんでした。',
-    '「左右対称の模様」と背景に合わせた模様では、はっきりした差はありませんでした。']);
+    'The "pattern that breaks up the outline" took 0.4 s longer than the "background-matching pattern".',
+    'The "symmetric pattern" was found 0.4 s sooner than the "background-matching pattern".']);
+  assert.deepEqual(camoTexts('ja', camoRows(2000, 2300, 2100)), ['「輪郭を途切れさせる模様」と「背景に合わせた模様」では、はっきりした差はありませんでした。',
+    '「左右対称の模様」と「背景に合わせた模様」では、はっきりした差はありませんでした。']);
   assert.equal(camoTexts('en', camoRows(2000, 2300, 2100))[1],
-    'You found no clear difference between the symmetric pattern and the background-matching pattern.');
-  assert.deepEqual(camoTexts('ja', camoRows(1500, 4200, null, { aborted: true, mixedInput: true })), [
-    '「輪郭を途切れさせる模様」は、背景に合わせた模様より2.7秒長くかかりました。',
-    '有効な回が3回に届かない模様があるので、その模様の真ん中の値は出していません。', '途中で止めたので、測れた回までを出しています。',
-    M.ja.resMixed]);
+    'You found no clear difference between the "symmetric pattern" and the "background-matching pattern".');
+  assert.deepEqual(camoTexts('ja', camoRows(1500, 4200, null, { aborted: true, mixedInput: true, dropped: 2 })), [
+    '「輪郭を途切れさせる模様」は、「背景に合わせた模様」より2.7秒長くかかりました。',
+    '有効な回が3回に届かない模様があるので、その模様の真ん中の値は出していません。',
+    '早すぎて数えなかった回が2回ありました。早すぎた回は1回だけやり直し、やり直しも早すぎたときは数えません。',
+    '途中で止めたので、測れた回までを出しています。', M.ja.resMixed]);
+  assert.equal(camoTexts('en', camoRows(1500, 4200, 2000, { dropped: 1 }))[2],
+    'Rounds too early to count: 1. A round that is too early is done once more; if that is too early as well, the round is not counted.');
   assert.deepEqual(camoTexts('ja', null), ['まだ測っていません。上の「迷彩の実験を始める」から始めます。']);
   // Every case is filled in, in both languages
-  for (const summary of [null, camoRows(2000, 2400, 1600), camoRows(2000, 2300, 2100), camoRows(null, null, null, { aborted: true, mixedInput: true })]) {
+  for (const summary of [null, camoRows(2000, 2400, 1600), camoRows(2000, 2300, 2100),
+    camoRows(null, null, null, { aborted: true, mixedInput: true, dropped: 3 })]) {
     for (const lang of ['ja', 'en']) for (const s of camoTexts(lang, summary)) assert.doesNotMatch(s, LEFTOVER, s);
   }
 });
@@ -520,6 +562,7 @@ test('E: the lines of the predictions and the answers of the questions are fille
           const line = V.fill(L[p.chosenKey], { choice: L[c.key] });
           assert.doesNotMatch(line, LEFTOVER, line);
           assert.ok(line.includes(L[c.key]), line);
+          if (p.chosenReducedKey) assert.doesNotMatch(V.fill(L[p.chosenReducedKey], { choice: L[c.key] }), LEFTOVER);
           n += 1;
         }
         assert.equal(V.fill(L.predictAnswer, { choice: right }), (lang === 'ja' ? '答え：' : 'Answer: ') + right);
@@ -536,10 +579,18 @@ test('E: the lines of the predictions and the answers of the questions are fille
     }
   }
   assert.equal(n, 2 * (14 * 3 + 2 + 12 * 3));
-  // The experiments say to run the test; the other entries say to move the controls
-  assert.equal(V.fill(M.ja.predictChosen, { choice: M.ja['predict.popout-feature.choice.b'] }), '予想：目立ちにくくなる。つまみを動かして確かめてください。');
+  // The experiments say to run the test; the moving entry says to switch and press Play (or Next frame); the other entries say to make the
+  // change in the question, which fits the entries without a slider and the questions about a switch as well
+  assert.equal(V.fill(M.ja.predictChosen, { choice: M.ja['predict.popout-feature.choice.b'] }), '予想：目立ちにくくなる。問いのとおりに操作して確かめてください。');
   assert.equal(V.fill(M.en.predictChosen, { choice: M.en['predict.popout-feature.choice.b'] }),
-    'Your prediction: It stands out less. Move the controls to check.');
+    'Your prediction: It stands out less. Make the change in the question to check.');
+  assert.doesNotMatch(M.ja.predictChosen, /つまみ/);
+  assert.equal(V.fill(M.ja.predictChosenPlay, { choice: M.ja['predict.popout-motion.choice.b'] }),
+    '予想：目に入りにくくなる。問いのとおりに切り替えてから「動かす」を押して確かめてください。');
+  assert.ok(M.ja.predictChosenPlay.includes(`「${M.ja.motionPlay}」`) && M.ja.predictChosenFrame.includes(`「${M.ja.motionFrame}」`));
+  assert.ok(M.en.predictChosenPlay.includes(`"${M.en.motionPlay}"`) && M.en.predictChosenFrame.includes(`"${M.en.motionFrame}"`));
+  // The answer says first whether the prediction was right, as the questions at the end of a tab do
+  assert.deepEqual([M.ja.predictMatch, M.ja.predictMismatch], ['予想どおりでした。', '予想と違いました。']);
   assert.equal(V.fill(M.ja.predictChosenTest, { choice: M.ja['predict.search-time.choice.b'] }), '予想：「ない」回のほうが大きい。実験をしてから確かめてください。');
   assert.equal(V.fill(M.en.predictChosenTest, { choice: M.en['predict.search-camo.choice.b'] }),
     'Your prediction: Pattern that breaks up the outline. Run the test to check.');
@@ -580,4 +631,81 @@ test('E: the camouflage results call the median 真ん中の値 and "middle valu
   assert.equal(M.ja['camoRead.match'], '背景と同じ色と大きさの斑点で描いた模様です。物の面は背景になじみますが、三角形の縁では斑点がまっすぐ途切れます。');
   assert.equal(M.en.camoDuration, 'The test has 3 practice rounds and 15 recorded rounds. Every round moves on after 10 seconds, so it takes about 4 minutes '
     + 'at most.');
+});
+
+// ===== The sentences rewritten for a first reader =====
+test('E: the axis bottom at 5, 10 and 15 says that the difference is still small; from 20 it says that it looks larger', () => {
+  const at = (bottom) => V.readCases(D, 'misread-baseline', { bottom, chart: 'bar', mark: 'none' })[0];
+  assert.deepEqual([5, 10, 15, 20, 25, 40, 50].map((b) => at(b).key), ['baseRead.raisedSmall', 'baseRead.raisedSmall', 'baseRead.raisedSmall',
+    'baseRead.raised', 'baseRead.raised', 'baseRead.raised', 'baseRead.raised']);
+  // The border is the difference of the two ratios as the line of numbers shows them (0.01, 0.02 and 0.04, then 0.07)
+  assert.equal(V.BASE_SMALL, 0.05);
+  assert.deepEqual([5, 10, 15].map((b) => at(b).values.d), ['0.01', '0.02', '0.04']);
+  assert.equal(read('ja', 'misread-baseline', { bottom: 15, chart: 'bar', mark: 'none' })[0],
+    '縦軸を15から始めたので、下端からの高さの比は1.16倍です。値の比の1.12倍との差は0.04で、まだ小さく、見た目もほとんど変わりません。'
+    + '下端を上げるほど、差が大きく見えるようになります。');
+  assert.doesNotMatch(M.ja['baseRead.raisedSmall'], /大きく見えます/);
+  assert.equal(read('en', 'misread-baseline', { bottom: 5, chart: 'line', mark: 'shown' }).length, 3, 'the notes of the mark and the line follow');
+});
+
+test('E: the moving circle: Medium and Large have their own sentences, both saying that it catches the eye before searching', () => {
+  const key = (amount, others = 'still') => V.readCases(D, 'popout-motion', { amount, others })[0].key;
+  assert.deepEqual(['small', 'medium', 'large'].map((a) => key(a)), ['motionRead.small', 'motionRead.medium', 'motionRead.large']);
+  assert.notEqual(M.ja['motionRead.medium'], M.ja['motionRead.large']);
+  for (const k of ['motionRead.medium', 'motionRead.large']) assert.match(M.ja[k], /探そうとする前に目に入りやすくなります。$/, k);
+  assert.match(M.ja['motionRead.small'], /少し動きます/);
+  assert.match(M.ja['motionRead.large'], /大きく動きます/);
+  assert.doesNotMatch(M.ja['motionRead.medium'], /少し|大きく/);
+});
+
+test('E: figure and ground: the bands with the cue are named by their color, and 図 for the shape in front is written 手前の形（図）', () => {
+  const key = (cue, regions, swap) => V.readCases(D, 'figure-ground-symmetry', { cue, regions, swap })[0].key;
+  assert.deepEqual([key('symmetric', 8, false), key('symmetric', 8, true), key('convex', 2, false), key('convex', 8, true), key('none', 8, true)],
+    ['symRead.symmetric.dark', 'symRead.symmetric.light', 'symRead.convex2.dark', 'symRead.convex8.light', 'symRead.none']);
+  assert.match(M.ja['symRead.symmetric.dark'], /^濃い色の帯が左右対称なので、濃い色の帯が手前の形（図）に見えやすい並びです。$/);
+  assert.match(M.ja['symRead.symmetric.light'], /^薄い色の帯が左右対称なので/);
+  // Two regions: the effect is small (57%, a little over half); eight: 89%
+  assert.match(M.ja['symRead.convex2.dark'], /差が小さく.*57%で、半分より少し多い程度でした。$/);
+  assert.match(M.ja['symRead.convex8.dark'], /89%でした。$/);
+  // The cue bands are those of regionA unless swapped (the dark color in both themes)
+  const bands = V.renderPart('symmetryBands', { cue: 'symmetric', regions: 8, swap: false }, { t: (k) => k, data: D }).shapes.map((s) => s.cls);
+  assert.equal(bands[0], 'fill-regionA');
+  // The first mention of the shape in front in each text of the tab is 手前の形（図）; 図 alone means a picture there
+  const front = ['item.figure-ground-area.why', 'predict.figure-ground-area.question', 'predict.figure-ground-symmetry.question',
+    'check.figure-ground-markers.question', 'areaHide', 'symRead.none', 'areaRead.darkNarrow', 'areaRead.equal', 'areaRead.lightNarrow',
+    'item.figure-ground-symmetry.oneLine'];
+  for (const k of front) assert.ok(M.ja[k].includes('手前の形（図）'), k);
+  for (const k of [...front, 'predict.figure-ground-area.explain', 'predict.figure-ground-symmetry.explain', 'check.figure-ground-markers.explain',
+    'item.figure-ground-area.oneLine']) {
+    assert.doesNotMatch(M.ja[k].replaceAll('手前の形（図）', ''), /図に見え|図にな|図と答え|図（手前の形）/, k);
+  }
+});
+
+test('E: the plain sentences of the cards and the tests', () => {
+  // Find and tap: which mark is which, and the button after 10 seconds is not "Show the answer" of the predictions
+  assert.equal(M.ja.findWrong, '押した図形は、探す図形ではありませんでした。押した図形に丸、探す図形に四角の印を付けました。');
+  assert.deepEqual([M.ja.findReveal, M.en.findReveal], ['探す図形を見る', 'Show the target']);
+  assert.notEqual(M.ja.findReveal, M.ja.predictReveal);
+  // Direction and shape say why the small figures of the Pop out entry do not change (the other entries keep the line of every entry)
+  const pf = D.entries[0];
+  assert.equal(V.linkedText(M, 'ja', pf, pf.uses[0], { ...V.controlValues(pf), kind: 'direction' }),
+    '「方向」と「形」の違いは小さな図に描いていないので、いまの設定ではこの図は変わりません。');
+  assert.equal(D.entries.filter((e) => e.uses.some((u) => u.linkedNoneKey)).map((e) => e.id).join(), 'popout-feature');
+  assert.match(M.ja['popRead.shapeCurve'], /「色」のときと比べて、丸がすぐ目に入るかを確かめてください。$/);
+  // The search experiment: the buttons and what to press, the keys apart, the screen reader in plain words
+  assert.equal(M.ja.expInstr, '図が出たら、探す棒があるかどうかを、できるだけ速く、正確に答えます。探す棒があれば右の「ある」、なければ左の「ない」を押します。');
+  assert.deepEqual([M.ja.expAbsent, M.ja.expPresent, M.ja.expAbsentKeys, M.ja.expPresentKeys], ['ない', 'ある', 'F・←', 'J・→']);
+  assert.ok(!/[FJ]/.test(M.ja.expInstr) && M.ja.expKeys.includes('J') && M.ja.expKeys.includes('F'));
+  assert.equal(M.ja.expReader, '画面を音声で読み上げる機能では、この実験は試せません。結果の表は読み上げられます。');
+  // The research values without the words of the papers (stimuli, a figure number)
+  for (const lang of ['ja', 'en']) assert.doesNotMatch(M[lang].resRefNote + M[lang].resRefHeading, /刺激|図5|stimul|Fig\./, lang);
+  // The units of the spacings, why the edge pattern hides the outline (right under its answer), shapes rather than bars in the why of
+  // the search, a question whose choices do not contradict it, the camouflage records, and where the search gap was looked for
+  assert.match(M.ja['predict.gestalt-proximity-similarity.explain'], /（横の間隔0\.6に対して、縦の間隔1\.4）/);
+  assert.match(M.ja['predict.search-camo.explain'], /^縁にかかる模様は、本当はない縁を作って、本当の輪郭を見つけにくくします。/);
+  assert.doesNotMatch(M.ja['item.search-time.why'], /棒/);
+  assert.match(M.ja['check.popout-color-bars.question'], /それほど目立たない/);
+  assert.deepEqual(['a', 'b', 'c'].map((c) => M.ja[`check.popout-color-bars.choice.${c}`]), ['ほかの棒どうしも色が違う', '棒が8本と多い', '棒と棒の間が狭い']);
+  assert.match(M.ja.helpAbout, /探す実験と迷彩の実験の記録/);
+  assert.match(M.ja.searchGap, /このツールを作るときに調べた範囲では/);
 });

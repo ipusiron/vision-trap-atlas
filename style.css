@@ -64,8 +64,8 @@
     --c-seriesTarget: #56b4e9;
     --c-seriesOthers-0: #e69f00; --c-seriesOthers-1: #009e73; --c-seriesOthers-2: #cc79a7;
     --c-groups-0: #56b4e9; --c-groups-1: #e69f00; --c-groups-2: #009e73; --c-groups-3: #cc79a7;
-    --c-regionA: #c9d6e2;
-    --c-regionB: #2c405a;
+    --c-regionA: #5c7792;
+    --c-regionB: #c9d6e2;
     --c-areaDark: #4f6782;
     --c-areaLight: #c9d6e2;
     --c-band: #24384f;
@@ -194,6 +194,14 @@ svg.check-svg { display: block; width: 100%; height: auto; border: 1px solid var
 .check-choices, .predict-choices { max-width: 46rem; }
 .check-feedback p { margin: .35rem 0 0; font-size: .9375rem; line-height: 1.5; }
 .check-verdict { font-weight: 700; }
+/* Once answered: ○ on the right choice and × on a wrong choice pressed, in room kept at the start of every choice (so that the marks never
+   change how the choices wrap). A wrong choice pressed is not filled: the paper with a dashed line, so that its look differs from the right
+   one's by more than its color */
+.choice.check-choices button { position: relative; padding-left: 1.6rem; }
+.check-mark { position: absolute; left: .45rem; top: 50%; translate: 0 -50%; font-weight: 700; }
+.check-choices button[aria-pressed="true"][data-verdict="wrong"] {
+  color: var(--ink); background: var(--paper); border-color: var(--ink); border-style: dashed;
+}
 .intro-features-list li + li { margin-top: .15rem; }
 .intro-more { margin: 0 0 .3rem; padding: 0; border: 0; border-radius: 0; background: none; }
 .intro-more[open] { padding-bottom: 0; }
@@ -318,9 +326,9 @@ details.predict[open] > summary { margin-bottom: .45rem; }
 .tick-note { margin: 0; }
 .control-note { grid-column: 1 / -1; margin: -.2rem 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
 .control-note.off { visibility: hidden; }
-/* Why a switch cannot be pressed now (3-2: no cue to swap; 4-1: no break while the axis starts at 0): under the switch, its line
-   kept while it is not shown */
-.switch-note { flex: 1 0 100%; margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
+/* Why a switch cannot be pressed now (the shape pairs: only for the shape; 3-2: no cue to swap; 4-1: no break while the axis starts at
+   0): beside the switch when the row has room, else on the line under it. Its place is kept while it is not shown */
+.switch-note { flex: 0 1 auto; margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
 .switch-note.off { visibility: hidden; }
 .actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem; }
 .actions button { padding-inline: .9rem; }
@@ -366,6 +374,7 @@ details.predict[open] > summary { margin-bottom: .45rem; }
 .use-texts { min-width: 0; }
 .use-linked { margin: .25rem 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
 .use-text { margin: .25rem 0 0; font-size: .875rem; line-height: 1.5; }
+.stack.use-text p { margin: 0; }
 .use-note { margin: .25rem 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
 /* A link inside a sentence: the line keeps its height, the place to press is 44px high */
 .inline-link { display: inline-block; padding-block: .85rem; margin-block: -.85rem; }
@@ -712,7 +721,16 @@ svg.res-key { display: block; width: 32px; height: 14px; }
 .exp-results p { font-size: .875rem; }
 .exp-feedback { grid-area: feedback; font-size: .9375rem; font-weight: 700; line-height: 1.5; text-align: center; }
 .exp-feedback p { margin: 0; }
-.exp-answer { min-height: 64px; font-weight: 700; touch-action: manipulation; }
+/* An answer button: its word large, and its keys in small letters under it only on a screen with a keyboard and a mouse (a phone has no F
+   or J key); the sentence of the keys before the start likewise */
+.exp-answer { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .05rem; min-height: 64px; font-weight: 700;
+  touch-action: manipulation; }
+.answer-word { font-size: 1.25rem; line-height: 1.2; }
+.answer-keys, .keys-only { display: none; }
+.answer-keys { font-size: .75rem; font-weight: 400; line-height: 1.2; }
+@media (hover: hover) and (pointer: fine) {
+  .answer-keys, .keys-only { display: block; }
+}
 /* The camouflage test: the spots over the square are buttons without lines or colors (the 6 × 6 grid is not drawn). The keyboard focus is
    a light frame with a dark band inside the spot, so that it shows both on the paper and on the bark */
 .camo-grid {
@@ -721,10 +739,12 @@ svg.res-key { display: block; width: 32px; height: 14px; }
 }
 .camo-spot { min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; touch-action: manipulation; }
 .camo-spot:focus-visible { outline: 2px solid var(--c-barkMark); outline-offset: -4px; box-shadow: inset 0 0 0 5px var(--c-bark-0); }
-/* The narrowest screens: the message before the start in smaller letters, so that the answer buttons stay on the screen */
+/* The narrowest screens: the message before the start in smaller letters and without the sentence of the keys (with a mouse the keys
+   stay under the answer buttons), so that it fits the square and the answer buttons stay on the screen */
 @media (max-width: 359px) {
   .exp-message { padding: .6rem; font-size: .875rem; line-height: 1.45; }
   .exp-message p { margin-bottom: .45rem; }
+  .exp-message .keys-only { display: none; }
 }
 .exp-absent { grid-area: absent; margin-right: 4px; }
 .exp-present { grid-area: present; margin-left: 4px; }
@@ -802,6 +822,10 @@ svg.res-key { display: block; width: 32px; height: 14px; }
   .use-figure { grid-area: figure; }
   .use-texts { grid-area: texts; }
   .use-texts > :first-child { margin-top: 0; }
+  /* The two cards of the Search time tab have no main figure and one small figure: the figure a little larger, and its sentences in a
+     column of about 25 to 40 characters a line (a lone small figure elsewhere keeps 26rem, which would leave about 13 here) */
+  .search-entry .uses-list.single { max-width: none; }
+  .search-entry .use { grid-template-columns: minmax(0, 16rem) minmax(0, 34rem); }
 }
 
 @media print {

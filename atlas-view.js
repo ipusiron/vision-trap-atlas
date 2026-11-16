@@ -327,7 +327,9 @@
     const yv = (v) => y1 - (v - bottom) / (top - bottom) * (y1 - y0);
     const shapes = [text(W / 2, 18, t(s.titleKey || 'fig.misread-baseline.main.title'), 'fig-title ta-middle')];
     if (!s.titleKey) shapes.push(text(8, 34, t('fig.misread-baseline.main.axisY'), 'fig-axisname ta-start'));
-    const ticks = [bottom, ...[10, 20, 30, 40, 50, 60].filter((v) => v > bottom)];
+    // The ticks: the bottom, then every 5 when the axis spans 20 or less (45・50・55・60), else every 10 (35・40・50・60)
+    const step = top - bottom <= 20 ? 5 : 10, ticks = [bottom];
+    for (let v = Math.floor(bottom / step) * step + step; v <= top; v += step) ticks.push(v);
     for (const v of ticks) shapes.push(line(x0 - 4, yv(v), x0, yv(v), 'fig-axis'), text(x0 - 7, yv(v) + 4, v, 'fig-tick ta-end'));
     shapes.push(line(x0, y0, x0, y1, 'fig-axis'), line(x0, y1, x1, y1, 'fig-axis'));
     const cx = values.map((_, i) => x0 + slot * (i + 0.5));
@@ -424,16 +426,18 @@
   const FRAME = () => rect(0.5, 0.5, SW - 1, SH - 1, 'fig-frame-small fig-nofill');
 
   // 棒グラフ。mode＝popout（1-1）・share（3-1）・baseline（4-1の読みやすい形）・pair（4-2の読みやすい形）。
-  // popout の values＝8本の高さ（0〜100。渡さなければ popBars。強調する棒は popHighlight の添字のまま）
+  // popout の values＝8本の高さ（0〜100。渡さなければ popBars。強調する棒は popHighlight の添字のまま）。others＝強調しない棒の色の名前を
+  // 左から順に（渡さなければ popOthers を周りのばらつきの数だけ順に使う）
   register('barChart', (s, ctx) => {
     const ds = ctx.data.datasets, mode = s.mode || 'popout', base = 140, scaleY = 1.2, shapes = [];
     if (mode === 'popout') {
       const values = s.values || ds.popBars, hi = ds.popHighlight, slot = 180 / values.length;
       const kind = s.popKind || 'color', d = DIFF.indexOf(s.popDiff || 'large'), v = VARIETY.indexOf(s.popVariety || 'uniform');
       const rng = Core.xorshift32(s.seed || 1);
+      const other = (i) => (s.others ? `fill-${s.others[i < hi ? i : i - 1]}` : `fill-popOthers-${i % (v + 1)}`);
       values.forEach((val, i) => {
         let width = 10, cls = 'fill-popColor-0';
-        if (kind === 'color') cls = i === hi ? `fill-popColor-${d}` : `fill-popOthers-${i % (v + 1)}`;
+        if (kind === 'color') cls = i === hi ? `fill-popColor-${d}` : other(i);
         if (kind === 'lightness') cls = i === hi ? `fill-popLight-${d}` : `fill-popLightOthers-${i % (v + 1)}`;
         if (kind === 'size') width = i === hi ? 10 * SCALES[d] : 10 * (1 + (Core.unit(rng) * 2 - 1) * JIT_SCALE[v]);
         const cx = 10 + slot * (i + 0.5);
@@ -855,14 +859,21 @@
     if (control.unit === 'percent') return Math.round(value * 100) + '%';
     return String(value);
   }
-  // 小さな図の下の行：linkedTo（つながる操作の名前を controls の順に）か linkedNone（いまの設定ではつながらない）。
-  // つながる操作が1つもない図（bind が空）は linkedNever（操作しても変わらない）
+  // 小さな図の下の行：linkedTo（つながる操作の名前を controls の順に）か linkedNone（いまの設定ではつながらない。理由を書く項目は
+  // use.linkedNoneKey の文）。つながる操作が1つもない図（bind が空）は linkedNever（操作しても変わらない）
   function linkedLine(entry, use, values) {
     if (!Object.keys(use.bind || {}).length) return { key: 'linkedNever', controls: [] };
     const { linked } = useSettings(use, values);
     const ids = entry.controls.map((c) => c.id).filter((id) => linked.includes(id));
-    return ids.length ? { key: 'linkedTo', controls: ids } : { key: 'linkedNone', controls: [] };
+    return ids.length ? { key: 'linkedTo', controls: ids } : { key: use.linkedNoneKey || 'linkedNone', controls: [] };
   }
+  // 小さな図の下の文：textKeyWhen の場合（{ when: { つまみの id: [値…] }, key }）のうち、いまの値に最初に当たるものの文。当たらなければ textKey
+  function useTextKey(use, values) {
+    const hit = (use.textKeyWhen || []).find((c) => Object.entries(c.when).every(([k, list]) => list.includes(values[k])));
+    return hit ? hit.key : use.textKey || null;
+  }
+  // 小さな図の下に出しうる文のキーすべて（重ねて置き、高さはいちばん長い文で決める）
+  const useTextKeys = (use) => [...new Set([...(use.textKeyWhen || []).map((c) => c.key), ...(use.textKey ? [use.textKey] : [])])];
   function linkedText(M, lang, entry, use, values) {
     const D = dictionary(M, lang), l = linkedLine(entry, use, values);
     if (l.key !== 'linkedTo') return D[l.key];
@@ -882,11 +893,14 @@
 
   // ===== タブと項目の見せ方のモデル =====
   const SIDE_LABEL = { show: 'showLabel', hide: 'hideLabel', readable: 'readableLabel', read: 'readLabel' };
-  // 「動かす前に予想する」：問い・選択肢・正しい選択肢・説明のキー。選んだあとの文は、実験の項目だけ「実験をしてから確かめてください」
+  // 「動かす前に予想する」：問い・選択肢・正しい選択肢・説明のキー。選んだあとの文は、実験の項目は「実験をしてから確かめてください」、
+  // 動く項目は「切り替えて「動かす」を押し」（動きを減らす設定では chosenReducedKey の「次のコマ」）、ほかは「問いのとおりに操作して」
   function predictModel(e) {
     if (!e.predict) return null;
+    const moving = e.safety.motion === 'onPlay';
     return { questionKey: `predict.${e.id}.question`, explainKey: `predict.${e.id}.explain`, answer: e.predict.answer,
-      chosenKey: e.experiment ? 'predictChosenTest' : 'predictChosen',
+      chosenKey: e.experiment ? 'predictChosenTest' : moving ? 'predictChosenPlay' : 'predictChosen',
+      chosenReducedKey: moving ? 'predictChosenFrame' : null,
       choices: e.predict.choices.map((c) => ({ id: c, key: `predict.${e.id}.choice.${c}`, label: null })) };
   }
   // 確かめの問い：図・図の名前と説明・問い・選択肢・正しい選択肢・説明。図の label（A・B）と同じ選択肢は、その名前をそのまま出す（訳さない）
@@ -928,7 +942,7 @@
       actions: e.actions || [],
       usesHeadingKey: readable ? 'usesHeadingReadable' : showOnly ? 'usesHeadingShow' : hideOnly ? 'usesHeadingHide' : 'usesHeading',
       uses: e.uses.map((u) => ({ side: u.side, labelKey: SIDE_LABEL[u.side], titleKey: `fig.${e.id}.${u.side}.title`, part: u.part,
-        textKey: u.textKey || null, noteKey: u.noteKey || null, link: u.link || null })),
+        textKey: u.textKey || null, textKeys: useTextKeys(u), noteKey: u.noteKey || null, link: u.link || null })),
       mainTitleKey: e.figure ? `fig.${e.id}.main.title` : null,
       gapKey: e.gapKey, gapHeadingKey: e.gapHeadingKey || 'gapHeading', numbers: e.numbers || null, checkKey: e.checkKey || null,
       sources: e.sources, related: e.related,
@@ -949,6 +963,8 @@
   }
 
   // ===== 見方の文の選び方 =====
+  // 縦軸の始まり：下端からの高さの比と値の比（どちらも図の下の数の行の小数2桁）の差がこれより小さければ、差はまだ小さいという文にする
+  const BASE_SMALL = 0.05;
   // extra.times＝1-2 の「探して押す」の時間（秒。{ withLine, noLine }、ないものは null）
   function readCases(data, entryId, values, extra = {}) {
     const entry = data.entries.find((e) => e.id === entryId);
@@ -982,14 +998,17 @@
         return [{ key: p < 50 ? 'areaRead.darkNarrow' : p === 50 ? 'areaRead.equal' : 'areaRead.lightNarrow', values: {} }];
       }
       case 'symmetry': {
-        if (values.cue === 'convex') return [{ key: values.regions === 2 ? 'symRead.convex2' : 'symRead.convex8', values: {} }];
-        return [{ key: values.cue === 'symmetric' ? 'symRead.symmetric' : 'symRead.none', values: {} }];
+        if (values.cue === 'none') return [{ key: 'symRead.none', values: {} }];
+        // The bands with the cue: those in the dark color (regionA), or once swapped those in the light color (regionB)
+        const band = values.swap ? 'light' : 'dark';
+        if (values.cue === 'convex') return [{ key: `symRead.convex${values.regions === 2 ? 2 : 8}.${band}`, values: {} }];
+        return [{ key: `symRead.symmetric.${band}`, values: {} }];
       }
       case 'motion': {
         const random = values.others === 'random';
         if (values.amount === 'none') return [{ key: random ? 'motionRead.oneStill' : 'motionRead.none', values: {} }];
         if (random) return [{ key: 'motionRead.allMove', values: {} }];
-        return [{ key: values.amount === 'small' ? 'motionRead.small' : 'motionRead.large', values: {} }];
+        return [{ key: `motionRead.${values.amount}`, values: {} }];
       }
       case 'lightness': {
         if (!values.diff) return [{ key: 'lightRead.same', values: {} }];
@@ -999,7 +1018,12 @@
       case 'camo': return [{ key: `camoRead.${values.pattern}`, values: {} }];
       case 'baseline': {
         if (!values.bottom) return [{ key: 'baseRead.zero', values: {} }];
-        const out = [{ key: 'baseRead.raised', values: { b: String(values.bottom), r: f2(Core.baselineRatio(ds.libraryLoans3, values.bottom)) } }];
+        // The two ratios of the line of numbers (as shown, two decimals): while they differ by less than BASE_SMALL (the bottom at 5, 10
+        // and 15), the sentence says that the difference is still small instead of that it looks larger
+        const loans = ds.libraryLoans3, ratio = Core.round2(Core.baselineRatio(loans, values.bottom));
+        const gap = Core.round2(ratio - Core.round2(Math.max(...loans) / Math.min(...loans))), b = String(values.bottom), r = ratio.toFixed(2);
+        const out = [gap < BASE_SMALL ? { key: 'baseRead.raisedSmall', values: { b, r, d: gap.toFixed(2) } }
+          : { key: 'baseRead.raised', values: { b, r } }];
         if (values.mark === 'shown') out.push({ key: 'baseRead.mark', values: {} });
         if (values.chart === 'line') out.push({ key: 'baseRead.line', values: {} });
         return out;
@@ -1235,6 +1259,7 @@
       const v = {};
       if (values.pattern) v.pattern = D[`camoPatternInline.${values.pattern}`];
       if (values.d !== undefined) v.d = numberText(values.d.toFixed(1));
+      if (values.n !== undefined) v.n = String(values.n);
       return fill(D[key], v);
     });
   }
@@ -1301,7 +1326,8 @@
 
   return Object.freeze({
     fill, dictionary, partNames, renderPart, renderMain, renderUse, compose, popoutLayout, asymLayout, findLayout, markShapes, fixationShapes,
-    sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, shownValue, useSettings, linkedLine, linkedText, buildViewModel, readCases,
+    sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, shownValue, useSettings, linkedLine, linkedText, useTextKey, useTextKeys,
+    buildViewModel, readCases, BASE_SMALL,
     numbersCase, readKeysAll, texts, resultTexts, resultSetTexts, experimentTitle, messageText, descCase, descText, RESULT_SERIES, resultRows,
     resultTop, resultChart, resultChartDesc, resultKey, numberText, stepLabel, motionPose, MOTION, mothSample, camoResultRows, camoResultChart,
     camoResultTexts, camoContrastTexts, CAMO_CHART, renderCheckFigure, RESULT_CHART,

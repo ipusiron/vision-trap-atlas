@@ -371,7 +371,7 @@ function featureFacts() {
 test('G: the feature table gives the numbers of the data and the calculation (both languages)', () => {
   const f = featureFacts();
   assert.deepEqual([f.per, f.both, f.search, f.misread, f.predictions, f.choices, f.perTab, f.checks, f.find, f.terms],
-    [[3, 2, 3, 2, 4, 1], 9, 2, 4, 15, [2, 3], 2, 12, 2, 38], 'the counts of the data');
+    [[3, 2, 3, 2, 4, 1], 9, 2, 4, 15, [2, 3], 2, 12, 2, 42], 'the counts of the data');
   const perTab = (lang) => TABS.map((g, k) => (lang === 'ja' ? `「${M.ja[g.labelKey]}」${f.per[k]}` : `${M.en[g.labelKey]} ${f.per[k]}`));
   const want = {
     ja: [`${perTab('ja').join('・')}の項目`, `${TABS.length}つのタブと${D.entries.length}の項目`, `${f.both}つの項目では`,
@@ -384,7 +384,7 @@ test('G: the feature table gives the numbers of the data and the calculation (bo
     en: [`${perTab('en').join(', ')}.`, `${TABS.length} tabs and ${D.entries.length} entries`, `In ${f.both} entries`,
       `The ${f.search} entries of the ${M.en.tabSearch} tab`, `the ${f.misread} entries of the ${M.en.tabMisread} tab`, `In all ${f.predictions} entries`,
       `${f.choices[0]} to ${f.choices[1]} choices`, `${f.perTab} questions at the end of each of the ${TABS.length} tabs, ${f.checks} in all`,
-      `In ${f.find} entries of the ${M.en.tabPopout} tab`, `After ${f.reveal} seconds, "${M.en.findReveal}"`, `${joinList('en', C.SET_SIZES)} items`,
+      `In ${f.find} entries of the ${M.en.tabPopout} tab`, `after ${f.reveal} seconds, "${M.en.findReveal}"`, `${joinList('en', C.SET_SIZES)} items`,
       `${f.practice} practice tries and ${f.main} recorded tries`, `${f.camoPractice} practice rounds and ${f.camoMain} recorded rounds`,
       `a limit of ${f.camoLimit} seconds per round`, `moves for ${f.motion} seconds`, `${f.frames} still frames`,
       `"${M.en.chartChecksHeading}" (${f.chartChecks} of them)`, `"${M.en.camoCluesHeading}" (${f.clues} of them)`, `${f.terms} terms`,
@@ -424,7 +424,7 @@ test('G: the technical notes give the values of the calculation, the experiments
     ja: {
       0: [`${C.SET_SIZES.join('・')}個`, `一辺${C.CAMO.size}の正方形を${C.CAMO.grid}×${C.CAMO.grid}のマス`, `±${Math.round(jitter * 100)}%`,
         `練習${C.PRACTICE_REPS}回と本番${C.MAIN_REPS}回`, `練習${C.SET_SIZES.length * 2 * C.PRACTICE_REPS}回と本番${C.SET_SIZES.length * 2 * C.MAIN_REPS}回`,
-        `注視点${T.fixation}ミリ秒 → 図（4,000ミリ秒まで） → 結果の文${T.feedback}ミリ秒 → 間${T.gap}ミリ秒`, `${C.EARLY_MS}ミリ秒未満`,
+        `注視点${T.fixation}ミリ秒 → 図（4,000ミリ秒まで） → 押したあとの文${T.feedback}ミリ秒 → 間${T.gap}ミリ秒`, `${C.EARLY_MS}ミリ秒未満`,
         `有効な回が${C.MIN_VALID}回以上`, `図形の数が${C.MIN_POINTS}つ以上`, `${C.COARSE_MS}ミリ秒以上の単位`, 'requestAnimationFrame', 'event.timeStamp'],
       1: [`${C.CMP_STEP}ミリ秒以上なら`, `−${C.CMP_STEP}より大きく${C.CMP_STEP}未満`, `−${C.CMP_STEP}以下`, `${C.ERROR_PERCENT}%を超えたら`,
         `1.25×200÷√${C.MAIN_REPS}＝${median}ミリ秒`, `${median}÷√${sxx}≈${f1(slope)}ミリ秒`, `${f1(slope)}×√2≈${f1(diff)}ミリ秒`, `約${oneIn}回に1回`,
@@ -447,7 +447,7 @@ test('G: the technical notes give the values of the calculation, the experiments
       0: [`Number of items: ${joinList('en', C.SET_SIZES)}`, `A square ${C.CAMO.size} units wide is split into a ${C.CAMO.grid} × ${C.CAMO.grid} grid`,
         `±${Math.round(jitter * 100)}%`, `${C.PRACTICE_REPS} practice try and ${C.MAIN_REPS} recorded tries`,
         `${C.SET_SIZES.length * 2 * C.PRACTICE_REPS} practice tries and ${C.SET_SIZES.length * 2 * C.MAIN_REPS} recorded tries`,
-        `fixation point ${T.fixation} ms → display (up to 4,000 ms) → result line ${T.feedback} ms → pause ${T.gap} ms`, `less than ${C.EARLY_MS} ms`,
+        `fixation point ${T.fixation} ms → display (up to 4,000 ms) → feedback line ${T.feedback} ms → pause ${T.gap} ms`, `less than ${C.EARLY_MS} ms`,
         `${C.MIN_VALID} or more valid tries`, `${C.MIN_POINTS} or more numbers of items`, `${C.COARSE_MS} ms or more`, 'requestAnimationFrame',
         'event.timeStamp'],
       1: [`${C.CMP_STEP} ms or more gives`, `more than −${C.CMP_STEP} and under ${C.CMP_STEP}`, `−${C.CMP_STEP} or less`, `more than ${C.ERROR_PERCENT}%`,
@@ -767,7 +767,7 @@ test('G: each screenshot has a one-line caption that starts with what it shows a
       [`導入の${M.ja.introShort.split('。').filter(Boolean).length}文`, '「この図鑑でできること」の4項目', '「はじめて読むときの順路」の3つのボタン', `${TABS.length}つのタブ`],
       [`「${baseTitle('ja', 'popout-feature')}」`,
         `（違いの種類＝${defaults('ja')[0]}、違いの大きさ＝${defaults('ja')[1]}、周りのばらつき＝${defaults('ja')[2]}、図形の数＝${defaults('ja')[3]}）`,
-        `${defaults('ja')[3]}個の棒`],
+        `${defaults('ja')[3]}本の棒`],
       [`「${baseTitle('ja', 'gestalt-contour')}」で「${M.ja['ctl.gestalt-contour.gap']}」を${uc1.to}%にした`, `欠けた${uc1.bands}か月`, `${uc1.spots}個の斑点`],
       [`結合探索（${M.ja.setColorShort}）`, '図形は18個', '色と方向の組み合わせだけがほかと違う', 'ない＝F・←、ある＝J・→'],
       ['練習1回目', '蛾の形（底辺を上にした三角形）'],
@@ -892,14 +892,25 @@ const SEARCH_TERMS = ['camouflage and data visualization "same" perceptual princ
   'Healey perception in visualization preattentive processing demo', 'interactive Gestalt principles demo proximity similarity closure explorable',
   'interactive misleading chart playground slider y-axis baseline aspect ratio explorable'];
 const JA_TERMS = ['視覚探索 ポップアウト 体験 デモ ブラウザ 反応時間', 'ゲシュタルトの法則 体験 インタラクティブ 近接 類同 閉合'];
+// The dated sentence (its subject and its predicate together), then the search terms as a list right after it
 const ABSENT = {
   ja: '同じ視覚の性質を、見せる側（データ可視化）と隠す側（迷彩）の両方から体験し、自分の探す時間を研究の傾きと並べ、誤読させるグラフまで1つの図鑑で日本語と英語で'
-    + `扱う教材は、2026-11-12にWeb検索で調べた範囲（主な検索語：${[...SEARCH_TERMS, ...JA_TERMS].join('、')}）では見当たりませんでした。`,
-  en: 'No teaching material that lets you experience the same visual traits from both the showing side (data visualization) and the hiding side '
-    + '(camouflage), sets your own search times beside the slopes from research, and covers misleading charts as well, in one atlas in Japanese and '
-    + `English, was found in web searches on 2026-11-12 (main search terms: ${SEARCH_TERMS.join(', ')}, and two Japanese queries for visual search `
-    + 'pop-out demos and interactive Gestalt principles).',
+    + '扱う教材は、2026-11-12にWeb検索で調べた範囲では見当たりませんでした。主な検索語は次の8つです。',
+  en: 'In web searches on 2026-11-12, we found no teaching material that lets you experience the same visual traits from both the showing side (data '
+    + 'visualization) and the hiding side (camouflage), sets your own search times beside the slopes from research, and covers misleading charts as '
+    + 'well, in one atlas in Japanese and English. The main search terms were these, plus two Japanese queries for visual search pop-out demos and '
+    + 'interactive Gestalt principles:',
 };
+const ABSENT_TERMS = { ja: [...SEARCH_TERMS, ...JA_TERMS], en: SEARCH_TERMS };
+// The items of the list that follows the paragraph ending with the dated sentence
+function termsAfterAbsent(lines, lang) {
+  let i = lines.findIndex((line) => plain([line], lang).includes(ABSENT[lang].slice(-20)));
+  assert.ok(i >= 0, FILES[lang] + ': the dated sentence ends a paragraph');
+  while (lines[i + 1] !== undefined && !lines[i + 1].trim()) i += 1;
+  const items = [];
+  for (i += 1; i < lines.length && /^- /.test(lines[i]); i += 1) items.push(lines[i].slice(2).trim());
+  return items;
+}
 // The rows of the prior work, in order: the name in the first cell and the address of its link
 const PRIOR = [['Healey', 'https://www.csc2.ncsu.edu/faculty/healey/PP/index.html'], ['Michael Bach', 'https://michaelbach.de/ot/'],
   ['PsyToolkit', 'https://www.psytoolkit.org/experiment-library/search.html'], ['jsPsych', 'https://www.jspsych.org/latest/plugins/visual-search-circle/'],
@@ -930,6 +941,7 @@ test('G: the references: the prior-work table, the dated sentence with its searc
       assert.ok(row[1] && row[2], `${file}: what it has and what this atlas adds`);
     });
     assert.ok(text.includes(ABSENT[lang]), file + ': ' + ABSENT[lang]);
+    assert.deepEqual(termsAfterAbsent(lines, lang), ABSENT_TERMS[lang], file + ': the search terms as a list after the dated sentence');
     // The sources of the screen (atlas-data.js), each once, in the order of their citations
     const listed = lines.filter((line) => /^- [A-Z]/.test(line) && /\(\d{4}\)/.test(line) && !/White, R\./.test(line)).map((line) => line.slice(2));
     assert.deepEqual(listed, sources.map(sourceLine), `${file}: the sources of the data`);

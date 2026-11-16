@@ -261,6 +261,35 @@ test('D: an early try in the recorded block is moved to the end once, so the blo
   assert.deepEqual([st.records.at(-1).setSize, st.records.at(-1).present, st.records.at(-1).requeued], [first.setSize, first.present, true]);
 });
 
+test('D: an excluded try is counted once per try shown, however often it is pressed too early; so one search can exclude more than 32', () => {
+  const clock = fakeTime(), exp = createExp(clock);
+  exp.start();
+  for (let i = 0; i < 8; i += 1) runTry(clock, exp, { rt: () => 600 });
+  exp.proceed();
+  let shown = 0, presses = 0;
+  while (exp.state().phase !== 'done') {
+    let t = clock.now();
+    clock.frame(t += 16);
+    assert.equal(exp.state().phase, 'fixation');
+    // Two presses during the fixation point: the first is too early; the second comes during the line of the result and does nothing
+    exp.respond({ answer: 'present', timeStamp: t + 1, input: 'key' });
+    exp.respond({ answer: 'absent', timeStamp: t + 2, input: 'key' });
+    presses += 2;
+    shown += 1;
+    clock.frame(t += 600);
+    clock.frame(t += 300);
+  }
+  const st = exp.state(), s = exp.summary();
+  assert.equal(presses, 128);
+  assert.equal(shown, 64, 'each of the 32 tries is shown again once after its first too-early press');
+  assert.equal(st.records.length, 64);
+  assert.ok(st.records.every((r) => r.outcome === 'early'));
+  assert.equal(st.records.filter((r) => r.requeued).length, 32, 'a try is done again only once');
+  assert.deepEqual([s.rows.present.excluded, s.rows.absent.excluded], [32, 32], 'one excluded count per try shown, not per press');
+  // The note under the table says so (the excluded counts of one search can add up to more than its 32 recorded tries)
+  assert.ok(s.rows.present.excluded + s.rows.absent.excluded > C.SET_SIZES.length * 2 * C.MAIN_REPS);
+});
+
 test('D: a hidden page stops the try without counting it, then "Resume" goes on; Esc stops and keeps the results', () => {
   const clock = fakeTime(), exp = createExp(clock);
   exp.start();
@@ -350,14 +379,32 @@ test('D: resultCases: nothing, one search, both searches', () => {
 test('D: resultCases: both searches measured, but only one has both slopes (the other stopped early): that one opens the sentences', () => {
   const stopped = block({ a: null, b: null, aborted: true });
   const featureOnly = C.resultCases({ feature: block({ a: 3.1, b: 25.1 }), conjunction: stopped });
-  assert.deepEqual(keys(featureOnly), ['resOneFeature', 'resRatioHigh', 'resNoSlope', 'resNoSlope', 'resPartial', 'resDevice', 'resLimits']);
+  assert.deepEqual(keys(featureOnly), ['resOneFeature', 'resRatioHigh', 'resNoSlope', 'resNoSlope', 'resNoSlopeWhy', 'resPartial', 'resDevice',
+    'resLimits']);
   assert.deepEqual(featureOnly[0].values, { a: 3.1, b: 25.1 });
   const conjOnly = C.resultCases({ feature: block({ a: 4, b: null, aborted: true }), conjunction: block({ a: 28.7, b: 67.1 }) });
-  assert.deepEqual(keys(conjOnly), ['resOneConj', 'resRatioTypical', 'resNoSlope', 'resPartial', 'resDevice', 'resLimits']);
+  assert.deepEqual(keys(conjOnly), ['resOneConj', 'resRatioTypical', 'resNoSlope', 'resNoSlopeWhy', 'resPartial', 'resDevice', 'resLimits']);
   assert.deepEqual(conjOnly[0].values, { a: 28.7, b: 67.1 });
   // Neither has both slopes: no opening sentence
   assert.deepEqual(keys(C.resultCases({ feature: block({ a: 4, b: null }), conjunction: block({ a: null, b: 9 }) })),
-    ['resNoSlope', 'resNoSlope', 'resDevice', 'resLimits']);
+    ['resNoSlope', 'resNoSlope', 'resNoSlopeWhy', 'resDevice', 'resLimits']);
+});
+
+test('D: the end of a run shows the most important sentence only: the comparison, else the one search, else why there is no slope', () => {
+  const end = (results) => keys(C.resultEndCases(C.resultCases(results)));
+  // Both searches with their slopes: the comparison of the absent slopes alone (not the four slopes, not the ratios)
+  assert.deepEqual(end({ feature: block({ a: 3.1, b: 25.1 }), conjunction: block({ a: 28.7, b: 67.1 }) }), ['resCmpLarger']);
+  assert.deepEqual(end({ feature: block({ a: 3, b: 20 }), conjunction: block({ a: 4, b: 25 }) }), ['resCmpSimilar']);
+  // One search: its sentence alone (it says to measure the other); the ratio, the wrong answers and the notes stay in the results area
+  assert.deepEqual(end({ feature: block({ a: 3.1, b: 25.1, errors: 8, answered: 31, granularity: 16.667 }) }), ['resOneFeature']);
+  assert.deepEqual(end({ conjunction: block({ a: 28.7, b: 67.1, aborted: true, mixed: true }) }), ['resOneConj']);
+  // A run without a slope (every press too early): the rows without a slope and why, once
+  assert.deepEqual(end({ feature: block({ a: null, b: null }) }), ['resNoSlope', 'resNoSlope', 'resNoSlopeWhy']);
+  assert.deepEqual(end({}), []);
+  // Every sentence of the end is one of the results area, in the same order
+  const results = { feature: block({ a: -1, b: 2, errors: 8, answered: 60 }), conjunction: block({ a: 12, b: null }) };
+  const all = keys(C.resultCases(results)), shown = end(results);
+  assert.deepEqual(shown, all.filter((k) => shown.includes(k)));
 });
 
 test('D: resultCases: the absent-slope difference at 15.0, 14.9, −14.9 and −15.0 (after rounding)', () => {
@@ -398,8 +445,10 @@ test('D: resultCases: negative slopes, missing slopes, a stop, mixed input', () 
   assert.ok(keys(C.resultCases({ feature: block({ a: -1.2, b: 5 }) })).includes('resNegative'));
   assert.ok(!keys(C.resultCases({ feature: block({ a: -0.04, b: 5 }) })).includes('resNegative'), '−0.04 is shown as 0.0');
   const missing = C.resultCases({ feature: block({ a: 3, b: null }), conjunction: block({ a: null, b: null, aborted: true, mixed: true }) });
-  assert.deepEqual(keys(missing), ['resNoSlope', 'resNoSlope', 'resNoSlope', 'resPartial', 'resMixed', 'resDevice', 'resLimits']);
+  assert.deepEqual(keys(missing), ['resNoSlope', 'resNoSlope', 'resNoSlope', 'resNoSlopeWhy', 'resPartial', 'resMixed', 'resDevice', 'resLimits']);
   assert.deepEqual(missing.filter((c) => c.key === 'resNoSlope').map((c) => c.values.row), ['feature.absent', 'conjunction.present', 'conjunction.absent']);
+  // Why there is no slope: once, and only when a row has none
+  assert.ok(!keys(C.resultCases({ feature: block({ a: 3, b: 20 }) })).includes('resNoSlopeWhy'));
 });
 
 test('D: resultCases: wrong answers at 10.0%, 10.1% and 10.9% of the answered tries (compared before rounding; {p} is a whole percent)', () => {
@@ -424,11 +473,11 @@ test('D: resultCases follows the order of the screen', () => {
     feature: block({ a: -1, b: 2, errors: 8, answered: 60, mixed: true, aborted: true, granularity: 16.667 }),
     conjunction: block({ a: 12, b: null }),
   });
-  assert.deepEqual(keys(full), ['resOneFeature', 'resRatioNone', 'resNegative', 'resNoSlope', 'resPartial', 'resMixed', 'resErrors', 'resCoarse',
-    'resDevice', 'resLimits']);
+  assert.deepEqual(keys(full), ['resOneFeature', 'resRatioNone', 'resNegative', 'resNoSlope', 'resNoSlopeWhy', 'resPartial', 'resMixed', 'resErrors',
+    'resCoarse', 'resDevice', 'resLimits']);
   const order = ['resNone', 'resOneFeature', 'resOneConj', 'resBoth', 'resCmpLarger', 'resCmpSimilar', 'resCmpSmaller', 'resRatioNone',
-    'resRatioZeroOrLess', 'resRatioLow', 'resRatioMid', 'resRatioTypical', 'resRatioHigh', 'resNegative', 'resNoSlope', 'resPartial', 'resMixed',
-    'resErrors', 'resCoarse', 'resDevice', 'resLimits'];
+    'resRatioZeroOrLess', 'resRatioLow', 'resRatioMid', 'resRatioTypical', 'resRatioHigh', 'resNegative', 'resNoSlope', 'resNoSlopeWhy', 'resPartial',
+    'resMixed', 'resErrors', 'resCoarse', 'resDevice', 'resLimits'];
   const rank = (k) => (k.startsWith('resRatio') ? order.indexOf('resRatioNone') : k.startsWith('resCmp') ? order.indexOf('resCmpLarger')
     : k.startsWith('resOne') || k === 'resBoth' ? order.indexOf('resBoth') : order.indexOf(k));
   const ranks = keys(full).map(rank);
@@ -637,6 +686,27 @@ test('D: camoResultCases: longer, sooner or no clear difference at 20% of the ba
   assert.deepEqual(keys(C.camoResultCases(summary(null, 2000, 2800))), ['camoResFew']);
   assert.deepEqual(keys(C.camoResultCases(summary(2000, 2100, 1990, { aborted: true, mixedInput: true }))),
     ['camoResSimilar', 'camoResSimilar', 'camoResPartial', 'resMixed']);
+  // Rounds left out because they were too early twice: the sentence that says why the table has fewer rounds, with their number
+  assert.deepEqual(C.camoResultCases(summary(2000, 2100, 1990, { dropped: 2, aborted: true })).slice(2),
+    [{ key: 'camoResEarly', values: { n: 2 } }, { key: 'camoResPartial', values: {} }]);
+  assert.ok(!keys(C.camoResultCases(summary(2000, 2100, 1990, { dropped: 0 }))).includes('camoResEarly'));
+});
+
+test('D: summarizeCamo counts the rounds left out: too early, and too early again when done once more (an early round counted once)', () => {
+  const r = (pattern, outcome, rt, requeued = false) => ({ pattern, target: 4, cell: 4, outcome, rt, input: 'mouse', requeued });
+  // Five rounds of each pattern: two first presses too early, one of them too early again when done once more
+  const records = [r('match', 'early', 150), r('match', 'correct', 1200), r('match', 'correct', 900), r('match', 'correct', 1500),
+    r('match', 'timeout', 10000), r('disrupt', 'early', 120), r('disrupt', 'correct', 2000), r('disrupt', 'correct', 2600), r('disrupt', 'correct', 2100),
+    r('disrupt', 'wrong', 1800), ...['correct', 'correct', 'correct', 'correct', 'correct'].map((o, i) => r('symmetric', o, 700 + 50 * i)),
+    r('match', 'correct', 1300, true), r('disrupt', 'early', 160, true)];
+  const s = C.summarizeCamo(records);
+  assert.equal(s.dropped, 1);
+  const total = (p) => s.rows[p].valid + s.rows[p].timeout + s.rows[p].wrong;
+  assert.deepEqual(C.CAMO_PATTERNS.map(total), [5, 4, 5], 'the table adds up to 15 rounds less the one left out');
+  assert.equal(C.CAMO_PATTERNS.reduce((n, p) => n + total(p), 0) + s.dropped, C.CAMO_PATTERNS.length * C.CAMO_MAIN_REPS);
+  assert.deepEqual(C.camoResultCases(s).find((c) => c.key === 'camoResEarly'), { key: 'camoResEarly', values: { n: 1 } });
+  // A hidden page and an early press done again and answered: nothing left out
+  assert.equal(C.summarizeCamo([r('match', 'early', 150), r('match', 'correct', 900, true), r('match', 'hidden', null)]).dropped, 0);
 });
 
 // ===== createMotion: the clock that moves popout-motion (push to play, stop after `seconds`, stop button and next-frame) =====

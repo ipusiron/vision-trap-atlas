@@ -171,12 +171,26 @@ def linked_ids(card, use, values):
     return [c["id"] for c in ENTRY[card]["controls"] if c["id"] in linked]
 
 
+def use_text_key(use, values):
+    """The sentence under a small figure: the first case of textKeyWhen that the values meet, else textKey (as AtlasView.useTextKey)."""
+    for case in use.get("textKeyWhen") or []:
+        if all(values[k] in allowed for k, allowed in case["when"].items()):
+            return case["key"]
+    return use.get("textKey")
+
+
+def changing_text(use):
+    """Whether the sentence under a small figure changes with the values (then the page keeps all its cases in one cell)."""
+    return len({c["key"] for c in use.get("textKeyWhen") or []} | ({use["textKey"]} if use.get("textKey") else set())) > 1
+
+
 def expected_linked(card, use, values, language):
     L, ids = M[language], linked_ids(card, use, values)
     if not use.get("bind"):
         return L["linkedNever"]
     if not ids:
-        return L["linkedNone"]
+        # An entry may say why its small figure does not change now (the small figures of Pop out draw no direction and no shape)
+        return L[use.get("linkedNoneKey") or "linkedNone"]
     return fill(L["linkedTo"], names=("・" if language == "ja" else ", ").join(L[f"ctl.{card}.{cid}"] for cid in ids))
 
 
@@ -221,16 +235,21 @@ def expected_read(card, values, language):
         p = round(values["share"] * 100)
         return [L["areaRead.darkNarrow" if p < 50 else "areaRead.equal" if p == 50 else "areaRead.lightNarrow"]]
     if card == "figure-ground-symmetry":
+        if values["cue"] == "none":
+            return [L["symRead.none"]]
+        # The bands with the cue are named by their color: the dark ones, or once swapped the light ones
+        band = "light" if values["swap"] else "dark"
         if values["cue"] == "convex":
-            return [L["symRead.convex2" if values["regions"] == 2 else "symRead.convex8"]]
-        return [L["symRead." + values["cue"]]]
+            return [L[f"symRead.convex{2 if values['regions'] == 2 else 8}.{band}"]]
+        return [L[f"symRead.symmetric.{band}"]]
     if card in MISREAD_CARDS:
         return expected_misread(card, values, language)
     if card == "popout-motion":
         random = values["others"] == "random"
         if values["amount"] == "none":
             return [L["motionRead.oneStill" if random else "motionRead.none"]]
-        return [L["motionRead.allMove" if random else "motionRead.small" if values["amount"] == "small" else "motionRead.large"]]
+        # Small, Medium and Large each have their own sentence
+        return [L["motionRead.allMove" if random else "motionRead." + values["amount"]]]
     if card == "search-camo":
         return [L["camoRead." + values["pattern"]]]
     if card == "illusion-lightness-contrast":
@@ -301,7 +320,14 @@ def expected_misread(card, values, language):
     if card == "misread-baseline":
         if not values["bottom"]:
             return [L["baseRead.zero"]]
-        out = [fill(L["baseRead.raised"], b=values["bottom"], r=round_fixed(baseline_ratio(values["bottom"]), 2))]
+        # The two ratios of the line of numbers (two decimals): a difference under 0.05 is still small (the bottom at 5, 10 and 15)
+        ratio = round_fixed(baseline_ratio(values["bottom"]), 2)
+        value_ratio = round_fixed(max(DS["libraryLoans3"]) / min(DS["libraryLoans3"]), 2)
+        gap = round_fixed(float(ratio) - float(value_ratio), 2)
+        if float(gap) < 0.05:
+            out = [fill(L["baseRead.raisedSmall"], b=values["bottom"], r=ratio, d=gap)]
+        else:
+            out = [fill(L["baseRead.raised"], b=values["bottom"], r=ratio)]
         if values["mark"] == "shown":
             out.append(L["baseRead.mark"])
         if values["chart"] == "line":
@@ -447,6 +473,7 @@ CARD_TEXTS = """id => { const card = document.getElementById(id);
   return {read: text(card.querySelector('.read-live')), find: text(card.querySelector('.find-live')),
     numbers: text(card.querySelector('.numbers-live')), check: text(card.querySelector('.entry-check')),
     linked: Array.from(card.querySelectorAll('.use-linked > p:not([aria-hidden])'), p => p.textContent.trim()).filter(Boolean),
+    useTexts: Array.from(card.querySelectorAll('.use-texts'), t => (s => s ? s.lastElementChild.textContent.trim() : null)(t.querySelector(':scope > .stack.use-text'))),
     live: Array.from(card.querySelectorAll('.use-linked > p'), p => p.textContent.trim()),
     desc: Array.from(card.querySelectorAll('svg > desc'), d => d.textContent.trim()),
     marks: {pressed: card.querySelectorAll('.figure-frame .mark-pressed').length, target: card.querySelectorAll('.figure-frame .mark-target').length},
@@ -785,11 +812,11 @@ def test_help(page, width, layouts, screenshot, language):
         ok, st, _ = help_tab_state(page, name)
         check(ok and st["active"] == f"help-tab-{name}", (key, name, st))
         same_help_box(page, size, key)
-    # The glossary: the groups by tab, the 38 terms once each
+    # The glossary: the groups by tab, every term once
     check(page.locator("#help-panel-glossary .gloss-group h3").all_inner_texts() == [L["glossGroup." + g] for g in GLOSS_GROUPS], "glossary groups")
     keys = page.locator("#help-panel-glossary dt > span:first-child").evaluate_all("els => els.map(e => e.dataset.i18n)")
-    check(len(keys) == 38 and sorted(keys) == TERM_KEYS, ("38 terms once each", keys))
-    check(page.locator("#help-panel-glossary dd").count() == 38, "38 meanings")
+    check(len(keys) == len(TERM_KEYS) and sorted(keys) == TERM_KEYS, ("the terms once each", len(keys), len(TERM_KEYS)))
+    check(page.locator("#help-panel-glossary dd").count() == len(TERM_KEYS), "a meaning for each term")
     assert_layout(page, width, "help-glossary", layouts)
     shot(page, screenshot.with_name(screenshot.stem + "-glossary.png"))
     # Closed and opened again: the same tab at the same place
@@ -1106,6 +1133,8 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
             t = page.evaluate(CARD_TEXTS, card)
             check(t["read"] == "".join(expected_read(card, values, language)), (card, control_id, value, "the sentence under the figure", t["read"]))
             check(t["linked"] == [expected_linked(card, u, values, language) for u in entry["uses"]], (card, control_id, value, "linked", t["linked"]))
+            check(t["useTexts"] == [M[language][use_text_key(u, values)] if changing_text(u) else None for u in entry["uses"]],
+                  (card, control_id, value, "the sentence under the small figure", t["useTexts"]))
             sides = (["main"] if has_figure else []) + [u["side"] for u in entry["uses"]]
             check(t["desc"] == [expected_desc(card, s, values, language) for s in sides], (card, control_id, value, "descriptions", t["desc"]))
             if misread:
@@ -1220,6 +1249,16 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
             same_places(f"bottom {value}")
         check(mark_state() == on(["false", "true"]), (card, "bottom 40 again: the mark as chosen", mark_state()))
         press(f"ctl:{card}:mark:none", "mark", "none")
+    if card == "popout-feature":
+        # The two shape pairs can be pressed only for the shape: until then the note under them says so
+        pairs, shape_note = page.locator(f'#{card} [data-key^="ctl:{card}:shape:"]'), page.locator(f"#ctl-{card}-shape-note")
+
+        def shape_state():
+            return {"disabled": pairs.evaluate_all("els => els.map(b => b.disabled)"), "note": shape_note.evaluate("n => getComputedStyle(n).visibility"),
+                    "described": pairs.evaluate_all("els => els.map(b => b.getAttribute('aria-describedby'))")}
+        check(shape_note.text_content().strip() == M[language]["shapeOnly"], (card, "the note under the shape pairs", shape_note.text_content()))
+        check(values["kind"] == "color" and shape_state() == {"disabled": [True, True], "note": "visible", "described": [shape_note.get_attribute("id")] * 2},
+              (card, "the first values: the shape pairs off", shape_state()))
     keys = control_buttons(page, card)
     seen_linked = set()
     first = dict(drawn)
@@ -1238,7 +1277,8 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
         t = same_places(key)
         seen_linked.update(t["live"])
         if key.startswith(f"ctl:{card}:kind:shape"):
-            # 形: the two shape pairs, and the sliders are off with the note beside them
+            # 形: the two shape pairs (pressable now, without the note), and the sliders are off with the note beside them
+            check(shape_state() == {"disabled": [False, False], "note": "hidden", "described": [None, None]}, (card, "the shape pairs on", shape_state()))
             for pair in page.locator(f'#{card} [data-key^="ctl:{card}:shape:"]').all():
                 pair.click()
                 follow("shape", pair.get_attribute("data-key").split(":")[3])
@@ -1274,10 +1314,11 @@ def test_card_controls(page, width, height, layouts, language, card, screenshot)
                else next(v for v in control_options(control) if js_str(v) == parts[3]))
         same_places(key)
     if card == "popout-feature":
-        # The line under the small figures: the three operations for color, lightness and size, none for direction and shape
+        # The line under the small figures: the three operations for color, lightness and size; for direction and shape the line
+        # says that the small figures do not draw them
         names = M[language]["linkedTo"].replace("{names}", ("・" if language == "ja" else ", ").join(
             M[language][f"ctl.popout-feature.{c}"] for c in ("kind", "diff", "variety")))
-        check({names, M[language]["linkedNone"]} <= seen_linked, ("linked lines", seen_linked))
+        check({names, M[language]["popLinkedNone"]} <= seen_linked and M[language]["linkedNone"] not in seen_linked, ("linked lines", seen_linked))
     if grouping and moving:
         # Standing still, the moving entry draws the same figures whatever the controls (the next Play or Next frame uses the new values)
         check(not changed["main"] and not changed["uses"], (card, "the still figures do not follow the controls", changed))
@@ -1653,9 +1694,11 @@ for (const s of ['feature', 'conjunction']) {
   results[s] = q[s] ? C.summarizeBlock(q[s].records, { aborted: q[s].aborted, granularity: q[s].granularity, set: q[s].set }) : null;
 }
 const cases = C.resultCases(results);
-const out = { keys: cases.map((c) => c.key), texts: {}, rows: {}, sets: {} };
+const out = { keys: cases.map((c) => c.key), texts: {}, end: {}, rows: {}, sets: {} };
 for (const lang of ['ja', 'en']) {
   out.texts[lang] = V.resultTexts(M, lang, cases);
+  // The end of a run in the dialog: the most important sentence only
+  out.end[lang] = V.resultTexts(M, lang, C.resultEndCases(cases));
   out.sets[lang] = V.resultSetTexts(M, lang, results);
   const none = M[lang].resNoValue;
   out.rows[lang] = [['feature', 'present', 'resRowFeatureYes'], ['feature', 'absent', 'resRowFeatureNo'], ['conjunction', 'present', 'resRowConjYes'],
@@ -1690,6 +1733,12 @@ def wait_until(page, script, timeout=3.0):
             return True
         time.sleep(0.02)
     raise AssertionError("timed out: " + script)
+
+
+def wait_message(page):
+    """After Esc or Stop during a run: the browser sends the cancel event of the dialog as a task of its own (in WebKit a moment after
+    the key), so the message that takes the place of the square is waited for before it is read."""
+    wait_until(page, "() => !document.querySelector('.exp-message').hidden", timeout=2)
 
 
 # Answer times (ms) of a whole block: base + slope × number of bars for (bar there, bar not there), plus a small fixed spread. The
@@ -1984,11 +2033,28 @@ def experiment_case(browser, browser_name, url, width, height, language, theme, 
         page.locator('[data-key="exp:set:fill"]').click()
         check(samples() == ["stim-solid", "stim-outline", "stim-outline", "stim-solid"], ("samples without color", samples()))
         check(card.locator(".search-measure .control-note").evaluate("el => getComputedStyle(el).visibility") == "hidden", "no color hint")
+        # The sentence under the small chart follows the search it shows (the conjunction search first), in a cell that keeps its height
+        use, stack = ENTRY["search-time"]["uses"][0], card.locator(".use-texts > .stack.use-text")
+        height = stack.evaluate("e => e.getBoundingClientRect().height")
+        sentences = []
+        for view in ("conjunction", "feature", "conjunction"):
+            page.locator(f'[data-key="ctl:search-time:view:{view}"]').click()
+            now = stack.evaluate("e => [e.lastElementChild.textContent.trim(), e.getBoundingClientRect().height]")
+            check(now[0] == L[use_text_key(use, {"view": view})] and abs(now[1] - height) <= 0.5, ("the sentence of the small chart", view, now, height))
+            sentences.append(now[0])
+        check(sentences[0] != sentences[1] and sentences[1] == L["searchShowFeature"], ("a sentence for each search", sentences))
         # The heading of the tab, the titles of its two cards (one and two terms), how to use the first card, the theory and the limits
         check(page.locator("#panel-search .term").count() == 9, ("the terms of the tab", page.locator("#panel-search .term").count()))
         set_ = "fill" if index % 4 == 3 else "color"
         page.locator(f'[data-key="exp:set:{set_}"]').click()
         assert_layout(page, width, "search-tab", layouts)
+        if width >= 1000:
+            # On a wide screen the sentences beside the small figure of each card keep lines that are easy to read: 25 to 40 characters
+            # (the width of the column over the size of its letters)
+            lines = page.evaluate("""() => ['search-time', 'search-camo'].map(id => { const t = document.querySelector('#' + id + ' .use-texts');
+              const size = parseFloat(getComputedStyle(t.querySelector('.use-text, .use-read')).fontSize);
+              return Math.round(t.getBoundingClientRect().width / size * 10) / 10; })""")
+            check(all(25 <= n <= 40 for n in lines), ("the length of the lines beside the small figures", lines))
         page.evaluate("() => document.getElementById('search-time').scrollIntoView({block: 'start'})")
         shoot("tab")
         searches = ("feature", "conjunction") if index % 2 == 0 else ("conjunction", "feature")
@@ -2007,6 +2073,16 @@ def experiment_case(browser, browser_name, url, width, height, language, theme, 
         message = page.evaluate(EXP_STATE)["message"]
         check(L["expInstr"] in message and L["expReader"] in message, ("before the start", message))
         check(page.locator(".exp-message svg.sample").count() == 1 + (1 if searches[0] == "feature" else 2), "the samples of the run")
+        # The answer buttons say the answer in a word; the keys (under the words and in a line of the message) only where a mouse is
+        # used, since a touch screen has no keys to press. Below 360px the line of the message is left out, so that the message fits its
+        # square (the keys stay under the words). Checked before any screenshot of an element (which can change the emulation)
+        words = [w.strip() for w in page.locator("#exp-dialog .answer-word").all_inner_texts()]
+        check(words == [L["expAbsent"], L["expPresent"]], ("the answer words", words))
+        keys = page.evaluate("""() => { const els = [...document.querySelectorAll('#exp-dialog .answer-keys'), ...document.querySelectorAll('#exp-dialog .keys-only')];
+          return {fine: matchMedia('(hover: hover) and (pointer: fine)').matches, shown: els.map(e => getComputedStyle(e).display !== 'none'),
+            texts: els.map(e => e.textContent.trim())}; }""")
+        check(keys["fine"] == (not touch) and keys["shown"] == [not touch, not touch, not touch and width >= 360]
+              and keys["texts"] == [L["expAbsentKeys"], L["expPresentKeys"], L["expKeys"]], ("the keys only with a mouse", touch, keys))
         # Before the start the message fits the square, so the place of the answers is already the one of the tries
         assert_experiment_layout(page, "ready", layouts)
         shoot("ready")
@@ -2033,6 +2109,7 @@ def experiment_case(browser, browser_name, url, width, height, language, theme, 
                     page.locator("#exp-abort").click()
                 else:
                     page.keyboard.press("Escape")
+                wait_message(page)
             blocks[search] = {"records": run.records, "aborted": not whole, "granularity": None, "set": sets[n]}
             expected = expected_results(blocks)
             s = run.state()
@@ -2040,7 +2117,9 @@ def experiment_case(browser, browser_name, url, width, height, language, theme, 
                   ("the end of the run", s["message"], s["focus"]))
             # Nothing is left to stop: no Stop button at the end or once stopped
             check(not s["stopShown"], ("no Stop at the end", s))
-            check(s["results"] == expected["texts"][language][:-2], ("the sentences in the dialog", s["results"]))
+            # The dialog shows the most important sentence only (the comparison, else the one search, else why there is no slope);
+            # the other sentences stand in the results area below
+            check(s["results"] == expected["end"][language] and s["results"], ("the sentences in the dialog", s["results"], expected["end"][language]))
             if n == 0 or not whole:
                 shoot("done" if whole else "stopped")
             page.keyboard.press("Enter" if n == 0 else "Escape")
@@ -2440,6 +2519,7 @@ def camo_contrast_check(page, language, touch, feature_records):
     run.practice()
     run.recorded(CAMO_DESIGNS[0], stop_after=1)
     page.keyboard.press("Escape")
+    wait_message(page)
     s = run.state()
     check(s["message"] and M[language]["expAborted"] in s["message"], ("stopped", s["message"]))
     page.keyboard.press("Enter")
@@ -2555,6 +2635,8 @@ def camo_case(browser, browser_name, url, width, height, language, theme, output
             page.keyboard.press("Escape")
         else:
             page.locator("#exp-abort").click()
+        if not whole:
+            wait_message(page)
         expected = camo_expected(run.records, not whole)
         s = run.state()
         check(s["message"] and L["expDone" if whole else "expAborted"] in s["message"] and s["focus"] == "exp:expShowResults",
@@ -2633,7 +2715,10 @@ CHECK_STATE = """id => { const item = document.getElementById('check-' + id), te
     labels: Array.from(item.querySelectorAll('.check-label'), p => [text(p), p.getAttribute('aria-hidden')]), note: text(item.querySelector('.check-note')),
     question: text(item.querySelector('.check-question')),
     grouped: group.getAttribute('role') === 'group' && group.getAttribute('aria-labelledby') === item.querySelector('.check-question').id,
-    choices: Array.from(group.querySelectorAll('button'), b => [b.dataset.key, b.getAttribute('aria-pressed'), text(b)]),
+    choices: Array.from(group.querySelectorAll('button'), b => { const mark = b.querySelector(':scope > .check-mark');
+      const label = Array.from(b.childNodes).filter(n => n !== mark).map(n => n.textContent).join('').trim();
+      return [b.dataset.key, b.getAttribute('aria-pressed'), label, mark ? mark.textContent : null, b.dataset.verdict || null,
+        mark ? mark.getAttribute('aria-hidden') : null]; }),
     feedback: Array.from(item.querySelectorAll('.check-feedback p'), text), live: item.querySelector('.check-feedback').getAttribute('aria-live')}; }"""
 # The box of the questions of a tab: its heading, its list, and what stands before and after it in the panel
 CHECK_BOX = """group => { const box = document.getElementById('box-checks-' + group), kids = Array.from(document.getElementById('body-' + group).children);
@@ -2655,7 +2740,8 @@ def check_why(page, entry, language, width):
     check(w["count"] == 1 and w["tag"] == "H4" and w["heading"] == L["whyHeading"] and w["text"] == L[f"item.{card}.why"], (card, "why", w))
     check(w["look"] == w["usesLook"], (card, "the heading in the look of the heading of the small figures", w["look"], w["usesLook"]))
     if entry.get("experiment"):
-        check(w["inTexts"] and w["before"] == ("stack read-stack use-read" if card == "search-camo" else "use-text")
+        # The sentence of the small figure of Search time changes with its view (a stack of its sentences keeps its height)
+        check(w["inTexts"] and w["before"] == ("stack read-stack use-read" if card == "search-camo" else "stack use-text")
               and w["after"] == ("use-note" if card == "search-camo" else None), (card, "under the sentence of the small figure", w))
     elif width >= 720:
         gap = w["why"]["top"] - w["read"]["bottom"]
@@ -2671,6 +2757,10 @@ def check_prediction(page, entry, language, keyboard):
     the button pressed. The figures and the sentences of the card keep their sizes all the while."""
     L, card, p = M[language], entry["id"], entry["predict"]
     right, wrong = p["answer"], next(c for c in p["choices"] if c != p["answer"])
+    # The line after a choice: the test entries ask for the test; the moving entry names "Next frame" (the pages run with reduced
+    # motion; "Play" otherwise); the others say to do what the question says
+    moving = entry["safety"].get("motion") == "onPlay"
+    chosen_key = "predictChosenTest" if entry.get("experiment") else "predictChosenFrame" if moving else "predictChosen"
 
     def text(c):
         return L[f"predict.{card}.choice.{c}"]
@@ -2688,9 +2778,11 @@ def check_prediction(page, entry, language, keyboard):
     def state(step, choice, shown):
         s = page.evaluate(PREDICT_STATE, card)
         check(s["open"] and [c[1] for c in s["choices"]] == [str(c == choice).lower() for c in p["choices"]], (card, step, "pressed", s))
-        line = fill(L["predictChosenTest" if entry.get("experiment") else "predictChosen"], choice=text(choice)) if choice else None
+        line = fill(L[chosen_key], choice=text(choice)) if choice else None
         check(s["chosen"] == ([line] if line else []) and s["reveal"] == bool(choice), (card, step, "the line of the prediction", s))
-        answer = [fill(L["predictAnswer"], choice=text(right)), L[f"predict.{card}.explain"]] if shown else []
+        # The answer: first whether the prediction was right, then the right choice and why
+        verdict = L["predictMatch" if choice == right else "predictMismatch"]
+        answer = [verdict, fill(L["predictAnswer"], choice=text(right)), L[f"predict.{card}.explain"]] if shown else []
         check(s["answer"] == answer, (card, step, "the answer", s["answer"], answer))
         same(step)
         return s
@@ -2763,12 +2855,18 @@ def check_questions(page, group, language, width):
         check(s["question"] == L[f"check.{qid}.question"] and s["grouped"], (qid, "the question", s["question"]))
         check([c[0] for c in s["choices"]] == [f"check:{qid}:{c}" for c in q["choices"]] and [c[2] for c in s["choices"]] == [text(c) for c in q["choices"]]
               and all(c[1] == "false" for c in s["choices"]) and s["feedback"] == [] and s["live"] == "polite", (qid, "the choices", s))
+        check(all(c[3] == "" and c[4] is None and c[5] == "true" for c in s["choices"]), (qid, "no marks before an answer, none read aloud", s["choices"]))
 
         def answered(step, choice, qid=qid, sizes=s["svgs"], right=right, text=text):
             t = page.evaluate(CHECK_STATE, qid)
             verdict = L["checkRight"] if choice == right else fill(L["checkWrong"], choice=text(right))
             check([c[1] for c in t["choices"]] == [str(c == choice).lower() for c in q["choices"]], (qid, step, "pressed", t["choices"]))
             check(t["feedback"] == [verdict, L[f"check.{qid}.explain"]], (qid, step, "the answer", t["feedback"]))
+            # Not by color alone: a circle on the right choice, a cross on a wrong choice pressed (nothing on the others); the labels stay
+            marks = ["○" if c == right else "×" if c == choice else "" for c in q["choices"]]
+            verdicts = [("right" if c == right else "wrong") if c == choice else None for c in q["choices"]]
+            check([c[3] for c in t["choices"]] == marks and [c[4] for c in t["choices"]] == verdicts, (qid, step, "the marks", t["choices"]))
+            check([c[2] for c in t["choices"]] == [text(c) for c in q["choices"]], (qid, step, "the labels stay", t["choices"]))
             check(all(abs(x[2] - y[2]) <= 0.5 and abs(x[3] - y[3]) <= 0.5 for x, y in zip(t["svgs"], sizes)), (qid, step, "the figures keep their size"))
         page.locator(f'[data-key="check:{qid}:{wrong}"]').click()
         answered("a wrong choice", wrong)
@@ -2821,7 +2919,8 @@ def learn_case(browser, browser_name, url, width, height, language, theme, outpu
             s = page.evaluate(PREDICT_STATE, card)
             check(s["open"] and [c[1] for c in s["choices"]] == [str(c == p["answer"]).lower() for c in p["choices"]]
                   and s["chosen"] == [fill(L["predictChosen"], choice=right)]
-                  and s["answer"] == [fill(L["predictAnswer"], choice=right), L[f"predict.{card}.explain"]], ("the prediction kept", lang, s))
+                  and s["answer"] == [L["predictMatch"], fill(L["predictAnswer"], choice=right), L[f"predict.{card}.explain"]],
+                  ("the prediction kept", lang, s))
             c = page.evaluate(CHECK_STATE, qid)
             check([x[1] for x in c["choices"]] == [str(x == question["answer"]).lower() for x in question["choices"]]
                   and c["feedback"] == [L["checkRight"], L[f"check.{qid}.explain"]], ("the answer of the question kept", lang, c["feedback"]))

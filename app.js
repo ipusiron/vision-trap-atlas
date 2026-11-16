@@ -393,8 +393,9 @@
       E('span', { class: 'control-name', id: nameId }, phrases(controlLabel(entry, control))),
       E('div', { class: 'choice' }, buttons.map(([, b]) => b)), switchNote(control, nameId, parts));
   }
-  // A switch that can be off says why under it (3-2: swapping needs a cue; 4-1: the axis-break mark needs a raised bottom). The
-  // line is kept while it is not shown, so that the figure and the sentences below never move
+  // A switch that can be off says why beside it, or under it on a narrow row (the shape pairs need the shape; 3-2: swapping needs a
+  // cue; 4-1: the axis-break mark needs a raised bottom). Its place is kept while it is not shown, so that the figure and the
+  // sentences below never move
   function switchNote(control, nameId, parts) {
     if (!control.disabledNoteKey) return null;
     const note = E('p', { class: 'switch-note off', id: nameId + '-note' }, phrases(t(control.disabledNoteKey)));
@@ -567,13 +568,19 @@
       const linkedLive = E('p', {});
       const texts = E('div', { class: 'use-texts' },
         stackOf([...linkedTexts.values()].map((s) => [s]), linkedLive, 'use-linked'));
-      if (um.textKey) texts.append(E('p', { class: 'use-text' }, richText(t(um.textKey), TEXT_TERMS[um.textKey], used, id)));
+      // The sentence under the small figure. One that changes with the values (the gap of the contour entry, the search card's kind of search)
+      // keeps every case in the same cell, so that its height is that of the longest
+      let textLive = null;
+      if (um.textKeys.length > 1) {
+        textLive = E('p', {});
+        texts.append(stackOf(um.textKeys.map((key) => [t(key)]), textLive, 'use-text'));
+      } else if (um.textKey) texts.append(E('p', { class: 'use-text' }, richText(t(um.textKey), TEXT_TERMS[um.textKey], used, id)));
       texts.append(...after);
       if (um.noteKey) texts.append(E('p', { class: 'use-note' }, noteText(um)));
       // With one small figure, the heading above says what it is, so the figure has no label of its own (the label would repeat it)
       const label = model.uses.length > 1 ? E('figcaption', { class: 'use-label' }, phrases(t(um.labelKey))) : null;
       list.append(E('figure', { class: 'use use-' + um.side }, label, E('div', { class: 'use-figure' }, svg), texts));
-      parts.uses.push({ use, model: um, svg, linkedLive });
+      parts.uses.push({ use, model: um, svg, linkedLive, textLive });
     });
     uses.append(list);
     return uses;
@@ -629,7 +636,9 @@
     const id = model.id, st = predictState(id), questionId = `${id}-predict-q`, choiceText = (cid) => t(p.choices.find((c) => c.id === cid).key);
     const box = E('details', { class: 'predict', open: st.open });
     box.addEventListener('toggle', () => { st.open = box.open; });
-    const ui = { p, choiceText, buttons: choiceButtons(`predict:${id}`, p.choices, (c) => t(c.key), (cid) => choosePrediction(id, cid)),
+    // The line after a choice names the button that checks it: "Next frame" instead of "Play" with reduced motion (the moving entry)
+    const chosenKey = p.chosenReducedKey && reduceMotion.matches ? p.chosenReducedKey : p.chosenKey;
+    const ui = { p, choiceText, chosenKey, buttons: choiceButtons(`predict:${id}`, p.choices, (c) => t(c.key), (cid) => choosePrediction(id, cid)),
       chosen: E('div', { class: 'predict-chosen', 'aria-live': 'polite' }), answer: E('div', { class: 'predict-answer', 'aria-live': 'polite' }),
       reveal: E('button', { type: 'button', class: 'predict-reveal', 'data-key': `predict:${id}:reveal` }, phrases(t('predictReveal'))) };
     ui.reveal.addEventListener('click', () => revealPrediction(id));
@@ -645,13 +654,16 @@
   function paintChosen(id) {
     const ui = predictions.get(id), st = predictState(id);
     for (const [cid, button] of ui.buttons) button.setAttribute('aria-pressed', String(cid === st.choice));
-    ui.chosen.replaceChildren(...(st.choice ? [E('p', {}, phrases(t(ui.p.chosenKey, { choice: ui.choiceText(st.choice) })))] : []));
+    ui.chosen.replaceChildren(...(st.choice ? [E('p', {}, phrases(t(ui.chosenKey, { choice: ui.choiceText(st.choice) })))] : []));
     ui.reveal.hidden = !st.choice;
   }
+  // The answer: whether the prediction was right (in one line, as the questions at the end of a tab say it), the right choice and why
   function paintAnswer(id) {
     const ui = predictions.get(id), st = predictState(id);
-    ui.answer.replaceChildren(...(st.choice && st.shown ? [E('p', { class: 'predict-answer-line' },
-      phrases(t('predictAnswer', { choice: ui.choiceText(ui.p.answer) }))), E('p', {}, phrases(t(ui.p.explainKey)))] : []));
+    ui.answer.replaceChildren(...(st.choice && st.shown ? [
+      E('p', { class: 'predict-verdict' }, phrases(t(st.choice === ui.p.answer ? 'predictMatch' : 'predictMismatch'))),
+      E('p', { class: 'predict-answer-line' }, phrases(t('predictAnswer', { choice: ui.choiceText(ui.p.answer) }))),
+      E('p', {}, phrases(t(ui.p.explainKey)))] : []));
   }
   function choosePrediction(id, choice) {
     const st = predictState(id), shown = st.shown;
@@ -687,15 +699,24 @@
     }));
     const ui = { q, buttons: choiceButtons(`check:${q.id}`, q.choices, questionChoice, (cid) => chooseCheck(q.id, cid)),
       feedback: E('div', { class: 'check-feedback', 'aria-live': 'polite' }) };
+    // The mark of each choice once answered (○ or ×), in room kept at its start; not read aloud (the sentence below says it)
+    for (const button of ui.buttons.values()) button.prepend(E('span', { class: 'check-mark', 'aria-hidden': 'true' }));
     questions.set(q.id, ui);
     paintCheck(q.id);
     return E('li', { class: 'check-item', id: 'check-' + q.id }, q.noteKey ? E('p', { class: 'check-note' }, phrases(t(q.noteKey))) : null, figures,
       E('p', { class: 'check-question', id: questionId }, phrases(t(q.questionKey))),
       E('div', { class: 'choice check-choices', role: 'group', 'aria-labelledby': questionId }, [...ui.buttons.values()]), ui.feedback);
   }
+  // A choice pressed shows whether it is right by its look and a mark, not by its color alone: ○ on the right choice, × on a wrong choice
+  // pressed (with ○ on the right choice as well). Another choice moves the marks
   function paintCheck(id) {
     const ui = questions.get(id), st = checkState(id), q = ui.q;
-    for (const [cid, button] of ui.buttons) button.setAttribute('aria-pressed', String(cid === st.choice));
+    for (const [cid, button] of ui.buttons) {
+      const chosen = cid === st.choice, right = cid === q.answer;
+      button.setAttribute('aria-pressed', String(chosen));
+      button.querySelector('.check-mark').textContent = st.choice === null ? '' : right ? '○' : chosen ? '×' : '';
+      if (chosen) button.dataset.verdict = right ? 'right' : 'wrong'; else delete button.dataset.verdict;
+    }
     if (st.choice === null) { ui.feedback.replaceChildren(); return; }
     const verdict = st.choice === q.answer ? t('checkRight') : t('checkWrong', { choice: questionChoice(q.choices.find((c) => c.id === q.answer)) });
     ui.feedback.replaceChildren(E('p', { class: 'check-verdict' }, phrases(verdict)), E('p', {}, phrases(t(q.explainKey))));
@@ -814,6 +835,8 @@
   }
   // The sentences of the results in the order of the spec, without the two of the limits
   const resultLines = (results) => View.resultTexts(Messages, state.language, Core.resultCases(results).filter((c) => !LIMIT_KEYS.includes(c.key)));
+  // The end of a run (in the dialog, before the table is seen): the most important sentence only; the others stand in the results area
+  const endLines = (results) => View.resultTexts(Messages, state.language, Core.resultEndCases(Core.resultCases(results)));
 
   // The results: the feature pair each search was measured with, the chart (the names at the line ends from 720px; a legend in
   // words above it on narrower screens), how to read it, the table (two tables below 720px, never a sideways scrolling one) and what
@@ -1095,8 +1118,10 @@
     let button, children;
     if (s.phase === 'ready') {
       button = go('expStart', () => run.exp.start());
-      children = [E('p', {}, phrases(t('expInstr'))), E('div', { class: 'sample-line' }, sampleRow('sampleTarget', [sampleSvg('target', s.set)]),
-        sampleRow('sampleOthers', otherKinds(s.search).map((kind) => sampleSvg(kind, s.set)))), E('p', { class: 'exp-reader' }, phrases(t('expReader'))),
+      // The keys only on a screen with a keyboard and a mouse (style.css shows .keys-only there)
+      children = [E('p', {}, phrases(t('expInstr'))), E('p', { class: 'keys-only' }, phrases(t('expKeys'))),
+        E('div', { class: 'sample-line' }, sampleRow('sampleTarget', [sampleSvg('target', s.set)]),
+          sampleRow('sampleOthers', otherKinds(s.search).map((kind) => sampleSvg(kind, s.set)))), E('p', { class: 'exp-reader' }, phrases(t('expReader'))),
         button];
     } else if (s.phase === 'practiceDone') {
       button = go('expContinue', () => run.exp.proceed());
@@ -1107,7 +1132,7 @@
     } else {
       button = go('expShowResults', () => expDialog.close());
       children = [E('p', { class: 'exp-status' }, phrases(t(s.phase === 'done' ? 'expDone' : 'expAborted'))), button,
-        E('div', { class: 'exp-results' }, resultLines(state.experiment.results).map((line) => E('p', {}, phrases(line))))];
+        E('div', { class: 'exp-results' }, endLines(state.experiment.results).map((line) => E('p', {}, phrases(line))))];
     }
     expMessage.replaceChildren(...children);
     expDialog.scrollTop = 0;
@@ -1289,6 +1314,10 @@
         View.descText(Messages, state.language, entry, values, u.model.side));
       const linked = View.linkedText(Messages, state.language, entry, u.use, values);
       if (u.linkedLive.textContent !== linked) setWords(u.linkedLive, linked);
+      if (u.textLive) {
+        const sentence = t(View.useTextKey(u.use, values));
+        if (u.textLive.textContent !== sentence) setWords(u.textLive, sentence);
+      }
     }
     if (parts.search) updateSearch(parts.search);
     if (parts.camo) updateCamo(parts.camo);

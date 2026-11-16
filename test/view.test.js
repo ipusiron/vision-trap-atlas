@@ -397,17 +397,22 @@ function readKeys(id, extras = [{}]) {
 
 test('C: the reading sentences: every chosen key exists, and the number of cases matches the spec', () => {
   const TIMES = [{}, { times: { withLine: 0.7, noLine: null } }, { times: { withLine: null, noLine: 2.1 } }, { times: { withLine: 0.7, noLine: 2.1 } }];
-  const expected = { 'popout-feature': 12, 'popout-asymmetry': 5, 'gestalt-proximity-similarity': 9, 'gestalt-region-connection': 3,
-    'gestalt-contour': 5, 'figure-ground-area': 3, 'figure-ground-symmetry': 4, 'misread-area': 4, 'misread-dual-axis': 2, 'search-camo': 3 };
+  // The moving circle: still, one still among the others, small, medium, large, all moving. Figure and ground: none, and symmetric, two bulging
+  // regions and eight, each with the bands in the dark color or (swapped) in the light color
+  const expected = { 'popout-feature': 12, 'popout-asymmetry': 5, 'popout-motion': 6, 'gestalt-proximity-similarity': 9, 'gestalt-region-connection': 3,
+    'gestalt-contour': 5, 'figure-ground-area': 3, 'figure-ground-symmetry': 7, 'misread-area': 4, 'misread-dual-axis': 2, 'search-camo': 3 };
   for (const [id, n] of Object.entries(expected)) {
     const { keys } = readKeys(id, id === 'popout-asymmetry' ? TIMES : [{}]);
     assert.equal(keys.length, n, `${id}: ${keys.join(', ')}`);
     for (const k of keys) assert.ok(typeof M.ja[k] === 'string' && typeof M.en[k] === 'string', k);
   }
+  // The axis raised a little (5, 10, 15: the difference is still small) or more, each with the notes of the mark and of the line chart
   const base = readKeys('misread-baseline');
-  assert.deepEqual(base.keys.sort(), ['baseRead.line', 'baseRead.mark', 'baseRead.raised', 'baseRead.zero']);
+  assert.deepEqual(base.keys.sort(), ['baseRead.line', 'baseRead.mark', 'baseRead.raised', 'baseRead.raisedSmall', 'baseRead.zero']);
   assert.deepEqual(base.lists.filter((l) => l.startsWith('baseRead.raised')).sort(),
-    ['baseRead.raised', 'baseRead.raised+baseRead.line', 'baseRead.raised+baseRead.mark', 'baseRead.raised+baseRead.mark+baseRead.line']);
+    ['baseRead.raised', 'baseRead.raised+baseRead.line', 'baseRead.raised+baseRead.mark', 'baseRead.raised+baseRead.mark+baseRead.line',
+      'baseRead.raisedSmall', 'baseRead.raisedSmall+baseRead.line', 'baseRead.raisedSmall+baseRead.mark',
+      'baseRead.raisedSmall+baseRead.mark+baseRead.line']);
   assert.ok(base.lists.includes('baseRead.zero'));
   const aspect = readKeys('misread-aspect-range');
   assert.deepEqual(aspect.keys.filter((k) => /steep|mid|flat/.test(k)).sort(), ['aspectRead.flat', 'aspectRead.mid', 'aspectRead.steep']);
@@ -477,8 +482,10 @@ test('C: the linked line of 1-1 for each of the five kinds, and of the other ent
         assert.equal(ja, 'この図を変える操作：違いの種類・違いの大きさ・周りのばらつき');
         assert.equal(en, 'Changes with: Kind of difference, Size of the difference, Variety around it');
       } else {
-        assert.equal(ja, 'いまの設定では、この図は変わりません。');
-        assert.equal(en, 'With the current settings, this figure does not change.');
+        // Direction and shape are not drawn in the small figures: the line says so (the entry's own line, not the line of every entry)
+        assert.equal(ja, '「方向」と「形」の違いは小さな図に描いていないので、いまの設定ではこの図は変わりません。');
+        assert.equal(en, 'The small figures do not draw Direction or Shape, so this one does not change.');
+        assert.deepEqual(V.linkedLine(pf, u, { ...d1, kind }), { key: 'popLinkedNone', controls: [] });
       }
     }
   }
@@ -820,10 +827,16 @@ test('C: barChart takes the heights of its popout bars (values); without them it
   const values = [46, 60, 52, 88, 57, 66, 50, 63];
   const bars = V.renderPart('barChart', { ...base, values }, ctx).shapes.filter((s) => s.type === 'rect');
   assert.deepEqual(bars.map((b) => Math.round(b.attrs.height / 1.2)), values);
-  // The fourth bar (the tallest) keeps the highlight; the other seven take three colors in turn
+  // The fourth bar (the tallest) keeps the highlight; without colors given, the other seven take three colors in turn
   assert.deepEqual(bars.map((b) => b.cls), ['fill-popOthers-0', 'fill-popOthers-1', 'fill-popOthers-2', 'fill-popColor-3', 'fill-popOthers-1',
     'fill-popOthers-2', 'fill-popOthers-0', 'fill-popOthers-1']);
-  assert.deepEqual(questionFigure('popout-color-bars'), V.renderPart('barChart', { ...base, values }, ctx));
+  // The question of the Pop out tab gives the other seven bars six colors (more varied than three), so that the fourth one does not stand out
+  const { others } = question('popout-color-bars').figures[0].params;
+  const asked = questionFigure('popout-color-bars').shapes.filter((s) => s.type === 'rect');
+  assert.deepEqual(asked.map((b) => b.cls), [...others.slice(0, 3).map((c) => 'fill-' + c), 'fill-popColor-3', ...others.slice(3).map((c) => 'fill-' + c)]);
+  assert.deepEqual([others.length, new Set(others).size], [7, 6]);
+  assert.ok(!others.includes('popColor-3'), 'none of them has the color of the fourth bar');
+  assert.deepEqual(questionFigure('popout-color-bars'), V.renderPart('barChart', { ...base, values, others }, ctx));
 });
 
 test('C: lineChart (search) takes the color and line of each series (styles); without them the series follow the kind of search', () => {
@@ -851,15 +864,31 @@ test('C: lineChart (search) takes the color and line of each series (styles); wi
 test('C: baselineChart takes three values and the key of its title; without them it draws the loans of the fictional library', () => {
   const card = { bottom: 45, chart: 'bar', mark: 'none' };
   assert.deepEqual(V.renderPart('baselineChart', card, ctx), V.renderPart('baselineChart', { ...card, values: D.datasets.libraryLoans3 }, ctx));
-  assert.deepEqual(texts(V.renderPart('baselineChart', card, ctx)), ['架空の図書館の貸出冊数', '貸出冊数（百冊）', '45', '50', '60', '4月', '5月', '6月']);
+  assert.deepEqual(texts(V.renderPart('baselineChart', card, ctx)), ['架空の図書館の貸出冊数', '貸出冊数（百冊）', '45', '50', '55', '60', '4月', '5月',
+    '6月']);
   const fig = questionFigure('misread-value-ratio');
-  // The title names the values and their unit, so the axis has no title of its own; the ticks are 45, 50 and 60
-  assert.deepEqual(texts(fig), ['架空の書店の販売冊数（百冊）', '45', '50', '60', '4月', '5月', '6月']);
+  // The title names the values and their unit, so the axis has no title of its own; the ticks are 45, 50, 55 and 60 (every 5 on an axis of 15)
+  assert.deepEqual(texts(fig), ['架空の書店の販売冊数（百冊）', '45', '50', '55', '60', '4月', '5月', '6月']);
   // The heights above the bottom 45 are 5, 10 and 15: June's bar three times as tall as April's, the values 1.2 times
   const bars = fig.shapes.filter((s) => s.type === 'rect'), unit = bars[0].attrs.height / 5;
   assert.deepEqual(bars.map((b) => Math.round(b.attrs.height / unit)), [5, 10, 15]);
   assert.equal(C.baselineRatio([50, 55, 60], 45), 3);
   assert.deepEqual(V.renderPart('baselineChart', { ...card, values: [50, 55, 60], titleKey: 'checkBookstoreTitle' }, ctx), fig);
+});
+
+test('C: the ticks of the axis-bottom chart: every 5 when the axis spans 20 or less (the bottom at 40 and above), else every 10', () => {
+  const ticks = (bottom) => texts(V.renderPart('baselineChart', { bottom, chart: 'bar', mark: 'none' }, ctx)).filter((s) => /^\d+$/.test(s)).map(Number);
+  assert.deepEqual(ticks(0), [0, 10, 20, 30, 40, 50, 60]);
+  assert.deepEqual(ticks(5), [5, 10, 20, 30, 40, 50, 60]);
+  assert.deepEqual(ticks(35), [35, 40, 50, 60]);
+  assert.deepEqual(ticks(40), [40, 45, 50, 55, 60]);
+  assert.deepEqual(ticks(45), [45, 50, 55, 60]);
+  assert.deepEqual(ticks(50), [50, 55, 60]);
+  for (const bottom of entry('misread-baseline').controls.find((c) => c.id === 'bottom').values) {
+    const list = ticks(bottom), step = 60 - bottom <= 20 ? 5 : 10;
+    assert.deepEqual([list[0], list.at(-1)], [bottom, 60], `bottom ${bottom}`);
+    for (let i = 2; i < list.length; i += 1) assert.equal(list[i] - list[i - 1], step, `bottom ${bottom}: ${list.join(' ')}`);
+  }
 });
 
 test('C: heatmap takes the values of its two numbered cells (pair); without them both cells have the same value', () => {

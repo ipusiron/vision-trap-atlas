@@ -203,10 +203,15 @@
     const all = [f, c].filter(Boolean);
     const anySlopeNegative = all.some((b) => ['present', 'absent'].some((k) => b.rows[k].slope !== null && round1(b.rows[k].slope) < 0));
     if (anySlopeNegative) out.push({ key: 'resNegative', values: {} });
+    let noSlope = false;
     for (const [search, b] of [['feature', f], ['conjunction', c]]) {
       if (!b) continue;
-      for (const k of ['present', 'absent']) if (b.rows[k].slope === null) out.push({ key: 'resNoSlope', values: { row: search + '.' + k } });
+      for (const k of ['present', 'absent']) {
+        if (b.rows[k].slope === null) { out.push({ key: 'resNoSlope', values: { row: search + '.' + k } }); noSlope = true; }
+      }
     }
+    // Why a row has no slope, once after the rows named: a middle value needs MIN_VALID right answers in its column
+    if (noSlope) out.push({ key: 'resNoSlopeWhy', values: {} });
     if (all.some((b) => b.aborted)) out.push({ key: 'resPartial', values: {} });
     if (all.some((b) => b.mixedInput)) out.push({ key: 'resMixed', values: {} });
     for (const [search, b] of [['feature', f], ['conjunction', c]]) {
@@ -222,6 +227,17 @@
     }
     out.push({ key: 'resDevice', values: {} }, { key: 'resLimits', values: {} });
     return out;
+  }
+  // The sentences of the end of a run (the dialog, before the results area shows the table): the most important one only. The
+  // comparison of the two searches when there is one, else the sentence of the one search with both slopes; without a slope, the rows
+  // without one and why. The other sentences stand in the results area only
+  const END_CMP = ['resCmpLarger', 'resCmpSimilar', 'resCmpSmaller'], END_ONE = ['resOneFeature', 'resOneConj'];
+  function resultEndCases(cases) {
+    for (const keys of [END_CMP, END_ONE]) {
+      const found = cases.filter((c) => keys.includes(c.key));
+      if (found.length) return found;
+    }
+    return cases.filter((c) => c.key === 'resNoSlope' || c.key === 'resNoSlopeWhy');
   }
 
   // 時刻の細かさ：now を続けて呼び、値が変わったときの差の最小（20回変わるか limitMs たつまで）。変わらなければ null
@@ -444,7 +460,9 @@
         timeout: count('timeout'), wrong: count('wrong'), early: count('early') };
     }
     const inputs = new Set(counted.filter((r) => r.input).map((r) => (r.input === 'key' ? 'key' : 'pointer')));
-    return { rows, aborted: !!aborted, mixedInput: inputs.size > 1, measured: counted.length };
+    // The rounds left out of the table: too early, and too early again when done once more (a round too early is done again only once)
+    const dropped = counted.filter((r) => r.outcome === 'early' && r.requeued).length;
+    return { rows, aborted: !!aborted, mixedInput: inputs.size > 1, measured: counted.length, dropped };
   }
   // 秒の小数1桁に丸めたときの値を、0.1秒単位の整数で（表示と、文を選ぶ比べに使う）
   const tenths = (ms) => Math.round(ms / 100);
@@ -461,6 +479,8 @@
       else out.push({ key: d > 0 ? 'camoResLonger' : 'camoResShorter', values: { pattern, d: Math.abs(d) / 10 } });
     }
     if (CAMO_PATTERNS.some((p) => summary.rows[p].median === null)) out.push({ key: 'camoResFew', values: {} });
+    // Why the table adds up to fewer rounds than the recorded ones
+    if (summary.dropped > 0) out.push({ key: 'camoResEarly', values: { n: summary.dropped } });
     if (summary.aborted) out.push({ key: 'camoResPartial', values: {} });
     if (summary.mixedInput) out.push({ key: 'resMixed', values: {} });
     return out;
@@ -628,7 +648,7 @@
     SET_SIZES, EARLY_MS, TIMEOUT_MS, MAIN_REPS, PRACTICE_REPS, MIN_VALID, MIN_POINTS, CMP_STEP, ERROR_PERCENT, COARSE_MS,
     CAMO, CAMO_PATTERNS, CAMO_TIMEOUT_MS, CAMO_MAIN_REPS, CAMO_PRACTICE_REPS, CAMO_SIMILAR,
     round1, round2, xorshift32, randInt, unit, shuffle, gridLayout, makeSearchTrials, classify, requeue, median, fitLine,
-    summarizeBlock, resultCases, timerGranularity, mixHex, relativeLuminance, contrastRatio, barCorners, polygonPath, polylinePath,
+    summarizeBlock, resultCases, resultEndCases, timerGranularity, mixHex, relativeLuminance, contrastRatio, barCorners, polygonPath, polylinePath,
     proximityDots, dashForGap, sectorPaths, sectorPath, baselineRatio, areaScales, dualAxisCrossings, niceRange, meanAbsAngle,
     signedArea, polygonArea, clipConvex, insideConvex, ellipsePoints, camoSearchLayout, makeCamoTrials, classifyCamo, summarizeCamo, tenths,
     camoResultCases, validateData,

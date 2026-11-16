@@ -116,8 +116,19 @@ test('F: the stimuli, the lines and the parts of the small figures keep at least
       t.diagnostic(`${theme} ${name} ${color}: ${r.toFixed(2)}:1`);
       assert.ok(r >= 3, `${theme} ${name}: ${r}`);
     }
-    // The two regions of figure and ground are told apart from each other
+    // The two regions of figure and ground are told apart from each other; the sentences call the bands of regionA (the cue unless swapped)
+    // "dark" and those of regionB "light", so regionA is the darker in both themes
     assert.ok(ratio(p.regionA, p.regionB) >= 3, theme + ' regionA / regionB');
+    assert.ok(C.relativeLuminance(p.regionA) < C.relativeLuminance(p.regionB), theme + ' regionA is the darker');
+    // The first question of the Pop out tab: the seven other bars take six colors of the palette, each 3:1 or more against the paper, none the
+    // color of the fourth bar
+    const color = (name) => { const m = name.match(/^(\w+)-(\d+)$/); return m ? p[m[1]][Number(m[2])] : p[name]; };
+    const others = D.groups.find((g) => g.id === 'popout').checks[0].figures[0].params.others;
+    assert.equal(new Set(others.map(color)).size, 6, theme);
+    for (const name of others) {
+      t.diagnostic(`${theme} question bar ${name} ${color(name)}: ${ratio(color(name), paper).toFixed(2)}:1`);
+      assert.ok(ratio(color(name), paper) >= 3 && color(name) !== p.popColor[3], `${theme} ${name}`);
+    }
     // 3-1 calls its wedges dark and light: the dark one is darker in both themes, and the two keep 3:1 as parts of a figure
     assert.ok(C.relativeLuminance(p.areaDark) < C.relativeLuminance(p.areaLight), theme + ' areaDark is the darker');
     t.diagnostic(`${theme} areaDark / areaLight: ${ratio(p.areaDark, p.areaLight).toFixed(2)}:1`);
