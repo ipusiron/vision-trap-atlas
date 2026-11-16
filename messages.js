@@ -427,13 +427,13 @@
       'predict.search-time.choice.c': 'どちらも同じくらい',
       'predict.search-time.explain': '研究では「ない」回の傾きのほうが大きく、結合探索で図形1つあたり「ある」は28.7ミリ秒、「ない」は67.1ミリ秒でした（Treisman & Gelade 1980）。探す棒がないときは、'
         + 'ないと決めて探すのをやめるまでに時間がかかるためと説明されています。',
-      'item.search-camo.why': '背景に合わせた模様は目を引く特徴と縁を減らし、縁にかかる模様は本当はない縁を作って、本当の輪郭を見つけにくくします。左右対称の並びは'
+      'item.search-camo.why': '背景に合わせた模様は目を引く特徴と縁を減らし、縁にかかる模様は実際にはない縁を作って、物の輪郭を見つけにくくします。左右対称の並びは'
         + '生き物に多く背景には少ないので、見つける手がかりになります。',
       'predict.search-camo.question': '3つの模様のうち、見つけるまでに最も時間がかかるのはどれですか。',
       'predict.search-camo.choice.a': '背景に合わせた模様',
       'predict.search-camo.choice.b': '輪郭を途切れさせる模様',
       'predict.search-camo.choice.c': '左右対称の模様',
-      'predict.search-camo.explain': '縁にかかる模様は、本当はない縁を作って、本当の輪郭を見つけにくくします。人が画面で探した実験では、縁に模様を付けた的に最も時間が'
+      'predict.search-camo.explain': '縁にかかる模様は、実際にはない縁を作って、物の輪郭を見つけにくくします。人が画面で探した実験では、縁に模様を付けた的に最も時間が'
         + 'かかりました（Fraser et al. 2007）。左右対称の模様は、鳥の野外実験で、非対称の模様より食べられやすくなりました（Cuthill, Hiby & Lloyd 2006）。',
       'item.gestalt-proximity-similarity.why': 'まとまって見える働きは、何を1つの物や部分として見るかを決めています。自然の写真の輪郭を調べた研究では、近いことが最も強い手がかりで、似ていることも手がかりになっていました。',
       'predict.gestalt-proximity-similarity.question': '「点の間隔」を「縦横で同じ」から「横がとても狭い」にすると、点はどうまとまって見えますか。',
@@ -448,8 +448,8 @@
       'predict.gestalt-region-connection.choice.b': '近い点どうしの組のまま変わらない',
       'predict.gestalt-region-connection.choice.c': '8つの点が1つにまとまる',
       'predict.gestalt-region-connection.explain': '枠で囲んだ2つの点は、近さで組になった2つの点より2倍以上離れています。近さだけで決まるなら、この2つが組に見えることはありません。',
-      'item.gestalt-contour.why': '目は、明るさや色が急に変わる所を縁として拾い、なめらかに続く縁や閉じる縁を1つの輪郭にまとめます。縁にかかる模様は本当はない縁を'
-        + '作るので、本当の輪郭が見つかりにくくなります。',
+      'item.gestalt-contour.why': '目は、明るさや色が急に変わる所を縁として拾い、なめらかに続く縁や閉じる縁を1つの輪郭にまとめます。縁にかかる模様は実際にはない縁を'
+        + '作るので、物の輪郭が見つかりにくくなります。',
       'predict.gestalt-contour.question': '「交わり方」を「なめらかに交わる」から「交わる所で折れる」にすると、左上の端から出た線は、右のどちらの端につながりますか。',
       'predict.gestalt-contour.choice.a': '右上の端',
       'predict.gestalt-contour.choice.b': '右下の端',
@@ -697,7 +697,7 @@
       camoExpInstr: '樹皮のような模様の中に、蛾の形（底辺を上にした三角形）が1つ隠れています。見つけたら、できるだけ早くその場所を押してください。'
         + '10秒たつと次へ進みます。はじめに練習が3回あります。',
       camoSampleMoth: '探す形：',
-      camoExpKeys: 'キーボードでは、矢印キーで場所を選び、EnterかSpaceで押します。場所を移る時間のぶん長くなるので、模様どうしを比べる目安として見てください。',
+      camoExpKeys: 'キーボードでは、矢印キーで場所を選び、EnterかSpaceで押します。キーで場所を選ぶと時間が長くなるので、時間の値より模様どうしの差を見てください。',
       camoExpPractice: '練習{i}／3',
       camoExpMain: '本番{i}／15',
       camoFbCorrect: '正解です。',
@@ -866,7 +866,7 @@
       termBackgroundMeaning: '物の色や模様を、周りの背景に似せる迷彩',
       termDisruptive: '輪郭を途切れさせる模様',
       termDisruptiveExpert: '分断色',
-      termDisruptiveMeaning: '本当はない縁を見せ、本当の輪郭を見つけにくくする模様（Stevens & Merilaita 2009の定義）',
+      termDisruptiveMeaning: '実際にはない縁を見せ、物の本当の輪郭を見つけにくくする模様（Stevens & Merilaita 2009の定義）',
       termMasquerade: '別の物に見せる',
       termMasqueradeExpert: '擬態（マスカレード）',
       termMasqueradeMeaning: '見つかっても、別の物（枝や葉など）と思わせる迷彩',

@@ -22,7 +22,7 @@ This is a learning atlas. Experiment records exist only on this page and are nei
 
 Try it directly in your browser. No build, installation or account is needed. Once you download the repository, it also works in a classroom without an internet connection: just open `index.html` (through `file://`).
 
-The three buttons at the right end of the header at the top of the page switch light and dark ("Dark" or "Light"), switch the language ("JA"; on the Japanese screen the button shows "EN"), and open help and the glossary ("Help & glossary"). The language follows `?lang=ja` or `?lang=en` in the URL if there is one, otherwise a saved choice, and otherwise the browser language. The theme follows the OS setting unless a choice has been saved. Each is saved only when its button is pressed.
+The three buttons at the right end of the header at the top of the page (under the title on screens narrower than 720px) switch light and dark ("Dark" or "Light"), switch the language ("JA"; on the Japanese screen the button shows "EN"), and open help and the glossary ("Help & glossary"). The language follows `?lang=ja` or `?lang=en` in the URL if there is one, otherwise a saved choice, and otherwise the browser language. The theme follows the OS setting unless a choice has been saved. Each is saved only when its button is pressed.
 
 The id of the tab shown goes into the URL after `#` (`#search` and so on). Opening a URL with a tab id or an entry id after `#` moves straight to that tab or entry (the ids and an example are in "📐 Screen layout"). After you press the button for the next tab, or a button that moves to an entry in another tab, the browser's back button takes you back to where you were.
 
@@ -30,7 +30,7 @@ Until the page has finished loading, it shows the notice "Loading figures and co
 
 ## 📸 Screenshots
 
-These screenshots show the English screen in light mode. Switch to dark mode with "Dark" at the right end of the header, and to the Japanese screen with the "JA" button. Images of the Japanese screen are in [README.md](README.md).
+These screenshots show the English screen in light mode. Switch to dark mode with "Dark" in the header, and to the Japanese screen with the "JA" button. Images of the Japanese screen are in [README.md](README.md).
 
 ![The introduction, where to start, the contrast table and the tabs right after opening](assets/en/screenshot.png)
 
@@ -98,7 +98,7 @@ This follows the same order as "If this is your first visit" in the help. First,
 
 | Place | What it holds |
 | --- | --- |
-| Header | The title and the three buttons at the right end (the theme, "Dark" or "Light"; the language, "JA" or "EN"; and "Help & glossary") |
+| Header | The title and three buttons at the right end, or under the title below 720px (the theme, "Dark" or "Light"; the language, "JA" or "EN"; and "Help & glossary") |
 | Introduction | The three sentences of the introduction, "What you can do here" (4 items), "Where to start" (3 buttons), "Read more" (the order of the tabs and what charts and camouflage do; closed at first), and the table contrasting charts (showing) with camouflage (hiding) |
 | Tabs | 6. From 720px wide, all 6 in one row; below 720px, 3 in the upper row and 3 in the lower row |
 | Footer | One link to GitHub (ipusiron/vision-trap-atlas) |
@@ -259,12 +259,12 @@ This is an example of a 45-minute session in which students use one device each 
 
 - The height of the lines (the overall speed) changes with the device, the screen and the way of answering, so do not compare it between people. Compare only the slopes (the time added per item) and the absent slope as a multiple of the present slope.
 - Set your slopes beside the research values (for conjunction search in Treisman & Gelade 1980, 28.7 ms when the target was present and 67.1 ms when it was absent, and so on), and see whether the slopes of conjunction search came out larger than those of feature search.
-- Results of 32 tries by one person are noisy. When the difference of the absent slopes reaches a threshold (15 ms), the result sentence says that conjunction search had the larger slope; even with no real difference, this happens in about 1 run in 6. Setting the slopes of several people in the class side by side shows how large that noise is.
+- Results of 32 tries by one person are noisy. When the difference of the absent slopes reaches a threshold (15 ms), the result sentence says that conjunction search had the larger slope. Even for a person whose two searches do not really differ, the spread of the times from run to run makes this sentence appear in about 1 run in 6, so do not decide from one run. Setting the slopes of several people in the class side by side shows how large that noise is.
 - Do not judge fast or slow as good or bad. What you are studying is a trait of the eye, not a person's ability.
 
 ### Ideas for a junior high school research project
 
-Here are five themes for a junior high school research project, such as a summer project or a science fair entry. Each theme changes one thing and compares the results of several people, such as family members and friends.
+Here are five themes for a junior high school research project, such as a summer project or a science fair entry. Each theme changes one thing and compares the results of four or more people, such as family members and friends. One person's results vary a lot from run to run, so look for a trend that several people share. The more people, the less a chance result sways the conclusion.
 
 #### 1. How does the time to find a target change as more items appear?
 
@@ -272,7 +272,7 @@ In "Number of items and search time" in the "Search time" tab, measure two kinds
 
 #### 2. Which pattern makes an object hardest to find?
 
-"Time to find a camouflaged object" in the "Search time" tab has you find a moth shape hidden on a bark-like background, and compares the time it takes with three patterns: a background-matching pattern, a pattern that breaks up the outline, and a symmetric pattern. It takes about 4 minutes at most per person. Ask several people to try it, then make a table of the middle value for each pattern and the number of rounds in which the shape was not found within 10 seconds. Compare the results with "What studies have found", and think about the reasons for any difference. Observing the patterns of insects and birds around you and sorting them by which of the three patterns they resemble links the theme to biology.
+"Time to find a camouflaged object" in the "Search time" tab has you find a moth shape hidden on a bark-like background, and compares the time it takes with three patterns: a background-matching pattern, a pattern that breaks up the outline, and a symmetric pattern. It takes about 4 minutes at most per person. Ask several people to try it, then make a table of the middle value for each pattern and the number of rounds in which the shape was not found within 10 seconds. Compare the results with "What studies have found", and think about the reasons for any difference. Observing the patterns of insects and birds around you and sorting them by which of the three patterns they resemble links the theme to biology. To see in numbers how well a camouflage pattern of your own blends into a photo background, use CamoForge (see "Using it with CamoForge" below).
 
 #### 3. How different does the same gray look on different surrounds?
 
@@ -298,9 +298,9 @@ In "Proximity and similarity" in the "Grouping" tab, set "Similarity" to "Shapes
 
 ### Using it with CamoForge
 
-[CamoForge](https://ipusiron.github.io/camoforge/) (Day085) generates camouflage patterns, lays them over background photos, and scores how well they blend into the background (0 to 100) and which cues would give them away. This tool does not measure how conspicuous anything is, so first see how the eye works in this tool's figures, then use CamoForge to check whether the same thing happens with a camouflage pattern on a photo background.
+[CamoForge](https://ipusiron.github.io/camoforge/) (Day085) generates camouflage patterns, lays them over background photos, and scores how well they blend into the background (a blend score from 0 to 100, computed from differences in color, brightness and contrast) and how strongly each cue, such as the outline or straight lines, would give them away. This tool does not measure how conspicuous anything is, so first see how the eye works in this tool's figures, then use CamoForge to check whether the same thing happens with a camouflage pattern on a photo background.
 
-The numbers below were measured with CamoForge's built-in color presets and backgrounds only, with Scale, Contrast, Brightness and Overlay opacity left at their defaults (60, 1.00, -0.20 and 0.70). Pressing "Regenerate" redraws the pattern and can change the numbers by 1 or 2.
+The numbers below were measured with CamoForge's built-in color presets (ready-made sets of colors) and backgrounds only, with Scale, Contrast, Brightness and Overlay opacity left at their defaults (60, 1.00, -0.20 and 0.70). Pressing "Regenerate" redraws the pattern and can change the numbers by 1 or 2.
 
 #### Blend scores that change with the background
 
@@ -321,7 +321,7 @@ The same pattern blends very differently depending on the background. When the p
 #### What changes with color vision
 
 1. In the Pop out tab, open "Kind and size of the difference" and switch "Kind of difference" between "Color" and "Lightness". Either way, the one different shape tends to catch your eye right away.
-2. In CamoForge, use the same "Woodland BDU" pattern as above and select the Snow photo in the "Environment check" tab. Switch "Color vision simulation" and watch "Brightness" in the "Blend score" panel.
+2. In CamoForge, use the same "Woodland BDU" pattern as above and select the Snow photo in the "Environment check" tab. Switch "Color vision simulation" (which shows the scene close to how people with different color vision see it) and watch "Brightness" in the "Blend score" panel.
 3. In the "Generate" tab, set "Pattern type" to "Digital camo (pixel)" and the color preset to "NWU Type I Blueberries" under Digital camouflage. Select the Grass photo in the "Environment check" tab, switch the simulation the same way, and watch "Color match".
 
 | Color vision simulation | Snow photo with Woodland BDU (Brightness) | Grass photo with NWU Type I Blueberries (Color match) |
@@ -334,7 +334,7 @@ The same pattern blends very differently depending on the background. When the p
 
 For Woodland BDU on the Snow photo, "Brightness" stays low, between 33 and 43, in every simulation. For NWU Type I Blueberries on the Grass photo, normal vision gives "Brightness" 99 but "Color match" only 85, and in monochrome the color match also reaches 100. A lightness difference remains whatever the viewer's color vision, while a color difference can shrink or disappear. Whether you highlight one bar in a chart or judge how easily camouflage is spotted, check color differences and lightness differences separately.
 
-Note that the Grass photo with NWU Type I Blueberries shows clear blue squares in the preview, yet its overall blend score comes out high, around 92. The total compares averages over the whole image, so check the breakdown for cues that would give a pattern away.
+Note that the Grass photo with NWU Type I Blueberries shows clear blue squares in the preview, yet its overall blend score comes out high, around 92. The total compares averages over the whole image, so check the breakdown behind the total ("Color match", "Brightness" and so on) for cues that would give a pattern away.
 
 #### Straight lines the blend score does not show
 
@@ -355,6 +355,7 @@ In color, brightness and contrast, the panel pattern is close to the soil, and i
 - Education: science and art teachers move the size of the difference and the variety around it in "Kind and size of the difference" in the Pop out tab to open a lesson. In computing and math classes, the Misreading tab covers how to read statistical charts.
 - Work: a UI designer uses "An added line pops out; a missing line does not" in the Pop out tab to decide whether to add or remove a notification mark (a mark added to one item catches the eye; removing the mark from one item when all the others have it hardly does). People who make documents use "Checks when reading a chart" to review a chart before showing it.
 - Daily life: people who see charts in the news or in ads check the bottom of the vertical axis, areas, two vertical axes and the time range.
+- Security: people who design warning or alert screens use the Pop out tab to check how to make the one important item stand out while the others stay quiet. Hiding (camouflage) and finding (detection) rely on the same habits of the eye, which links to CamoForge's "Detect view".
 - Hobbies and creative work: people who paint camouflage on models, draw, or hide things in games check the ideas of background matching and of patterns that break up the outline with "Contours" in the Grouping tab and "Time to find a camouflaged object". How well a real pattern blends into its background is measured in CamoForge.
 - A first step into research: students beginning psychology learn the form of a reaction-time experiment (fixation point, practice, recorded tries, handling of too early presses, middle values and slopes). It is not for research measurements.
 - Combinations: color differences, contrast ratios and color illusions in Day101 Color Hack Box; real camouflage patterns in Day085 CamoForge; reading by stacking in Day070 VisualCryptography CipherLab and Day125 Overlay QR Shares; and letters read through closure and good continuation in Day075 CAPTCHA Art Generator (how each relates is in the table of related tools in "🔗 References").

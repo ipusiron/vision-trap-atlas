@@ -527,7 +527,7 @@ test('E: the camouflage results set charts beside camouflage, with the median of
 test('E: the texts of the camouflage test: the frame, the keyboard, the result of a try and the progress', () => {
   assert.equal(M.ja.camoExpInstr, '樹皮のような模様の中に、蛾の形（底辺を上にした三角形）が1つ隠れています。見つけたら、できるだけ早くその場所を押してください。'
     + '10秒たつと次へ進みます。はじめに練習が3回あります。');
-  assert.equal(M.ja.camoExpKeys, 'キーボードでは、矢印キーで場所を選び、EnterかSpaceで押します。場所を移る時間のぶん長くなるので、模様どうしを比べる目安として見てください。');
+  assert.equal(M.ja.camoExpKeys, 'キーボードでは、矢印キーで場所を選び、EnterかSpaceで押します。キーで場所を選ぶと時間が長くなるので、時間の値より模様どうしの差を見てください。');
   assert.deepEqual(['camoFbCorrect', 'camoFbWrong', 'camoFbTimeout'].map((k) => M.ja[k]), ['正解です。', '違う場所でした。蛾の形に印を付けました。',
     '時間切れです。蛾の形に印を付けました。']);
   assert.equal(V.messageText(M, 'ja', { key: 'camoExpMain', values: { i: 15 } }), '本番15／15');
@@ -702,7 +702,7 @@ test('E: the plain sentences of the cards and the tests', () => {
   // The units of the spacings, why the edge pattern hides the outline (right under its answer), shapes rather than bars in the why of
   // the search, a question whose choices do not contradict it, the camouflage records, and where the search gap was looked for
   assert.match(M.ja['predict.gestalt-proximity-similarity.explain'], /（横の間隔0\.6に対して、縦の間隔1\.4）/);
-  assert.match(M.ja['predict.search-camo.explain'], /^縁にかかる模様は、本当はない縁を作って、本当の輪郭を見つけにくくします。/);
+  assert.match(M.ja['predict.search-camo.explain'], /^縁にかかる模様は、実際にはない縁を作って、物の輪郭を見つけにくくします。/);
   assert.doesNotMatch(M.ja['item.search-time.why'], /棒/);
   assert.match(M.ja['check.popout-color-bars.question'], /それほど目立たない/);
   assert.deepEqual(['a', 'b', 'c'].map((c) => M.ja[`check.popout-color-bars.choice.${c}`]), ['ほかの棒どうしも色が違う', '棒が8本と多い', '棒と棒の間が狭い']);

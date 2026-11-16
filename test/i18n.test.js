@@ -71,9 +71,12 @@ test('F: the 42 terms have a word and a meaning in both languages; the 17 screen
   assert.match(M.ja.termHideSideMeaning, /代表例は迷彩$/);
   const termKeys = Object.keys(M.ja).filter((k) => /^term[A-Z]/.test(k) && !/(Meaning|Expert)$/.test(k) && k !== 'termHelpLabel');
   assert.deepEqual(termKeys.sort(), [...TERMS17, ...TERMS23, ...SIDES].sort());
-  // Plain words for the readers of a junior high school: the edges a pattern makes are "not really there" (no 偽の縁), and the target of the
-  // camouflage studies is explained once where it first appears and in the glossary
-  for (const [key, text] of Object.entries(M.ja)) assert.ok(!text.includes('偽の縁') && !text.includes('補正しきれない'), key);
+  // Plain words for the readers of a junior high school: the edges a pattern makes are "not actually there" (no 偽の縁, and no 本当はない縁,
+  // which reads badly next to 本当の輪郭), and the target of the camouflage studies is explained once where it first appears and in the glossary
+  for (const [key, text] of Object.entries(M.ja)) {
+    assert.ok(!text.includes('偽の縁') && !text.includes('本当はない縁') && !text.includes('補正しきれない'), key);
+  }
+  assert.match(M.ja.termDisruptiveMeaning, /^実際にはない縁を見せ、物の本当の輪郭を/);
   assert.match(M.ja.termMothTargetMeaning, /ガの形の紙にえさを付けた/);
   assert.match(M.ja.relDay101, /色の見え方の違い（色覚多様性）/);
   assert.match(M.ja.relDay075, /^CAPTCHA（[^）]+）/);
