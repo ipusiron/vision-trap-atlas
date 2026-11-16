@@ -3,6 +3,8 @@
 // and the known sentences of the spec come out exactly.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const C = require('../atlas-core.js');
 const D = require('../atlas-data.js');
 const V = require('../atlas-view.js');
@@ -473,7 +475,7 @@ test('E: the camouflage results set charts beside camouflage, with the median of
   // The median of every valid "present" round of the feature search (the numbers of items together)
   assert.equal(feature.rows.present.median, (618 + 643) / 2);
   assert.deepEqual(V.camoContrastTexts(M, 'ja', feature), [M.ja.camoContrast, '同じ画面で測った特徴探索の「ある」の回の真ん中の値は0.6秒でした。']);
-  assert.equal(V.camoContrastTexts(M, 'en', feature)[1], 'In the feature search you ran here, your median for "present" rounds was 0.6 s.');
+  assert.equal(V.camoContrastTexts(M, 'en', feature)[1], 'In the feature search you ran here, your middle value for "present" rounds was 0.6 s.');
   // Fewer than 3 valid "present" rounds: no median, no second sentence
   const few = C.summarizeBlock([r(3, true, 600), r(6, true, 700), r(3, false, 800)]);
   assert.equal(few.rows.present.median, null);
@@ -556,13 +558,24 @@ test('E: the lines of the predictions and the answers of the questions are fille
   assert.ok(M.en['check.misread-value-ratio.desc'].startsWith('Bar chart of books sold at a fictional bookstore.'));
 });
 
-test('E: the camouflage results call the median 真ん中の値 (the word of the glossary), as the results of the search experiment do', () => {
+test('E: the camouflage results call the median 真ん中の値 and "middle value" (the words of the glossary), as the results of the search '
+  + 'experiment do', () => {
   for (const key of ['camoResChartUse', 'camoResChartDesc', 'camoColMedian', 'camoTableMedian', 'camoValidNote', 'camoResFew', 'camoContrastFeature']) {
     assert.ok(M.ja[key].includes(M.ja.termMedian), key);
-    assert.match(M.en[key], /median/i, key);
+    assert.match(M.en[key], new RegExp(M.en.termMedian, 'i'), key);
   }
+  // The glossary names the specialist word; no sentence of the screen uses it in either language
   for (const [key, text] of Object.entries(M.ja)) if (key !== 'termMedianExpert') assert.ok(!text.includes('中央値'), key);
+  for (const [key, text] of Object.entries(M.en)) if (key !== 'termMedianExpert') assert.doesNotMatch(text, /\bmedians?\b/i, key);
+  assert.equal(M.en.termMedian, 'Middle value');
   assert.ok(M.ja['check.search-camo-results.desc'].includes('見つけるまでの時間の真ん中の値は'));
+  assert.ok(M.en['check.search-camo-results.desc'].includes('Middle value of the time to find: '));
+  // The word in the sentence above the chart gets its explanation in both languages (the terms of app.js)
+  const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const terms = app.match(/camoResChartUse: \[\{ term: 'termMedian', ja: '([^']+)', en: '([^']+)' \}\]/);
+  assert.ok(terms, 'the term of camoResChartUse');
+  assert.deepEqual([terms[1], terms[2]], ['真ん中の値', 'middle value']);
+  assert.ok(M.ja.camoResChartUse.includes(terms[1]) && M.en.camoResChartUse.includes(terms[2]));
   // The pattern that matches the background in two sentences
   assert.equal(M.ja['camoRead.match'], '背景と同じ色と大きさの斑点で描いた模様です。物の面は背景になじみますが、三角形の縁では斑点がまっすぐ途切れます。');
   assert.equal(M.en.camoDuration, 'The test has 3 practice rounds and 15 recorded rounds. Every round moves on after 10 seconds, so it takes about 4 minutes '

@@ -1,7 +1,8 @@
 """Startup checks for Vision Trap Atlas (Playwright for Python; not part of CI).
 
 The first view without saved preferences, and a readable page while JavaScript is held back, missing or disabled, in
-Chromium, Firefox and WebKit. The repository is served on an ephemeral loopback port while the checks run.
+Chromium, Firefox and WebKit, with the shared summary (OGP) in the page with JavaScript disabled and after the start. The
+repository is served on an ephemeral loopback port while the checks run.
     python -X utf8 -B test/startup.browser.py
     python -X utf8 -B test/startup.browser.py --output <folder>
 Results and screenshots are written to --output (default: a new folder in the system temporary directory). Nothing is
@@ -11,6 +12,7 @@ import argparse
 import base64
 import hashlib
 import json
+import re
 import sys
 import tempfile
 from contextlib import contextmanager
@@ -25,7 +27,7 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 PREFIX = "vision-trap-atlas."
 SOURCES = ("index.html", "style.css", "theme-init.js", "atlas-core.js", "atlas-data.js", "atlas-view.js", "atlas-search.js", "messages.js",
-           "app.js", "test/startup.browser.py")
+           "app.js", "README.md", "test/startup.browser.py")
 SCRIPTS = ["theme-init.js", "atlas-core.js", "atlas-data.js", "atlas-view.js", "atlas-search.js", "messages.js", "app.js"]
 TABS_JA = ["目立つ前注意の特徴", "探す時間視覚探索", "まとまるゲシュタルトの法則", "図と地図と地の分化", "誤読グラフ", "目の錯覚錯視"]
 HEADINGS_JA = ["目立つ（前注意の特徴）", "探す時間（視覚探索）", "まとまる（ゲシュタルトの法則）", "図と地（図と地の分化）", "誤読（グラフ）", "目の錯覚（錯視）"]
@@ -35,6 +37,15 @@ HEADINGS_JA = ["目立つ（前注意の特徴）", "探す時間（視覚探索
 # questions, whose figures number 17 (five questions show two figures, A and B)
 CARDS, FIGURES = 15, 13
 PREDICTIONS, WHYS, QUESTIONS, QUESTION_FIGURES = 15, 15, 12, 17
+# The shared summary (the six OGP tags and the meta description) is in the page itself, for the sites that make a summary without running
+# the scripts: present with JavaScript disabled, and the same once the application is ready. The description is that of the README
+DESCRIPTION_JA = re.search(r'^description_ja: "(.*)"$', (ROOT / "README.md").read_text(encoding="utf-8"), re.M).group(1)
+OGP = (("property", "og:title", "Vision Trap Atlas"), ("property", "og:description", DESCRIPTION_JA),
+       ("property", "og:url", "https://ipusiron.github.io/vision-trap-atlas/"),
+       ("property", "og:image", "https://ipusiron.github.io/vision-trap-atlas/assets/screenshot.png"),
+       ("property", "og:type", "website"), ("name", "twitter:card", "summary_large_image"), ("name", "description", DESCRIPTION_JA))
+OGP_STATE = """() => Array.from(document.head.querySelectorAll('meta[property], meta[name]'),
+  m => [m.hasAttribute('property') ? 'property' : 'name', m.getAttribute('property') || m.getAttribute('name'), m.getAttribute('content')])"""
 # The lines of the term of the third tab at 320px before the page is ready (a <wbr> in the page; Firefox has no word-break: auto-phrase)
 GESTALT_LINES = """() => { const el = document.querySelector('#tab-gestalt .tab-term'), chars = [];
   const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node;
@@ -137,6 +148,13 @@ PREFERENCES = """() => ({theme: document.documentElement.dataset.theme, language
 def check(condition, message):
     if not condition:
         raise AssertionError(message)
+
+
+def assert_ogp(page, name):
+    tags = page.evaluate(OGP_STATE)
+    for attribute, key, value in OGP:
+        found = [t for t in tags if t[0] == attribute and t[1] == key]
+        check(len(found) == 1 and found[0][2] == value, (name, "OGP", key, found))
 
 
 def pending_contract(page, snap, width):
@@ -329,6 +347,7 @@ def run_case(playwright, url, spec, output):
             result["printed"] = printed
             if spec.get("disabled"):
                 check(page.locator("noscript").count() == 1, "the noscript message")
+                assert_ogp(page, "without JavaScript")
                 page.locator("#startup-help > summary").click()
                 original = page.url
                 with context.expect_page() as opened:
@@ -343,6 +362,7 @@ def run_case(playwright, url, spec, output):
             page.evaluate("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))")
             ready = snap("ready")
             ready_contract(page, ready)
+            assert_ogp(page, "ready")
             expected_theme = spec.get("saved", {}).get("theme", spec["theme"])
             check(ready["lang"] == language and ready["theme"] == expected_theme, ("preferences keep priority", ready["lang"], ready["theme"]))
             check(ready["focus"] == "BODY", ("the startup does not move the focus", ready["focus"]))

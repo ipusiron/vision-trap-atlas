@@ -26,7 +26,7 @@ test('F: strict offline CSP, referrer, icon, noscript and no inline code', () =>
   assert.doesNotMatch(html, /<style\b|\sstyle=/, 'no inline style');
   assert.doesNotMatch(html, /\son[a-z]+=/i, 'no inline event handlers');
   assert.match(html, /<html lang="ja" data-app-ready="false">/);
-  // Five tabs in the order of the groups, each with its panel; a panel can take the focus right after its tab
+  // Six tabs in the order of the groups, each with its panel; a panel can take the focus right after its tab
   assert.deepEqual([...html.matchAll(/<button id="tab-([a-z-]+)" role="tab"/g)].map((m) => m[1]), GROUPS);
   assert.deepEqual([...html.matchAll(/<section id="panel-([a-z-]+)" class="panel" role="tabpanel" aria-labelledby="tab-\1" tabindex="0"/g)]
     .map((m) => m[1]), GROUPS);
@@ -37,6 +37,44 @@ test('F: strict offline CSP, referrer, icon, noscript and no inline code', () =>
   assert.match(html, /<fieldset id="startup-controls" class="startup-control-group" disabled /);
   assert.match(html, /<aside id="startup-note" class="startup-note" role="status">/);
   assert.match(html, /<a id="startup-reload" href="" target="_blank" rel="noopener noreferrer">/);
+});
+
+// The shared summary (OGP) read by sites that do not run JavaScript: the six tags, each once in <head>, and the meta description. The
+// description is the description_ja of the README front matter (readme.test.js compares the two). The scripts never rewrite them,
+// so that switching the language keeps them as written
+const DESCRIPTION_JA = '人が意識するより先に目がしてしまうこと（ポップアウト・視覚探索・ゲシュタルトの法則・図と地・グラフの誤読・目の錯覚）を、つまみで動かす図と、'
+  + '自分の探す時間を測る2つの実験で確かめる図鑑。同じ目の性質が、グラフでは見せるために、迷彩では隠すために使われる様子を、小さな図で並べる。'
+  + '記録は画面の中だけで、外部へは何も送らない。日英対応。';
+const OGP = [['property', 'og:title', 'Vision Trap Atlas'], ['property', 'og:description', DESCRIPTION_JA],
+  ['property', 'og:url', 'https://ipusiron.github.io/vision-trap-atlas/'],
+  ['property', 'og:image', 'https://ipusiron.github.io/vision-trap-atlas/assets/screenshot.png'],
+  ['property', 'og:type', 'website'], ['name', 'twitter:card', 'summary_large_image']];
+const entities = (value) => value.replace(/&quot;/g, '"').replace(/&#39;/g, '\'').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&amp;/g, '&');
+const metas = (source) => [...source.matchAll(/<meta\b([^>]*)>/g)].map((m) => Object.fromEntries(
+  [...m[1].matchAll(/([a-z:-]+)="([^"]*)"/g)].map((a) => [a[1], entities(a[2])])));
+
+test('F: the six OGP tags (og:title, og:description, og:url, og:image, og:type, twitter:card) and the meta description, each once in <head>', () => {
+  const head = html.slice(html.indexOf('<head>'), html.indexOf('</head>'));
+  const all = metas(html), inHead = metas(head);
+  for (const [attribute, key, value] of OGP) {
+    const found = all.filter((tag) => tag.property === key || tag.name === key);
+    assert.equal(found.length, 1, key + ' exactly once');
+    assert.equal(found[0][attribute], key, key + ' is given by the ' + attribute + ' attribute');
+    assert.equal(found[0].content, value, key);
+    assert.equal(inHead.filter((tag) => tag[attribute] === key).length, 1, key + ' in <head>');
+  }
+  assert.equal(all.filter((tag) => /^(?:og|twitter):/.test(tag.property || tag.name || '')).length, OGP.length, 'no other og: or twitter: tag');
+  const description = inHead.filter((tag) => tag.name === 'description');
+  assert.equal(description.length, 1, 'one meta description');
+  assert.equal(description[0].content, DESCRIPTION_JA, 'the meta description and og:description are the same text');
+  // og:image is the first screenshot of README.md, published with the page
+  assert.ok(fs.existsSync(path.join(root, 'assets', 'screenshot.png')), 'assets/screenshot.png');
+  // No script names a meta tag, OGP or the head, so the language switch never rewrites the shared summary (the browser check reads
+  // the tags again after a switch)
+  for (const file of SCRIPTS) {
+    assert.doesNotMatch(read(file), /\b(?:og|twitter):[a-z]|<meta\b|['"]meta['"]|meta\[|name=\\?["']description|document\.head\b|getElementsByName/i, file);
+  }
 });
 
 test('F: the script order is fixed; theme-init.js is synchronous and the rest are deferred', () => {

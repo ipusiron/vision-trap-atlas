@@ -1483,8 +1483,8 @@
       'check.search-legend-line.explain': 'B and F are blue like D, and A, C and E are dashed like D, so neither color nor line style alone narrows it down '
         + 'to D. A line that only a combination sets apart tends to take longer to find as more lines are added.',
       'check.search-camo-results.title': 'Bar chart with three bars (fictional values)',
-      'check.search-camo-results.desc': 'Bar chart with three bars (fictional values). Median time to find: background-matching pattern 2.4 s, pattern that '
-        + 'breaks up the outline 3.6 s, symmetric pattern 1.7 s.',
+      'check.search-camo-results.desc': 'Bar chart with three bars (fictional values). Middle value of the time to find: background-matching pattern 2.4 s, '
+        + 'pattern that breaks up the outline 3.6 s, symmetric pattern 1.7 s.',
       'check.search-camo-results.question': 'In this fictional result, which pattern best met the goal of camouflage?',
       'check.search-camo-results.choice.a': 'Background-matching pattern',
       'check.search-camo-results.choice.b': 'Pattern that breaks up the outline',
@@ -1772,23 +1772,23 @@
       searchLimitsHeading: 'Limits',
       // Results of the camouflage test
       camoResNone: 'Nothing measured yet. Start with "Start the camouflage test" above.',
-      camoResChartUse: 'Each bar is the median for a pattern, and each dot is the time of one round.',
+      camoResChartUse: 'Each bar is the middle value for a pattern, and each dot is the time of one round.',
       camoResChartTitle: 'Time to find for each pattern',
-      camoResChartDesc: 'Bars of the median for each pattern, with a dot for each round. The table below has the same values.',
+      camoResChartDesc: 'Bars of the middle value for each pattern, with a dot for each round. The table below has the same values.',
       camoResAxis: 'Time to find (s)',
       camoColPattern: 'Pattern',
-      camoColMedian: 'Median (s)',
+      camoColMedian: 'Middle value (s)',
       camoColValid: 'Valid rounds',
       camoColNotFound: 'Not found',
       camoColWrong: 'Wrong spot',
-      camoTableMedian: 'Median and valid rounds',
+      camoTableMedian: 'Middle values and valid rounds',
       camoTableMisses: 'Rounds not found and taps on a wrong spot',
-      camoValidNote: 'A valid round is one where you tapped the right spot after at least 0.2 s and within 10 s. A median is given only for patterns '
-        + 'with 3 or more valid rounds.',
+      camoValidNote: 'A valid round is one where you tapped the right spot after at least 0.2 s and within 10 s. A middle value is given only for '
+        + 'patterns with 3 or more valid rounds.',
       camoResLonger: 'The {pattern} took {d} s longer than the background-matching pattern.',
       camoResShorter: 'The {pattern} was found {d} s sooner than the background-matching pattern.',
       camoResSimilar: 'You found no clear difference between the {pattern} and the background-matching pattern.',
-      camoResFew: 'Some patterns have fewer than 3 valid rounds, so no median is shown for them.',
+      camoResFew: 'Some patterns have fewer than 3 valid rounds, so no middle value is shown for them.',
       camoResPartial: 'The run was stopped, so only the rounds measured so far are shown.',
       camoResearchHeading: 'What studies have found',
       camoResearch: 'In screen experiments, targets that matched the background and also had patterns on their edges were found least often and took '
@@ -1796,7 +1796,7 @@
         + 'one without recognizing it (Webster et al. 2013). In a field experiment with birds, symmetric patterns made targets more likely to be eaten '
         + '(Cuthill, Hiby & Lloyd 2006). Target sizes and time limits differ between studies, so their times are not shown next to yours.',
       camoContrast: 'For charts (showing), a shorter time to find means the goal is met; for camouflage (hiding), a longer time does.',
-      camoContrastFeature: 'In the feature search you ran here, your median for "present" rounds was {t} s.',
+      camoContrastFeature: 'In the feature search you ran here, your middle value for "present" rounds was {t} s.',
 
       // ===== Help =====
       helpFirst: 'If this is your first visit',

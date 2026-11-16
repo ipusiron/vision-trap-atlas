@@ -35,7 +35,7 @@
     'item.search-time.howTo': [{ term: 'termFeature', ja: '特徴探索', en: 'feature search' }, { term: 'termConjunction', ja: '結合探索', en: 'conjunction search' }],
     searchTheory: [{ term: 'termFit', ja: '特徴統合理論', en: 'feature integration theory' }, { term: 'termGuided', ja: '誘導探索', en: 'guided search' }],
     resChartUse: [{ term: 'termMedian', ja: '真ん中の値', en: 'middle value' }],
-    camoResChartUse: [{ term: 'termMedian', ja: '真ん中の値', en: 'median' }],
+    camoResChartUse: [{ term: 'termMedian', ja: '真ん中の値', en: 'middle value' }],
     resDevice: [{ term: 'termIntercept', ja: '線の高さ', en: 'height of the lines' }],
   };
 

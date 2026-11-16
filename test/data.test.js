@@ -174,6 +174,16 @@ test('B: groups, sources and related tools exist; every source has the level A, 
   }
 });
 
+test('B: every related tool is named by at least one entry (its link is shown under "Sources and related tools")', () => {
+  const named = new Set(D.entries.flatMap((e) => e.related));
+  assert.deepEqual(RELATED.filter((r) => !named.has(r)), []);
+  // Day125 Overlay QR Shares: the stacked white is 50% gray and halves the contrast, which the lightness contrast entry is about
+  assert.deepEqual(D.entries.filter((e) => e.related.includes('day125')).map((e) => e.id), ['illusion-lightness-contrast']);
+  assert.equal(D.relatedTools.day125.name, 'Overlay QR Shares');
+  assert.match(M.ja.relDay125, /50%の灰/);
+  assert.match(M.en.relDay125, /50% gray/);
+});
+
 test('B: safety marks: no flashes; only popout-motion moves (only after Play, 3 seconds or less); color-free switch where color alone is used', () => {
   for (const e of D.entries) {
     const s = e.safety;
@@ -336,8 +346,8 @@ test('B: the illusion group and the lightness-contrast entry have the expected s
   assert.deepEqual(lc.uses.map((u) => u.side), ['show', 'hide']);
   assert.equal(lc.uses[0].part, 'heatmap');
   assert.equal(lc.uses[1].part, 'camoScene');
-  // The related tools name both Day101 (color illusions) and Day085 (camouflage)
-  assert.deepEqual(lc.related.sort(), ['day085', 'day101']);
+  // The related tools: Day101 (color illusions), Day085 (camouflage) and Day125 (stacked white read as 50% gray), in this order
+  assert.deepEqual(lc.related, ['day101', 'day085', 'day125']);
 });
 
 // ===== Why it happens, the predictions and the questions at the end of each tab =====

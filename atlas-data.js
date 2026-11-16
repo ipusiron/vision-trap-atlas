@@ -421,7 +421,8 @@
       safety: still(),
       sources: ['adelson2000', 'mittelstadt2014', 'merilaita2017'],
       predict: { choices: ['a', 'b', 'c'], answer: 'b' },
-      related: ['day101', 'day085'],
+      // Day125：重ねた白は50%の灰で、コントラストが半分になる（周りの明るさで見え方が変わる話とつながる）
+      related: ['day101', 'day085', 'day125'],
     },
   ];
 

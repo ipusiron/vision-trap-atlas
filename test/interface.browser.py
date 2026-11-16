@@ -1,9 +1,10 @@
 """Browser gates for Vision Trap Atlas (Playwright for Python; not part of CI).
 
 Run with a Python that already has Playwright and its Chromium, Firefox and WebKit:
-    python -X utf8 -B test/interface.browser.py --stage 5
-    python -X utf8 -B test/interface.browser.py --stage 5 --output <folder>
-    python -X utf8 -B test/interface.browser.py --stage 5 --browser chromium
+    python -X utf8 -B test/interface.browser.py
+    python -X utf8 -B test/interface.browser.py --output <folder>
+    python -X utf8 -B test/interface.browser.py --browser chromium
+(--stage picks how much of the page is checked; the last one, the default, checks everything.)
 Every case runs at 320x568, 390x844, 720x900 and 1280x800, in Japanese and English, light and dark, in the three
 browsers: no console error, no CSP violation, no sideways page scroll, and the checks of the screen (the header, the
 introduction and the contrast table, the tabs and their names, the help, the explanations of the terms, the two cards of
@@ -19,7 +20,10 @@ still until Next frame, which marks where each moving shape was), the lightness 
 "Why", "Predict before you try" and the two questions at the end of each tab (what they say, the keyboard, nothing stored, the
 sizes of the figures and of the sentences kept, the choices kept when the cards are drawn again), and the camouflage card of the
 Search time tab with its test: the clock held and the seed of each run known, so that the rounds, the table, the chart and the
-sentences of the results are those that AtlasCore computes from the test's own record of the tries. Then the
+sentences of the results are those that AtlasCore computes from the test's own record of the tries. From --stage 6, the
+shared summary (the six OGP tags and the meta description) has the values of the README front matter and stays as written
+when the language is switched and after a reload, and on the English page no attribute that carries words (aria-label,
+title, alt and the like) nor the document title holds Japanese. Then the
 addresses with a group or an entry id, the button to the next tab and the browser's back button, the links to other
 sites, the saved preferences, and the page served over HTTP.
 Results and viewport screenshots are written to --output (default: a new folder in the system temporary directory).
@@ -47,7 +51,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 PREFIX = "vision-trap-atlas."
-STAGES = ("2", "3", "4", "5")
+STAGES = ("2", "3", "4", "5", "6")
 SIZES = ((320, 568), (390, 844), (720, 900), (1280, 800))
 BROWSERS = ("chromium", "firefox", "webkit")
 GROUPS = ("popout", "search", "gestalt", "figure-ground", "misread", "illusion")
@@ -62,9 +66,11 @@ MOVING_CARDS = ("popout-motion",)
 SQUARE_PARTS = ("popoutGrid", "asymGrid", "motionGrid")
 # The cards whose figures, sentences and descriptions the test computes from the data and the dictionary
 CHECKED_CARDS = GROUPING_CARDS + MISREAD_CARDS + OTHER_CARDS
-STAGE_CARDS = {"2": FIND_CARDS, "3": FIND_CARDS, "4": FIND_CARDS + GROUPING_CARDS, "5": FIND_CARDS + CHECKED_CARDS}
+STAGE_CARDS = {"2": FIND_CARDS, "3": FIND_CARDS, "4": FIND_CARDS + GROUPING_CARDS, "5": FIND_CARDS + CHECKED_CARDS,
+               "6": FIND_CARDS + CHECKED_CARDS}
 STAGE_GROUPS = {"2": ("popout",), "3": ("popout", "search"), "4": ("popout", "search", "gestalt", "figure-ground"),
-                "5": ("popout", "search", "gestalt", "figure-ground", "misread", "illusion")}
+                "5": ("popout", "search", "gestalt", "figure-ground", "misread", "illusion"),
+                "6": ("popout", "search", "gestalt", "figure-ground", "misread", "illusion")}
 RUN = {"stage": STAGES[-1]}
 
 
@@ -77,6 +83,31 @@ CSP = (
 )
 JAPANESE = re.compile("[　-〿぀-ヿ㐀-䶿一-鿿豈-﫿！-｠]")
 FOOTER_HREF = "https://github.com/ipusiron/vision-trap-atlas"
+# The shared summary (OGP) and the meta description, as the README front matter gives the description: the page keeps them as written
+# in Japanese whatever the language shown (sites that make a summary do not run the scripts)
+DESCRIPTION_JA = re.search(r'^description_ja: "(.*)"$', (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8"),
+                           re.M).group(1)
+OGP = (("property", "og:title", "Vision Trap Atlas"), ("property", "og:description", DESCRIPTION_JA),
+       ("property", "og:url", "https://ipusiron.github.io/vision-trap-atlas/"),
+       ("property", "og:image", "https://ipusiron.github.io/vision-trap-atlas/assets/screenshot.png"),
+       ("property", "og:type", "website"), ("name", "twitter:card", "summary_large_image"), ("name", "description", DESCRIPTION_JA))
+OGP_STATE = """() => Array.from(document.head.querySelectorAll('meta[property], meta[name]'),
+  m => [m.hasAttribute('property') ? 'property' : 'name', m.getAttribute('property') || m.getAttribute('name'), m.getAttribute('content')])"""
+# The attributes that carry words (read aloud or shown), and the document title: none may hold Japanese on the English page
+ATTRIBUTE_WORDS = """() => { const out = [['TITLE', 'document.title', document.title]];
+  for (const el of document.body.querySelectorAll('*')) {
+    for (const name of ['aria-label', 'title', 'alt', 'placeholder', 'aria-valuetext', 'aria-description', 'aria-roledescription', 'data-label']) {
+      const value = el.getAttribute(name); if (value) out.push([el.tagName, name, value]); } }
+  return out; }"""
+
+
+def assert_ogp(page, name):
+    """The six OGP tags and the meta description, each once in <head>, with the values of the README front matter."""
+    tags = page.evaluate(OGP_STATE)
+    for attribute, key, value in OGP:
+        found = [t for t in tags if t[0] == attribute and t[1] == key]
+        check(len(found) == 1 and found[0][2] == value, (name, "OGP", key, found))
+    check(len([t for t in tags if re.match(r"^(?:og|twitter):", t[1] or "")]) == 6, (name, "no other og: or twitter: tag"))
 
 
 def load_module(name):
@@ -1421,7 +1452,18 @@ def matrix_case(browser, browser_name, url, width, height, language, theme, outp
             text = page.evaluate("() => { const c = document.body.cloneNode(true); c.querySelectorAll('noscript').forEach(n => n.remove()); "
                                  "return c.textContent; }")
             check(not JAPANESE.search(text), ("Japanese on the English page", JAPANESE.findall(text)[:10]))
+            if RUN["stage"] >= "6":
+                words = [w for w in page.evaluate(ATTRIBUTE_WORDS) if JAPANESE.search(w[2])]
+                check(not words, ("Japanese in an attribute of the English page", words[:10]))
+        if RUN["stage"] >= "6":
+            # The shared summary stays as written when the language is switched (twice, back to where it was) and after a reload
+            assert_ogp(page, "initial")
+            for _ in range(2):
+                page.locator("#language").click()
+                assert_ogp(page, "after switching the language")
         saved = test_preferences(page, language, theme)
+        if RUN["stage"] >= "6":
+            assert_ogp(page, "after reloading in the other language")
         assert_clean(errors, violations)
         return {"case": name, "status": "passed", "layouts": len(layouts), "tabs": tabs, "saved": saved, "figure_bottoms": bottoms,
                 "help_box": help_box}
