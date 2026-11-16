@@ -178,6 +178,22 @@ h1 span, h2, h3 { color: var(--accent); }
 .end-box-list > li + li { margin-top: .6rem; }
 .end-box-text { margin: 0; font-size: .9375rem; line-height: 1.55; }
 .end-box-button { margin-top: .3rem; min-height: 44px; }
+/* The questions at the end of a tab: a figure (one, or two named A and B above them: side by side from 720px, one above the other
+   below), the question, the choices and the answer. Choosing never changes the size of the figures. The number of a question goes with
+   its sentence (under the figure), not with the figure */
+.check-list { margin: .2rem 0 0; padding: 0; list-style: none; counter-reset: check; }
+.check-item { counter-increment: check; }
+.check-item + .check-item { margin-top: 1.1rem; }
+.check-question::before { content: counter(check) ". "; font-weight: 700; }
+.check-note { margin: .2rem 0 .15rem; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
+.check-figures { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem .9rem; max-width: 22rem; margin: .25rem 0 .35rem; }
+.check-panel { min-width: 0; }
+.check-label { margin: 0 0 .15rem; font-size: .9375rem; font-weight: 700; line-height: 1.4; }
+svg.check-svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: var(--paper); }
+.check-question { margin: .35rem 0 .3rem; font-size: .9375rem; line-height: 1.55; }
+.check-choices, .predict-choices { max-width: 46rem; }
+.check-feedback p { margin: .35rem 0 0; font-size: .9375rem; line-height: 1.5; }
+.check-verdict { font-weight: 700; }
 .intro-features-list li + li { margin-top: .15rem; }
 .intro-more { margin: 0 0 .3rem; padding: 0; border: 0; border-radius: 0; background: none; }
 .intro-more[open] { padding-bottom: 0; }
@@ -258,6 +274,20 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 .entry-title { margin: 0 0 .3rem; font-size: 1.15rem; line-height: 1.4; }
 .entry-oneline { margin: 0 0 .2rem; }
 .entry-howto { margin: 0 0 .5rem; color: var(--muted); font-size: .9375rem; line-height: 1.5; }
+/* "Predict before you try" (closed at first, under how to use the entry): its summary is a 44px line; opened, it pushes the controls and
+   the figures down without changing their size */
+details.predict { margin: 0 0 .45rem; }
+details.predict[open] { padding-bottom: .5rem; }
+details.predict[open] > summary { margin-bottom: .45rem; }
+.predict-question { margin: 0 0 .35rem; font-size: .9375rem; line-height: 1.5; }
+.predict-chosen p, .predict-answer p { margin: .35rem 0 0; font-size: .9375rem; line-height: 1.5; }
+.predict-reveal { margin-top: .4rem; font-weight: 700; }
+.predict-answer-line { font-weight: 700; }
+/* Why it happens: under the sentences of the entry (or under the sentence of the small figure of the two tests), its heading in the
+   look of the heading of the small figures */
+.entry-why { margin: .55rem 0 0; }
+.why-heading { margin: 0 0 .15rem; font-size: 1rem; line-height: 1.4; }
+.why-text { margin: 0; font-size: .9375rem; line-height: 1.5; }
 
 /* Controls: switches (a group of aria-pressed buttons) with their name on the left when they fit, sliders with their name and
    the step shown above them. A note keeps its line even while it is not shown, so nothing below moves */
@@ -297,10 +327,11 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; }
 
 /* The figure and the small figures: the main figure keeps its frame (a square for 1-1 and 1-2, 4:3 for the others) whatever the
    settings; the board of "Find and tap" covers it at the same size */
-.entry-stage { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "main" "read" "uses"; gap: .5rem 1rem; }
+.entry-stage { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "main" "read" "uses" "why"; gap: .5rem 1rem; }
 .entry-main { grid-area: main; min-width: 0; }
 .entry-read { grid-area: read; min-width: 0; }
 .entry-uses { grid-area: uses; min-width: 0; }
+.entry-stage > .entry-why { grid-area: why; min-width: 0; margin-top: .2rem; }
 .figure-frame { position: relative; margin: 0; background: var(--paper); border: 1px solid var(--line); }
 .figure-frame > svg { display: block; width: 100%; height: auto; }
 .figure-frame.finding > svg { cursor: pointer; }
@@ -480,8 +511,9 @@ svg text { font-family: system-ui, sans-serif; }
 /* The marks of "Find and tap": the shape pressed has a thick circle, the shape to find a double rounded square (shapes, not colors) */
 .mark-pressed { fill: none; stroke: var(--ink); stroke-width: 4; }
 .mark-target { fill: none; stroke: var(--ink); stroke-width: 2.5; }
-/* Next frame (reduced motion): a faint dot where a moving shape was in the frame before */
-.fig-trail { fill: var(--ink); opacity: .35; }
+/* Next frame (reduced motion): where a moving shape was in the frame before, a dashed outline of the same size over the figure (a
+   shape, not a color) */
+.fig-trail { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: 4 3; }
 /* The number written in a cell of the heatmap (its color is fill-heatText, dark on the light cells in both themes) */
 .fig-cellnum { font-size: 11px; font-weight: 700; }
 .fill-stimCool { fill: var(--c-stimCool); } .stroke-stimCool { stroke: var(--c-stimCool); }
@@ -738,25 +770,34 @@ svg.res-key { display: block; width: 32px; height: 14px; }
   .contrast-table .col-trait { width: 16%; }
   .section-nav-buttons { display: flex; flex-wrap: wrap; }
   .intro-route-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  /* The figure on the left (about 60%) and the two small figures one above the other on the right (about 40%) */
-  .entry-stage { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-areas: "main uses" "read uses"; align-items: start; }
+  .check-figures.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 40rem; }
+  /* The figure on the left (about 60%) with its sentences and why under it, and the two small figures one above the other on the right
+     (about 40%). When the small figures are taller, the room left goes under why (the last row), not between the figure and the sentences */
+  .entry-stage {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-rows: auto auto 1fr;
+    grid-template-areas: "main uses" "read uses" "why uses"; align-items: start;
+  }
   .entry-read { align-self: start; }
   .uses-list { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
   .controls { grid-template-columns: repeat(2, minmax(0, 18rem)); }
-  /* 1-1 and 1-2: the side of the square figure, clamp(17rem, 100vh - 28rem, 27.5rem), is held by the height of the screen too, so that
-     right after moving to the entry its bottom edge is on a 1280×800 screen; never under 17rem, where a cell of the 6×6 grid is still
-     44px or more. Its column is as wide as the square (or the 60% of the other cards when that is narrower), and the small figures
-     keep their size to it (0.6 of the side here, 13/27.5 of it from 1000px) */
+  /* The other cards: the figure is held by the height of the screen as well (its frame at most (100vh − 25rem) × 4 ÷ 3 wide), so that
+     right after moving to the entry its bottom edge is on a 1280×800 screen too */
+  .entry:not(.square) .figure-frame { max-width: calc((100vh - 25rem) * 4 / 3); }
+  /* The square figures of the Pop out tab: the side, clamp(17rem, 100vh - 31.5rem, 27.5rem), is held by the height of the screen too
+     (the closed "Predict before you try" above the controls included), so that right after moving to the entry its bottom edge is on a
+     1280×800 screen; never under 17rem, where a cell of the 6×6 grid is still 44px or more. Its column is as wide as the square (or the
+     60% of the other cards when that is narrower), and the small figures keep their size to it (0.6 of the side here, 13/27.5 of it from
+     1000px) */
   .entry.square .entry-stage {
-    grid-template-columns: minmax(0, min(clamp(17rem, 100vh - 28rem, 27.5rem), (100% - 1rem) * .6)) minmax(0, 1fr);
+    grid-template-columns: minmax(0, min(clamp(17rem, 100vh - 31.5rem, 27.5rem), (100% - 1rem) * .6)) minmax(0, 1fr);
   }
-  .entry.square .figure-frame { max-width: clamp(17rem, 100vh - 28rem, 27.5rem); }
-  .entry.square .use-figure { max-width: clamp(17rem * .6, (100vh - 28rem) * .6, 27.5rem * .6); }
+  .entry.square .figure-frame { max-width: clamp(17rem, 100vh - 31.5rem, 27.5rem); }
+  .entry.square .use-figure { max-width: clamp(17rem * .6, (100vh - 31.5rem) * .6, 27.5rem * .6); }
 }
 /* Wide screens: each small figure has its sentences beside it */
 @media (min-width: 1000px) {
   .use { display: grid; grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); grid-template-areas: "label label" "figure texts"; gap: 0 .8rem; }
-  .entry.square .use { grid-template-columns: minmax(0, clamp(17rem * 13 / 27.5, (100vh - 28rem) * 13 / 27.5, 13rem)) minmax(0, 1fr); }
+  .entry.square .use { grid-template-columns: minmax(0, clamp(17rem * 13 / 27.5, (100vh - 31.5rem) * 13 / 27.5, 13rem)) minmax(0, 1fr); }
   .use-label { grid-area: label; }
   .use-figure { grid-area: figure; }
   .use-texts { grid-area: texts; }

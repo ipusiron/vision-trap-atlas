@@ -320,7 +320,7 @@
       'motionRead.small': '1つの丸だけが少し動きます。止まった丸の中で、動く丸がすぐ目に入るかを見てください。',
       'motionRead.large': '1つの丸だけが大きく動きます。探そうとする前に目に入りやすくなります。',
       'motionRead.allMove': 'ほかの丸も動いています。動くことがその丸だけの違いではなくなるので、目に入りにくくなります。',
-      'camoRead.match': '背景と同じ色と大きさの斑点で描いた模様で、物の面は背景になじみますが、三角形の縁では斑点がまっすぐ途切れます。',
+      'camoRead.match': '背景と同じ色と大きさの斑点で描いた模様です。物の面は背景になじみますが、三角形の縁では斑点がまっすぐ途切れます。',
       'camoRead.disrupt': '背景に合わせた模様の斑点の一部を縁の上へ移し、樹皮で最も濃い色と最も明るい色に塗ったので、三角形の縁が途切れて見えます。',
       'camoRead.symmetric': '背景に合わせた模様の左半分を縦の中心線で右へ写したので、左右が同じ並びになります。',
       'proxRead.even.none':'点は縦にも横にも同じ間隔で、形も同じです。行にも列にもまとまりにくい並びです。',
@@ -374,6 +374,193 @@
       'lightRead.apart': '2つの四角は同じ灰色です。暗い周りの左の四角が明るく、明るい周りの右の四角が暗く見えるかを比べてください。',
       'lightRead.band': '四角と同じ灰色の帯で2つをつなぎました。同じ灰色が続いているのをたどりながら、左右の四角の明るさを比べてください。',
       aspectCheck: '読むときに確かめること：期間の始まりと終わり、グラフの縦横の比',
+
+      // ===== なぜそうなるか・動かす前に予想する =====
+      whyHeading: 'なぜそうなるか',
+      predictSummary: '動かす前に予想する',
+      predictChosen: '予想：{choice}。つまみを動かして確かめてください。',
+      predictChosenTest: '予想：{choice}。実験をしてから確かめてください。',
+      predictReveal: '答えを見る',
+      predictAnswer: '答え：{choice}',
+      'item.popout-feature.why': '色・方向・大きさなどの違いは、どこに目を向けるかを決める手がかりになります。探すものと周りの違いが大きく、周りどうしがそろっているほど、探すものに目が向きやすくなります。',
+      'predict.popout-feature.question': '違いの種類が「色」、違いの大きさが「大」のまま、「周りのばらつき」を「そろっている」から「ばらばら」にすると、1つだけ違う図形はどうなりますか。',
+      'predict.popout-feature.choice.a': 'もっと目立つ',
+      'predict.popout-feature.choice.b': '目立ちにくくなる',
+      'predict.popout-feature.choice.c': '変わらない',
+      'predict.popout-feature.explain': '「ばらばら」では周りの図形が3つの色に分かれるので、1つだけ違う図形の色も、いくつかある色の1つになります。周りとの差は「大」のままでも、色が違うことは、その図形だけの特徴ではなくなります。',
+      'item.popout-asymmetry.why': '線のある丸には、周りにない「線」という特徴があるので、そこへ目が向きます。線のない丸には、周りにない特徴が何もないので、目が向く手がかりになりにくくなります。',
+      'predict.popout-asymmetry.question': '「探すもの」を「線のある丸」から「線のない丸」に替えると、探しやすさはどうなりますか。',
+      'predict.popout-asymmetry.choice.a': '探しやすくなる',
+      'predict.popout-asymmetry.choice.b': '探しにくくなる',
+      'predict.popout-asymmetry.choice.c': '変わらない',
+      'predict.popout-asymmetry.explain': '丸は同じ2種類のままで、探す丸と周りの丸の役を入れ替えただけでも、探しやすさは変わります。研究では、線のない丸を探すほうが、丸の数が増えたときの時間の延び方が大きくなりました。',
+      'item.popout-motion.why': '動きは、色・方向・大きさと並んで、どこに目を向けるかを決める手がかりの1つに数えられています。',
+      'predict.popout-motion.question': '「動きの大きさ」が「中」のまま「周りの動き」を「止まる」から「ばらばらに動く」にすると、左右に動く1つの丸の目に入りやすさはどうなりますか。',
+      'predict.popout-motion.choice.a': '目に入りやすくなる',
+      'predict.popout-motion.choice.b': '目に入りにくくなる',
+      'predict.popout-motion.choice.c': '変わらない',
+      'predict.popout-motion.explain': 'ほかの丸も同じ「中」の大きさでそれぞれ違う方向に動き、色と形もすべて同じなので、左右に動く丸だけを見分ける手がかりがほとんど残りません。研究では、周りで動く物の模様が探す物と違えば、周りが動いていても速く見分けられました。',
+      'item.search-time.why': '1つの特徴だけで違う棒には、その特徴がすぐ目を向けさせます。2つの特徴の組み合わせで違う棒は、片方の特徴で探す範囲を絞れても、その中でもう片方が合うかを確かめる手間が残るので、図形が増えるほど時間が延びやすくなります。',
+      'predict.search-time.question': '結合探索で、探す棒が「ない」回と「ある」回を比べると、図形が1つ増えるごとに延びる時間（傾き）はどうなりますか。',
+      'predict.search-time.choice.a': '「ある」回のほうが大きい',
+      'predict.search-time.choice.b': '「ない」回のほうが大きい',
+      'predict.search-time.choice.c': 'どちらも同じくらい',
+      'predict.search-time.explain': '研究では「ない」回の傾きのほうが大きく、結合探索で図形1つあたり「ある」は28.7ミリ秒、「ない」は67.1ミリ秒でした（Treisman & Gelade 1980）。探す棒がないときは、'
+        + 'ないと決めて探すのをやめるまでに時間がかかるためと説明されています。',
+      'item.search-camo.why': '背景に合わせた模様は目を引く特徴と縁を減らし、縁にかかる模様は偽の縁を作って本当の輪郭を見つけにくくします。左右対称の並びは生き物に多く背景には少ないので、見つける手がかりになります。',
+      'predict.search-camo.question': '3つの模様のうち、見つけるまでに最も時間がかかるのはどれですか。',
+      'predict.search-camo.choice.a': '背景に合わせた模様',
+      'predict.search-camo.choice.b': '輪郭を途切れさせる模様',
+      'predict.search-camo.choice.c': '左右対称の模様',
+      'predict.search-camo.explain': '人が画面で探した実験では、縁に模様を付けた的に最も時間がかかりました（Fraser et al. 2007）。左右対称の模様は、鳥の野外実験で、非対称の模様より食べられやすくなりました（Cuthill, Hiby & Lloyd 2006）'
+        + '。',
+      'item.gestalt-proximity-similarity.why': 'まとまって見える働きは、何を1つの物や部分として見るかを決めています。自然の写真の輪郭を調べた研究では、近いことが最も強い手がかりで、似ていることも手がかりになっていました。',
+      'predict.gestalt-proximity-similarity.question': '「点の間隔」を「縦横で同じ」から「横がとても狭い」にすると、点はどうまとまって見えますか。',
+      'predict.gestalt-proximity-similarity.choice.a': '行ごとにまとまる',
+      'predict.gestalt-proximity-similarity.choice.b': '列ごとにまとまる',
+      'predict.gestalt-proximity-similarity.choice.c': 'どちらにもまとまらない',
+      'predict.gestalt-proximity-similarity.explain': '「横がとても狭い」では、横に並んだ点の間隔が、縦に並んだ点の間隔の半分より狭くなります（0.6対1.4）。形はすべて丸のままなので、まとまりを作っているのは間隔だけです。',
+      'item.gestalt-region-connection.why': '同じ枠の中にあるもの（ヒョウの斑点や顔の部品など）は1つの物の表面にあることが多く、つながっているものは1つの物の部分として一緒に動くことが多い、という理由が挙げられています。',
+      'predict.gestalt-region-connection.question': '「囲む・つなぐ」を「なし」から「隣り合う組の点を枠で囲む」にすると、枠で囲んだ2つの点はどう見えますか。',
+      'predict.gestalt-region-connection.choice.a': '1つの組に見えやすくなる',
+      'predict.gestalt-region-connection.choice.b': '近い点どうしの組のまま変わらない',
+      'predict.gestalt-region-connection.choice.c': '8つの点が1つにまとまる',
+      'predict.gestalt-region-connection.explain': '枠で囲んだ2つの点は、近さで組になった2つの点より2倍以上離れています。近さだけで決まるなら、この2つが組に見えることはありません。',
+      'item.gestalt-contour.why': '目は、明るさや色が急に変わる所を縁として拾い、なめらかに続く縁や閉じる縁を1つの輪郭にまとめます。縁にかかる模様は偽の縁を作るので、本当の輪郭が見つかりにくくなります。',
+      'predict.gestalt-contour.question': '「交わり方」を「なめらかに交わる」から「交わる所で折れる」にすると、左上の端から出た線は、右のどちらの端につながりますか。',
+      'predict.gestalt-contour.choice.a': '右上の端',
+      'predict.gestalt-contour.choice.b': '右下の端',
+      'predict.gestalt-contour.explain': '折れる形では、左上から来た線は真ん中で折れて、右上の端へ戻ります。2本が同じ色で端の印も同じなら、まっすぐ交わる2本と同じ絵になり、どちらなのか見分けられません。',
+      'item.figure-ground-area.why': '境目は片方の領域の輪郭として見え、その側が手前の図になります。人が写真の中で物と背景を分けた結果を調べると、物の側は背景の側より狭いことが多くありました。',
+      'predict.figure-ground-area.question': '「色の濃い扇形の割合」を50%から30%にすると、図（手前の形）に見えやすいのはどちらの扇形ですか。',
+      'predict.figure-ground-area.choice.a': '色の濃い扇形',
+      'predict.figure-ground-area.choice.b': '色の薄い扇形',
+      'predict.figure-ground-area.choice.c': 'どちらも同じ',
+      'predict.figure-ground-area.explain': '30%では、色の濃い扇形1つが27度、薄い扇形1つが63度で、濃いほうが狭くなります。70%にすると、こんどは薄い扇形が27度で狭くなり、図に見えやすい側が入れ替わります。',
+      'item.figure-ground-symmetry.why': '人が写真の中で物と背景を分けた結果を調べると、物の側は外へふくらんでいることが多くありました。左右対称の並びも、生き物には多く、背景には少ないものです。',
+      'predict.figure-ground-symmetry.question': '「手がかり」を「なし」から「左右対称」にすると、どちらの側が図に見えやすくなりますか。',
+      'predict.figure-ground-symmetry.choice.a': '左右対称な側',
+      'predict.figure-ground-symmetry.choice.b': '左右対称でない側',
+      'predict.figure-ground-symmetry.choice.c': 'どちらの側も変わらない',
+      'predict.figure-ground-symmetry.explain': '2つの領域を短い時間だけ見せた実験では、左右対称な側を図と答えた割合が約4分の3でした。ただし、外へのふくらみと競わせると、左右対称の手がかりのほうが弱くなります。',
+      'item.misread-baseline.why': '人は、図の上で見える差から差の大きさを感じ取ります。値を正しく読めた人でも差を大きく感じ、軸が切れている印を付けても、その傾向は残りました。',
+      'predict.misread-baseline.question': '「縦軸の下端」を40から50に上げると、6月の棒の高さは4月の棒の何倍になりますか。',
+      'predict.misread-baseline.choice.a': '約1.12倍（値の比と同じ）',
+      'predict.misread-baseline.choice.b': '1.5倍（いまと同じ）',
+      'predict.misread-baseline.choice.c': '4倍',
+      'predict.misread-baseline.explain': '下端を50にすると、4月の棒は52−50＝2、6月の棒は58−50＝8の高さで描かれるので、8÷2で4倍です。下端をいちばん小さい値の52に近づけるほど、高さの比は急に大きくなります。',
+      'item.misread-area.why': '縦も横も同じ倍率で伸ばすと、面積は値の比の2乗になります。そのうえ面積は、棒の高さのように同じ軸の上で比べるときより、読み違いが大きくなることが実験で示されています。',
+      'predict.misread-area.question': '「値の比」が2のまま「伸ばし方」を「縦横とも伸ばす」から「面積を値の比に合わせる」にすると、右の絵の高さは左の絵の何倍になりますか。',
+      'predict.misread-area.choice.a': '2倍',
+      'predict.misread-area.choice.b': '約1.41倍',
+      'predict.misread-area.choice.c': '4倍',
+      'predict.misread-area.explain': '面積を2倍にするには、縦と横をそれぞれ約1.41倍（2の平方根）にします。高さか幅だけを見て比べると、値の比の2倍より小さく見積もってしまいます。',
+      'item.misread-dual-axis.why': '左右の縦軸の範囲は、作る人がそれぞれ自由に決められます。そのため、2本の線の上下や交わる所は、データではなく軸の決め方で変わります。',
+      'predict.misread-dual-axis.question': '「右の縦軸の上端」を200から600にすると、2本の線が交わる回数はどうなりますか。',
+      'predict.misread-dual-axis.choice.a': '増える',
+      'predict.misread-dual-axis.choice.b': '0回になる',
+      'predict.misread-dual-axis.choice.c': '変わらない',
+      'predict.misread-dual-axis.explain': '上端を600mmにすると、雨の量がいちばん多い9月の210mmでも、縦軸の高さの35%の所に描かれます。いちばん寒い1月でも、気温4℃の点は雨の点より高い所にあり、2本の線が入れ替わる月はありません。',
+      'item.misread-aspect-range.why': '折れ線グラフでは、増え方を線の傾きから読み取ります。縦横の比を変えると同じデータでも線の傾きが変わり、期間を切り出すと見える増減そのものが変わります。',
+      'predict.misread-aspect-range.question': '「縦横の比（幅÷高さ）」を1から4にすると、線の傾きはどうなりますか。',
+      'predict.misread-aspect-range.choice.a': '急になる',
+      'predict.misread-aspect-range.choice.b': 'ゆるやかになる',
+      'predict.misread-aspect-range.choice.c': '変わらない',
+      'predict.misread-aspect-range.explain': '比が4のときは、グラフの枠の横が縦の4倍になります。1か月ぶんの横の長さが伸びるので、同じ冊数の増減でも、線は横に引き伸ばされます。',
+      'item.illusion-lightness-contrast.why': '明るさや色の見え方は、その場所の色だけでは決まらず、周りの色によって変わります。',
+      'predict.illusion-lightness-contrast.question': '「周りの明るさの差」のつまみを0%から100%へ動かすと、図の中で塗りの色が変わるのはどこですか。',
+      'predict.illusion-lightness-contrast.choice.a': '2つの四角',
+      'predict.illusion-lightness-contrast.choice.b': '左右の周り',
+      'predict.illusion-lightness-contrast.choice.c': '四角と周りの両方',
+      'predict.illusion-lightness-contrast.explain': 'つまみで変わるのは左右の周りの明るさだけで、四角の灰色はどの段でも同じ値です。「見比べ方」を「帯でつなぐ」にすると、同じ灰色が2つの四角の間に続いているのをたどれます。',
+
+      // ===== 確かめの問い（タブの最後） =====
+      checksHeading: '確かめの問い',
+      checkRight: '正しい答えです。',
+      checkWrong: '違います。正しい答えは「{choice}」です。',
+      checkFictional: '架空の値',
+      checkBookstoreTitle: '架空の書店の販売冊数（百冊）',
+      'check.popout-color-bars.title': '8本の棒グラフ',
+      'check.popout-color-bars.desc': '8本の棒グラフ。左から4本目がいちばん高く、ほかと違う色で塗ってある。ほかの7本も、3つの色が順に入れ替わる。',
+      'check.popout-color-bars.question': '左から4本目の棒（いちばん高い棒）だけをほかと違う色にしたのに、この図でその棒が目立ちにくい主な理由はどれですか。',
+      'check.popout-color-bars.choice.a': 'ほかの棒どうしも色が違う',
+      'check.popout-color-bars.choice.b': '棒が8本と多い',
+      'check.popout-color-bars.choice.c': '4本目の棒がほかより低い',
+      'check.popout-color-bars.explain': 'ほかの7本は3つの色に分かれているので、4本目の色は、4つある色の1つにすぎません。ほかの7本を1つの色にそろえれば、同じ8本のままでも、色が違うのは4本目だけになります。',
+      'check.popout-added-line.title': '迷彩の絵2つ',
+      'check.popout-added-line.desc': '迷彩の絵2つ。どちらも、丸い斑点の背景の真ん中に、背景より少しだけ色の違う楕円の物がある。背景と物はAとBで同じで、Bだけ物の上に濃いまっすぐな線が1本引いてある。',
+      'check.popout-added-line.question': 'AとBの迷彩の絵で、Bの物のほうが見つけやすい理由はどれですか。',
+      'check.popout-added-line.choice.a': 'Bの物には、背景にない「まっすぐな線」がある',
+      'check.popout-added-line.choice.b': 'Bの物は、背景との色の差が大きい',
+      'check.popout-added-line.choice.c': 'Bの背景は、斑点が少ない',
+      'check.popout-added-line.explain': '背景の斑点はどれも丸く、まっすぐな線はBの物にしかありません。物の色を背景に近づけても、背景にない形が1つあれば、その形が目に入ります。',
+      'check.search-legend-line.title': '6本の折れ線と、AからFの凡例',
+      'check.search-legend-line.desc': '6本の折れ線と、AからFの凡例。Dは青の破線。BとFは青の実線、A・C・Eは青以外の色の破線。',
+      'check.search-legend-line.question': '凡例の「D」の線をグラフの中から探すとき、この探し方にあてはまるのはどれですか。',
+      'check.search-legend-line.choice.a': '色だけで見分けられる特徴探索',
+      'check.search-legend-line.choice.b': '線の種類だけで見分けられる特徴探索',
+      'check.search-legend-line.choice.c': '色と線の種類の組み合わせでしか見分けられない結合探索',
+      'check.search-legend-line.explain': 'Dと同じ青の線はBとFに、同じ破線はA・C・Eにあるので、色か線の種類のどちらか一方ではDを1本に絞れません。組み合わせでしか見分けられないときは、線が増えるほど探す時間が延びやすくなります。',
+      'check.search-camo-results.title': '3本の棒グラフ（架空の値）',
+      'check.search-camo-results.desc': '3本の棒グラフ（架空の値）。見つけるまでの時間の真ん中の値は、背景に合わせた模様が2.4秒、輪郭を途切れさせる模様が3.6秒、左右対称の模様が1.7秒。',
+      'check.search-camo-results.question': 'この架空の結果で、迷彩として最も目的に合っていた模様はどれですか。',
+      'check.search-camo-results.choice.a': '背景に合わせた模様',
+      'check.search-camo-results.choice.b': '輪郭を途切れさせる模様',
+      'check.search-camo-results.choice.c': '左右対称の模様',
+      'check.search-camo-results.explain': '迷彩は見つからないことが目的なので、見つけるまでの時間が最も長い3.6秒の模様が、最も目的に合っています。グラフのように見つけてほしいものでは逆に、時間が短いほど目的に合います。',
+      'check.gestalt-store-bars.title': '棒グラフ2つ',
+      'check.gestalt-store-bars.desc': '棒グラフ2つ。どちらも12本の棒で、左から4本ずつが店1・店2・店3の4か月分。Aは店と店の間が広く空き、店ごとに塗り方（塗りつぶし・斜線・点）が同じ。Bは12本が同じ間隔で並び、塗り方（塗りつぶし・斜線・点・枠だけ）'
+        + 'が4本ごとにくり返す。',
+      'check.gestalt-store-bars.question': '3つの店の4か月分を店ごとに4本ずつ並べたAとBのうち、店ごとにまとめて読ませたいときに合うのはどちらですか。',
+      'check.gestalt-store-bars.choice.same': 'どちらも同じ',
+      'check.gestalt-store-bars.explain': 'Aは、同じ店の4本が近く、塗り方もそろっているので、店ごとにまとまって見えます。Bは棒の間隔がどこも同じで、塗り方が月ごとにそろっているので、店をまたいで同じ月の3本がまとまって見えます。',
+      'check.gestalt-edge-spots.title': '迷彩の絵2つ',
+      'check.gestalt-edge-spots.desc': '迷彩の絵2つ。どちらも、丸い斑点の背景の真ん中に、背景と色の違う楕円の物がある。物はAとBで同じで、Bだけ、物の縁の上に背景の斑点と同じ色の大きな斑点が16個重なり、輪郭が所々で途切れている。',
+      'check.gestalt-edge-spots.question': 'Bで、物の縁に重ねた16個の斑点が輪郭を途切れさせているのは、斑点がどんな色だからですか。',
+      'check.gestalt-edge-spots.choice.a': '背景の斑点と同じ色',
+      'check.gestalt-edge-spots.choice.b': '物の地と同じ色',
+      'check.gestalt-edge-spots.choice.c': '背景にない黒',
+      'check.gestalt-edge-spots.explain': '斑点が背景の斑点と同じ色なので、縁にかかった所は背景の模様の続きに見え、物の輪郭がそこで途切れます。人が画面で探した実験では、背景に合わない黒の模様を付けた的は、最も早く見つかりました（Fraser et al. 2007）。',
+      'check.figure-ground-markers.title': '同じ12個の点の散布図2つ',
+      'check.figure-ground-markers.desc': '同じ12個の点の散布図2つ。Aの点の印は、閉じていない、いびつな折れ線。Bの点の印は、塗りつぶした、外へふくらむ六角形に近い形。',
+      'check.figure-ground-markers.question': '同じ12個の点を違う印で描いたAとBのうち、図に見えやすい手がかりを持つ印はどちらですか。',
+      'check.figure-ground-markers.choice.same': 'どちらも同じ',
+      'check.figure-ground-markers.explain': 'Bの印は閉じていて外へふくらむ形なので、図に見えやすい手がかりを持っています。Aの印は閉じていない折れ線なので、囲まれた領域がなく、図になる形がありません。',
+      'check.figure-ground-mirror.title': '迷彩の絵2つ',
+      'check.figure-ground-mirror.desc': '迷彩の絵2つ。どちらも、丸い斑点の背景に大きな楕円の物があり、物の左半分と右半分に大きな斑点が4つずつある。左半分の斑点はAとBで同じ。Aは右半分の斑点が左半分と別の並びで、Bは右半分が左半分の鏡写し（左右対称）になっている。',
+      'check.figure-ground-mirror.question': '物の右半分の模様だけが違うAとBのうち、鳥の野外実験で食べられやすかったのは、どちらの作り方ですか。',
+      'check.figure-ground-mirror.choice.none': '差はなかった',
+      'check.figure-ground-mirror.explain': 'Bの物は、右半分の斑点が左半分を鏡に写した並びになっています。鳥の野外実験では、このように模様を左右対称にした的が非対称の的より食べられやすく、'
+        + '5日間で生き残る確率が6〜15%低くなりました（Cuthill, Hiby & Lloyd 2006）。',
+      'check.misread-value-ratio.title': '架空の書店の販売冊数の棒グラフ',
+      'check.misread-value-ratio.desc': '架空の書店の販売冊数の棒グラフ。縦軸は45から60まで（百冊）で、目盛りは45・50・60。棒の値は4月が50、5月が55、6月が60。',
+      'check.misread-value-ratio.question': '縦軸が45から始まるこの棒グラフで、6月の値は4月の値の何倍ですか。',
+      'check.misread-value-ratio.choice.a': '3倍',
+      'check.misread-value-ratio.choice.b': '2倍',
+      'check.misread-value-ratio.choice.c': '1.2倍',
+      'check.misread-value-ratio.explain': '目盛りを読むと、4月は50、6月は60なので、60÷50で1.2倍です。棒の高さは縦軸の下端45から測るので、4月と6月の棒は5と15の高さになり、6月の棒が3倍の高さに見えます。',
+      'check.misread-line-order.title': '架空の町の気温と雨の量を重ねた折れ線グラフ',
+      'check.misread-line-order.desc': '架空の町の気温と雨の量を重ねた折れ線グラフ。左の縦軸は気温0〜30℃、右の縦軸は雨の量0〜250mm。7月は気温26℃、雨の量160mmで、気温の線のほうが上にある。2本の線は3回交わる。',
+      'check.misread-line-order.question': 'このグラフで7月は気温の線が雨の量の線より上にありますが、ここから言えることはどれですか。',
+      'check.misread-line-order.choice.a': '7月は、気温の値が雨の量の値より大きい',
+      'check.misread-line-order.choice.b': '7月は、ほかの月より雨が少ない',
+      'check.misread-line-order.choice.c': '線の上下からは何も言えない',
+      'check.misread-line-order.explain': '7月の気温26℃は左の軸の約87%の高さに、雨の量160mmは右の軸の64%の高さに描かれているだけです。左の軸の上端を50℃にすると、気温の点は52%の高さになって雨の点より下になるので、線の上下からは何も読み取れません。',
+      'check.illusion-heat-numbers.title': '5×5のヒートマップ',
+      'check.illusion-heat-numbers.desc': '5×5のヒートマップ。値が大きいほど濃い青で塗ってある。左上の「46」と書いたマスは、周りの8マスがすべて値10の薄い色。右下の「56」と書いたマスは、周りの8マスのうち7マスが値90の濃い色。ほかのマスの値は30〜70。',
+      'check.illusion-heat-numbers.question': '数を書いた2つのマスのうち、値が大きいのはどちらですか。',
+      'check.illusion-heat-numbers.choice.a': '左上のマス',
+      'check.illusion-heat-numbers.choice.b': '右下のマス',
+      'check.illusion-heat-numbers.choice.c': '2つは同じ値',
+      'check.illusion-heat-numbers.explain': 'マスの数を読むと、左上は46、右下は56で、右下のほうが大きい値です。左上のマスは値の小さい薄いマスに、右下のマスは値の大きい濃いマスに囲まれているので、色だけで比べると、差が小さく見えたり、'
+        + '大小が逆に見えたりすることがあります。',
+      'check.illusion-split-edge.title': '迷彩の絵',
+      'check.illusion-split-edge.desc': '迷彩の絵。背景は左半分と右半分に分かれ、右半分には薄い白が重なって明るい。真ん中の物は左右の境にまたがり、物の地の色は左の背景の地の色と同じ。',
+      'check.illusion-split-edge.question': 'この迷彩の絵で、物と背景の明るさの差が縁の手がかりになっているのは、どこですか。',
+      'check.illusion-split-edge.choice.a': '左の背景と接する所',
+      'check.illusion-split-edge.choice.b': '右の背景と接する所',
+      'check.illusion-split-edge.choice.c': 'どちらにもない',
+      'check.illusion-split-edge.explain': '右の背景は薄い白を重ねて明るくしてあるので、物との明るさの差がそのまま縁になります。物を左の背景の中だけに置けば、明るさの差による縁はなくなります。',
 
       // ===== 小さな図の下の文 =====
       popShow: '強調は1本に絞り、ほかの棒の色はそろえます。全部の棒を違う色にすると、どの棒も目立たなくなります。',
@@ -465,7 +652,7 @@
       searchConjInline: '結合探索',
       // 迷彩の実験（同じ枠で行う）
       camoStart: '迷彩の実験を始める',
-      camoDuration: '1回は練習3回と本番15回です。どの回も10秒たつと次へ進むので、長くても4分ほどで終わります。',
+      camoDuration: '実験は練習3回と本番15回です。どの回も10秒たつと次へ進むので、長くても4分ほどで終わります。',
       camoReplace: '測り直すと、前の結果は新しい結果に置き換わります。',
       camoExpTitle: '迷彩の実験',
       camoExpInstr: '樹皮のような模様の中に、蛾の形（底辺を上にした三角形）が1つ隠れています。見つけたら、できるだけ早くその場所を押してください。'
@@ -546,22 +733,22 @@
       searchLimitsHeading: '限界',
       // 迷彩の実験の結果
       camoResNone: 'まだ測っていません。上の「迷彩の実験を始める」から始めます。',
-      camoResChartUse: '棒は模様ごとの中央値、点は1回ごとの見つけるまでの時間です。',
+      camoResChartUse: '棒は模様ごとの真ん中の値、点は1回ごとの見つけるまでの時間です。',
       camoResChartTitle: '模様ごとの見つけるまでの時間のグラフ',
-      camoResChartDesc: '模様ごとの中央値の棒と、1回ごとの時間の点。同じ値を下の表に載せています。',
+      camoResChartDesc: '模様ごとの真ん中の値の棒と、1回ごとの時間の点。同じ値を下の表に載せています。',
       camoResAxis: '見つけるまでの時間（秒）',
       camoColPattern: '模様',
-      camoColMedian: '中央値（秒）',
+      camoColMedian: '真ん中の値（秒）',
       camoColValid: '有効な回',
       camoColNotFound: '見つからなかった回',
       camoColWrong: '違う場所を押した回',
-      camoTableMedian: '中央値と有効な回',
+      camoTableMedian: '真ん中の値と有効な回',
       camoTableMisses: '見つからなかった回と違う場所を押した回',
-      camoValidNote: '有効な回は、正しい場所を0.2秒以上10秒未満で押した回です。中央値は、有効な回が3回以上ある模様だけに出します。',
+      camoValidNote: '有効な回は、正しい場所を0.2秒以上10秒未満で押した回です。真ん中の値は、有効な回が3回以上ある模様だけに出します。',
       camoResLonger: '「{pattern}」は、背景に合わせた模様より{d}秒長くかかりました。',
       camoResShorter: '「{pattern}」は、背景に合わせた模様より{d}秒早く見つかりました。',
       camoResSimilar: '「{pattern}」と背景に合わせた模様では、はっきりした差はありませんでした。',
-      camoResFew: '有効な回が3回に届かない模様があるので、その模様の中央値は出していません。',
+      camoResFew: '有効な回が3回に届かない模様があるので、その模様の真ん中の値は出していません。',
       camoResPartial: '途中で止めたので、測れた回までを出しています。',
       camoResearchHeading: '研究で知られていること',
       camoResearch: '人が画面で探した実験では、背景に合わせたうえで縁に模様を付けた的が、見つかる数が最も少なく、見つけるまでの時間も最も長く'
@@ -569,7 +756,7 @@
         + '（Webster et al. 2013）。左右対称の模様は、鳥の野外実験で食べられやすくなりました（Cuthill, Hiby & Lloyd 2006）。'
         + '研究ごとに的の大きさや制限時間が違うので、研究の時間の値は自分の値と並べていません。',
       camoContrast: 'グラフ（見せる側）では、見つけるまでの時間が短いほど目的に合い、迷彩（隠す側）では長いほど目的に合います。',
-      camoContrastFeature: '同じ画面で測った特徴探索の「ある」の回の中央値は{t}秒でした。',
+      camoContrastFeature: '同じ画面で測った特徴探索の「ある」の回の真ん中の値は{t}秒でした。',
 
       // ===== ヘルプ =====
       helpFirst: 'はじめて読むとき',
@@ -1124,6 +1311,264 @@
       'lightRead.band': 'A band of the same gray now joins the squares. Follow the band from one to the other and compare the two squares again.',
       aspectCheck: 'When reading, check: where the time range starts and ends, and the chart\'s aspect ratio',
 
+      // ===== Why, and predict before you try =====
+      whyHeading: 'Why',
+      predictSummary: 'Predict before you try',
+      predictChosen: 'Your prediction: {choice}. Move the controls to check.',
+      predictChosenTest: 'Your prediction: {choice}. Run the test to check.',
+      predictReveal: 'Show the answer',
+      predictAnswer: 'Answer: {choice}',
+      'item.popout-feature.why': 'Differences in color, direction, size and the like are cues that decide where the eye goes. The bigger the difference '
+        + 'between the target and the others, and the more alike the others are, the more readily the eye goes to the target.',
+      'predict.popout-feature.question': 'With "Kind of difference" at Color and "Size of the difference" at Large, what happens to the one different shape '
+        + 'when you change "Variety around it" from Uniform to Very varied?',
+      'predict.popout-feature.choice.a': 'It stands out more',
+      'predict.popout-feature.choice.b': 'It stands out less',
+      'predict.popout-feature.choice.c': 'No change',
+      'predict.popout-feature.explain': 'Very varied splits the other shapes into three colors, so the different shape\'s color becomes one of several. Its '
+        + 'difference from the others is still Large, but a different color no longer belongs to that shape alone.',
+      'item.popout-asymmetry.why': 'A circle with a line has a feature the others lack, the line, so the eye goes to it. A circle without a line has no '
+        + 'feature the others lack, so it gives the eye little to go on.',
+      'predict.popout-asymmetry.question': 'What happens to the search when you switch "Shape to find" from Circle with a line to Plain circle?',
+      'predict.popout-asymmetry.choice.a': 'It gets easier',
+      'predict.popout-asymmetry.choice.b': 'It gets harder',
+      'predict.popout-asymmetry.choice.c': 'No change',
+      'predict.popout-asymmetry.explain': 'The two kinds of circle stay the same; only which one you look for and which ones surround it are swapped, and '
+        + 'that alone changes the search. In research, looking for the plain circle made the time grow more as circles were added.',
+      'item.popout-motion.why': 'Motion is counted, along with color, direction and size, among the cues that decide where the eye goes.',
+      'predict.popout-motion.question': 'With "Amount of motion" at Medium, how readily does the one circle moving side to side catch your eye when you '
+        + 'switch "Others" from Still to Move at random?',
+      'predict.popout-motion.choice.a': 'More readily',
+      'predict.popout-motion.choice.b': 'Less readily',
+      'predict.popout-motion.choice.c': 'No change',
+      'predict.popout-motion.explain': 'The other circles then move by the same Medium amount, each in its own direction, and all circles look alike, so '
+        + 'little is left to tell the sideways one apart. In research, when the other moving objects had a pattern different from the target\'s, the target '
+        + 'was still identified quickly even though they moved.',
+      'item.search-time.why': 'A bar that differs by one feature draws the eye straight to itself. For a bar that differs by a combination of two features, '
+        + 'one feature narrows the search, but you still have to check the other within that set, so the time tends to grow as items are added.',
+      'predict.search-time.question': 'In conjunction search, how does the time added per item (the slope) compare between rounds where the bar is absent and '
+        + 'rounds where it is present?',
+      'predict.search-time.choice.a': 'Larger when present',
+      'predict.search-time.choice.b': 'Larger when absent',
+      'predict.search-time.choice.c': 'About the same',
+      'predict.search-time.explain': 'In research the absent slope is larger: conjunction search took 28.7 ms per item when the target was present and 67.1 '
+        + 'ms when it was absent (Treisman & Gelade 1980). The usual explanation is that, with no target, it takes time to decide it is not there and stop '
+        + 'searching.',
+      'item.search-camo.why': 'Background-matching patterns reduce eye-catching features and edges, and patches across the edge create false edges that make '
+        + 'the true outline hard to find. Symmetric layouts are common in animals but rare in backgrounds, so they help you spot the target.',
+      'predict.search-camo.question': 'Which of the three patterns takes longest to find?',
+      'predict.search-camo.choice.a': 'Background-matching pattern',
+      'predict.search-camo.choice.b': 'Pattern that breaks up the outline',
+      'predict.search-camo.choice.c': 'Symmetric pattern',
+      'predict.search-camo.explain': 'In a screen experiment, targets with patterns on their edges took the longest to find (Fraser et al. 2007). In a field '
+        + 'experiment with birds, symmetric patterns were eaten more often than asymmetric ones (Cuthill, Hiby & Lloyd 2006).',
+      'item.gestalt-proximity-similarity.why': 'Grouping decides what we see as one object or part. A study of contours in natural photographs found that '
+        + 'nearness was the strongest cue, and similarity was also a cue.',
+      'predict.gestalt-proximity-similarity.question': 'How do the dots group when you change "Dot spacing" from Even to Very tight across?',
+      'predict.gestalt-proximity-similarity.choice.a': 'Into rows',
+      'predict.gestalt-proximity-similarity.choice.b': 'Into columns',
+      'predict.gestalt-proximity-similarity.choice.c': 'Neither way',
+      'predict.gestalt-proximity-similarity.explain': 'With Very tight across, the gap between dots side by side is less than half the gap between dots one '
+        + 'above the other (0.6 to 1.4). All dots are still circles, so spacing alone makes the grouping.',
+      'item.gestalt-region-connection.why': 'One reason given is that things inside one boundary, like a leopard\'s spots or the parts of a face, usually lie '
+        + 'on one object\'s surface, and things that are connected usually move together as parts of one object.',
+      'predict.gestalt-region-connection.question': 'How do the two dots inside a frame look when you change "Enclose or join" from None to Enclose dots of '
+        + 'neighboring pairs?',
+      'predict.gestalt-region-connection.choice.a': 'They tend to look like one pair',
+      'predict.gestalt-region-connection.choice.b': 'The pairs by spacing stay as they are',
+      'predict.gestalt-region-connection.choice.c': 'All eight dots form one group',
+      'predict.gestalt-region-connection.explain': 'The two framed dots are more than twice as far apart as the two dots of a pair. If spacing alone decided, '
+        + 'these two would never look like a pair.',
+      'item.gestalt-contour.why': 'The eye picks up edges where lightness or color changes abruptly, and joins edges that continue smoothly or close up into '
+        + 'one outline. Patches across the edge create false edges, which makes the true outline harder to find.',
+      'predict.gestalt-contour.question': 'When you change "Crossing" from Cross smoothly to Bend where they meet, which end on the right does the line from '
+        + 'the upper-left end reach?',
+      'predict.gestalt-contour.choice.a': 'The upper-right end',
+      'predict.gestalt-contour.choice.b': 'The lower-right end',
+      'predict.gestalt-contour.explain': 'With the bend, the line from the upper left turns in the middle and goes back up to the upper right. Drawn in one '
+        + 'color with the same end marks, the two lines would make the same picture as two lines crossing straight, and you could not tell which you were '
+        + 'looking at.',
+      'item.figure-ground-area.why': 'A shared border is seen as the outline of one region, and that side becomes the figure in front. When people marked '
+        + 'objects and backgrounds in photographs, the object side was usually the smaller one.',
+      'predict.figure-ground-area.question': 'When you move "Share of dark wedges" from 50% to 30%, which wedges tend to look like the figure (the shape in '
+        + 'front)?',
+      'predict.figure-ground-area.choice.a': 'The dark wedges',
+      'predict.figure-ground-area.choice.b': 'The light wedges',
+      'predict.figure-ground-area.choice.c': 'Neither more than the other',
+      'predict.figure-ground-area.explain': 'At 30%, each dark wedge spans 27 degrees and each light wedge 63, so the dark ones are narrower. At 70%, the '
+        + 'light wedges become the 27-degree ones, and the side that tends to look like the figure switches.',
+      'item.figure-ground-symmetry.why': 'When people marked objects and backgrounds in photographs, the object side usually bulged outward. Symmetric '
+        + 'layouts, too, are common in animals and rare in backgrounds.',
+      'predict.figure-ground-symmetry.question': 'When you change "Cue" from None to Symmetric, which side tends to look like the figure?',
+      'predict.figure-ground-symmetry.choice.a': 'The symmetric side',
+      'predict.figure-ground-symmetry.choice.b': 'The side that is not symmetric',
+      'predict.figure-ground-symmetry.choice.c': 'Neither changes',
+      'predict.figure-ground-symmetry.explain': 'In an experiment that briefly showed two regions, the symmetric side was reported as the figure about three '
+        + 'quarters of the time. Pitted against bulging outward, though, symmetry is the weaker cue.',
+      'item.misread-baseline.why': 'People judge the size of a difference from the gap they see. Even people who read the values correctly felt the '
+        + 'difference was larger, and a broken-axis mark did not remove the effect.',
+      'predict.misread-baseline.question': 'When you raise "Bottom of the vertical axis" from 40 to 50, how many times as tall as the April bar does the June '
+        + 'bar become?',
+      'predict.misread-baseline.choice.a': 'About 1.12 times (the value ratio)',
+      'predict.misread-baseline.choice.b': '1.5 times (as now)',
+      'predict.misread-baseline.choice.c': '4 times',
+      'predict.misread-baseline.explain': 'With the bottom at 50, the April bar is drawn 52 − 50 = 2 high and the June bar 58 − 50 = 8 high, so it is 8 ÷ 2 = '
+        + '4 times. The closer the bottom comes to the smallest value, 52, the faster the height ratio grows.',
+      'item.misread-area.why': 'Stretching both height and width by the same factor makes the area grow by the square of the ratio. Experiments also show '
+        + 'that areas are misjudged more than positions on a common axis, such as bar heights.',
+      'predict.misread-area.question': 'With "Value ratio" at 2, how many times as tall as the left picture does the right one become when you change "How to '
+        + 'stretch" from Stretch both ways to Match the area to the value ratio?',
+      'predict.misread-area.choice.a': '2 times',
+      'predict.misread-area.choice.b': 'About 1.41 times',
+      'predict.misread-area.choice.c': '4 times',
+      'predict.misread-area.explain': 'To double the area, both height and width grow by about 1.41 times, the square root of 2. Judged by height or width '
+        + 'alone, the picture understates the value ratio of 2.',
+      'item.misread-dual-axis.why': 'Whoever makes the chart can set each vertical axis\'s range freely. So which line sits higher, and where the lines '
+        + 'cross, depend on how the axes were set, not on the data.',
+      'predict.misread-dual-axis.question': 'How does the number of crossings change when you raise "Top of the right axis" from 200 to 600?',
+      'predict.misread-dual-axis.choice.a': 'It increases',
+      'predict.misread-dual-axis.choice.b': 'It drops to zero',
+      'predict.misread-dual-axis.choice.c': 'No change',
+      'predict.misread-dual-axis.explain': 'With the top at 600 mm, even September\'s 210 mm, the most rain in the year, is drawn at only 35% of the axis '
+        + 'height. Even in January, the coldest month, the 4 °C point sits higher than the rain point, and in no month do the lines swap places.',
+      'item.misread-aspect-range.why': 'In a line chart, people read how fast values change from the slope of the line. Changing the aspect ratio changes the '
+        + 'slope for the same data, and cutting out a period changes which rises and falls you see at all.',
+      'predict.misread-aspect-range.question': 'What happens to the slope of the line when you change "Aspect ratio (width ÷ height)" from 1 to 4?',
+      'predict.misread-aspect-range.choice.a': 'It gets steeper',
+      'predict.misread-aspect-range.choice.b': 'It gets gentler',
+      'predict.misread-aspect-range.choice.c': 'No change',
+      'predict.misread-aspect-range.explain': 'At a ratio of 4, the chart frame is four times as wide as it is tall. Each month takes up more width, so the '
+        + 'same rise or fall in books is stretched out sideways.',
+      'item.illusion-lightness-contrast.why': 'How light or what color an area looks is not set by that area alone; it changes with the colors around it.',
+      'predict.illusion-lightness-contrast.question': 'When you move "Difference between the surrounds" from 0% to 100%, which parts of the figure actually '
+        + 'change color?',
+      'predict.illusion-lightness-contrast.choice.a': 'The two squares',
+      'predict.illusion-lightness-contrast.choice.b': 'The surrounds on the left and right',
+      'predict.illusion-lightness-contrast.choice.c': 'Both the squares and the surrounds',
+      'predict.illusion-lightness-contrast.explain': 'Only the surrounds change; the squares keep the same gray at every step. Set "Compare" to Joined by a '
+        + 'band, and you can follow the same gray from one square to the other.',
+
+      // ===== Check your understanding (the end of each tab) =====
+      checksHeading: 'Check your understanding',
+      checkRight: 'That\'s right.',
+      checkWrong: 'Not quite. The answer is "{choice}".',
+      checkFictional: 'Fictional values',
+      checkBookstoreTitle: 'Books sold at a fictional bookstore (hundreds)',
+      'check.popout-color-bars.title': 'Bar chart with eight bars',
+      'check.popout-color-bars.desc': 'Bar chart with eight bars. The fourth from the left is the tallest and has its own color; the other seven cycle '
+        + 'through three other colors.',
+      'check.popout-color-bars.question': 'The fourth bar from the left (the tallest) is the only one in its color, yet it does not stand out well in this '
+        + 'chart; what is the main reason?',
+      'check.popout-color-bars.choice.a': 'The other bars differ in color too',
+      'check.popout-color-bars.choice.b': 'There are too many bars (eight)',
+      'check.popout-color-bars.choice.c': 'The fourth bar is shorter than the others',
+      'check.popout-color-bars.explain': 'The other seven bars come in three colors, so the fourth bar\'s color is just one of four. Give the other seven one '
+        + 'color, and even with eight bars the fourth is the only one that differs.',
+      'check.popout-added-line.title': 'Two camouflage scenes',
+      'check.popout-added-line.desc': 'Two camouflage scenes. Each has an oval object, slightly different in color from the background, in the middle of a '
+        + 'background of round spots. The background and object are the same in A and B; only B has one dark straight line drawn across the object.',
+      'check.popout-added-line.question': 'In camouflage scenes A and B, why is the object in B easier to find?',
+      'check.popout-added-line.choice.a': 'B\'s object has a straight line, which the background lacks',
+      'check.popout-added-line.choice.b': 'B\'s object differs more in color from the background',
+      'check.popout-added-line.choice.c': 'B\'s background has fewer spots',
+      'check.popout-added-line.explain': 'Every spot in the background is round, so the straight line exists only on B\'s object. Even when an object\'s '
+        + 'color is close to the background, one shape the background lacks draws the eye to it.',
+      'check.search-legend-line.title': 'Six lines with a legend from A to F',
+      'check.search-legend-line.desc': 'Six lines with a legend from A to F. D is a blue dashed line; B and F are solid blue lines; A, C and E are dashed '
+        + 'lines in other colors.',
+      'check.search-legend-line.question': 'When you look for line D from the legend in the chart, which describes this search?',
+      'check.search-legend-line.choice.a': 'A feature search, since color alone sets D apart',
+      'check.search-legend-line.choice.b': 'A feature search, since line style alone sets D apart',
+      'check.search-legend-line.choice.c': 'A conjunction search, since only color and line style together set D apart',
+      'check.search-legend-line.explain': 'B and F are blue like D, and A, C and E are dashed like D, so neither color nor line style alone narrows it down '
+        + 'to D. A line that only a combination sets apart tends to take longer to find as more lines are added.',
+      'check.search-camo-results.title': 'Bar chart with three bars (fictional values)',
+      'check.search-camo-results.desc': 'Bar chart with three bars (fictional values). Median time to find: background-matching pattern 2.4 s, pattern that '
+        + 'breaks up the outline 3.6 s, symmetric pattern 1.7 s.',
+      'check.search-camo-results.question': 'In this fictional result, which pattern best met the goal of camouflage?',
+      'check.search-camo-results.choice.a': 'Background-matching pattern',
+      'check.search-camo-results.choice.b': 'Pattern that breaks up the outline',
+      'check.search-camo-results.choice.c': 'Symmetric pattern',
+      'check.search-camo-results.explain': 'Camouflage aims not to be found, so the pattern with the longest time, 3.6 s, best met the goal. For something '
+        + 'meant to be found, like a chart, it is the other way around: the shorter the time, the better.',
+      'check.gestalt-store-bars.title': 'Two bar charts',
+      'check.gestalt-store-bars.desc': 'Two bar charts, each with twelve bars: four months for store 1, store 2 and store 3, from left to right. In A, there '
+        + 'are wide gaps between stores, and each store has its own fill (solid, hatched, dotted). In B, the twelve bars are evenly spaced, and the fills '
+        + '(solid, hatched, dotted, outline only) repeat every four bars.',
+      'check.gestalt-store-bars.question': 'A and B both show four months for each of three stores, four bars per store; which one suits a chart meant to be '
+        + 'read store by store?',
+      'check.gestalt-store-bars.choice.same': 'Both the same',
+      'check.gestalt-store-bars.explain': 'In A, each store\'s four bars are close together and share a fill, so they group by store. In B, the spacing is '
+        + 'even and the fills match by month, so the three bars of the same month group across stores.',
+      'check.gestalt-edge-spots.title': 'Two camouflage scenes',
+      'check.gestalt-edge-spots.desc': 'Two camouflage scenes. Each has an oval object, different in color from the background, in the middle of a background '
+        + 'of round spots. The object is the same in A and B; only in B do sixteen large spots in the background\'s spot colors sit on the object\'s edge, '
+        + 'breaking its outline in places.',
+      'check.gestalt-edge-spots.question': 'In B, what about the color of the sixteen spots on the object\'s edge lets them break up its outline?',
+      'check.gestalt-edge-spots.choice.a': 'The same colors as the background spots',
+      'check.gestalt-edge-spots.choice.b': 'The same color as the object\'s base',
+      'check.gestalt-edge-spots.choice.c': 'Black, which the background lacks',
+      'check.gestalt-edge-spots.explain': 'Because the spots match the background\'s spots, where they cover the edge they look like part of the background '
+        + 'pattern, and the outline breaks there. In a study where people searched a screen, targets with black patterns that did not match the background '
+        + 'were found fastest (Fraser et al. 2007).',
+      'check.figure-ground-markers.title': 'Two scatter plots of the same twelve points',
+      'check.figure-ground-markers.desc': 'Two scatter plots of the same twelve points. In A, each point is marked with an open, irregular zigzag. In B, each '
+        + 'point is a filled shape that bulges outward, close to a hexagon.',
+      'check.figure-ground-markers.question': 'A and B mark the same twelve points differently; which markers carry a cue for being seen as figures?',
+      'check.figure-ground-markers.choice.same': 'Both the same',
+      'check.figure-ground-markers.explain': 'B\'s markers are closed and bulge outward, which is a cue for being seen as a figure. A\'s markers are open '
+        + 'zigzags that enclose no region, so they form no shape to become a figure.',
+      'check.figure-ground-mirror.title': 'Two camouflage scenes',
+      'check.figure-ground-mirror.desc': 'Two camouflage scenes. Each has a large oval object on a background of round spots, with four large spots on each '
+        + 'half of the object. The left-half spots are the same in A and B. In A, the right-half spots are arranged differently from the left; in B, the '
+        + 'right half mirrors the left (symmetric).',
+      'check.figure-ground-mirror.question': 'A and B differ only in the pattern on the right half of the object; in a field experiment with birds, which way '
+        + 'of patterning made targets more likely to be eaten?',
+      'check.figure-ground-mirror.choice.none': 'No difference was found',
+      'check.figure-ground-mirror.explain': 'On B\'s object, the right-half spots mirror the left half. In a field experiment with birds, targets with '
+        + 'patterns made symmetric like this were eaten more often than asymmetric ones, and their chance of surviving five days was 6 to 15% lower (Cuthill, '
+        + 'Hiby & Lloyd 2006).',
+      'check.misread-value-ratio.title': 'Bar chart of books sold at a fictional bookstore',
+      'check.misread-value-ratio.desc': 'Bar chart of books sold at a fictional bookstore. The vertical axis runs from 45 to 60 (hundreds), with ticks at 45, '
+        + '50 and 60. The bars are 50 for April, 55 for May and 60 for June.',
+      'check.misread-value-ratio.question': 'In this bar chart, whose vertical axis starts at 45, how many times April\'s value is June\'s value?',
+      'check.misread-value-ratio.choice.a': '3 times',
+      'check.misread-value-ratio.choice.b': '2 times',
+      'check.misread-value-ratio.choice.c': '1.2 times',
+      'check.misread-value-ratio.explain': 'Reading the ticks, April is 50 and June is 60, so June is 60 ÷ 50 = 1.2 times April. The bars are measured from '
+        + 'the bottom of the axis at 45, so their heights are 5 and 15, and June\'s bar looks three times as tall.',
+      'check.misread-line-order.title': 'Line chart of temperature and rain in a fictional town, drawn together',
+      'check.misread-line-order.desc': 'Line chart of temperature and rain in a fictional town, drawn together. The left axis shows temperature from 0 to 30 '
+        + '°C and the right axis rain from 0 to 250 mm. In July, the temperature is 26 °C and the rain 160 mm, and the temperature line is the higher one. '
+        + 'The two lines cross three times.',
+      'check.misread-line-order.question': 'In July, the temperature line sits above the rain line in this chart; what can you conclude from that?',
+      'check.misread-line-order.choice.a': 'In July, the temperature value is larger than the rain value',
+      'check.misread-line-order.choice.b': 'July has less rain than the other months',
+      'check.misread-line-order.choice.c': 'Nothing can be concluded from which line is higher',
+      'check.misread-line-order.explain': 'July\'s 26 °C is simply drawn at about 87% of the left axis, and its 160 mm at 64% of the right axis. With the '
+        + 'left axis topping out at 50 °C instead, the temperature point would sit at 52%, below the rain point, so the order of the lines tells you nothing.',
+      'check.illusion-heat-numbers.title': 'A 5 × 5 heatmap',
+      'check.illusion-heat-numbers.desc': 'A 5 × 5 heatmap, darker blue for larger values. The cell labeled 46 at the upper left is surrounded on all eight '
+        + 'sides by pale cells of value 10. The cell labeled 56 at the lower right has seven of its eight neighbors dark, with value 90. The other cells '
+        + 'range from 30 to 70.',
+      'check.illusion-heat-numbers.question': 'Of the two cells with numbers, which has the larger value?',
+      'check.illusion-heat-numbers.choice.a': 'The upper-left cell',
+      'check.illusion-heat-numbers.choice.b': 'The lower-right cell',
+      'check.illusion-heat-numbers.choice.c': 'Both have the same value',
+      'check.illusion-heat-numbers.explain': 'The numbers say the upper-left cell is 46 and the lower-right cell 56, so the lower-right one is larger. The '
+        + 'upper-left cell sits among pale cells with small values and the lower-right cell among dark ones with large values, so by color alone the '
+        + 'difference can look smaller than it is, or even reversed.',
+      'check.illusion-split-edge.title': 'Camouflage scene',
+      'check.illusion-split-edge.desc': 'Camouflage scene. The background is split into left and right halves, and a light white layer makes the right half '
+        + 'lighter. The object in the middle straddles the border, and its base color is the same as the left background\'s.',
+      'check.illusion-split-edge.question': 'In this camouflage scene, where does a difference in lightness between the object and the background give a cue '
+        + 'to the object\'s edge?',
+      'check.illusion-split-edge.choice.a': 'Where it meets the left background',
+      'check.illusion-split-edge.choice.b': 'Where it meets the right background',
+      'check.illusion-split-edge.choice.c': 'Nowhere',
+      'check.illusion-split-edge.explain': 'The right background is lightened with a white layer, so its lightness difference from the object becomes a '
+        + 'visible edge. Place the object entirely within the left background, and the edge from the lightness difference disappears.',
+
       // ===== Text under the small figures =====
       popShow: 'Highlight just one bar and keep the others the same color. If every bar is a different color, none of them pops out.',
       popHide: 'An object whose colors match the background is harder to find (background matching). A busy, varied background hides it even more.',
@@ -1234,8 +1679,7 @@
       searchConjInline: 'conjunction search',
       // The camouflage test (in the same dialog)
       camoStart: 'Start the camouflage test',
-      camoDuration: 'Each run has 3 practice rounds and 15 recorded rounds. Every round moves on after 10 seconds, so a run takes about 4 minutes at '
-        + 'most.',
+      camoDuration: 'The test has 3 practice rounds and 15 recorded rounds. Every round moves on after 10 seconds, so it takes about 4 minutes at most.',
       camoReplace: 'Measuring again replaces the earlier results.',
       camoExpTitle: 'Camouflage test',
       camoExpInstr: 'A moth shape (a triangle with its base at the top) is hidden in a bark-like pattern. When you find it, tap where it is as quickly as '

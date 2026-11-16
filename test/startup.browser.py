@@ -31,8 +31,10 @@ TABS_JA = ["目立つ前注意の特徴", "探す時間視覚探索", "まとま
 HEADINGS_JA = ["目立つ（前注意の特徴）", "探す時間（視覚探索）", "まとまる（ゲシュタルトの法則）", "図と地（図と地の分化）", "誤読（グラフ）", "目の錯覚（錯視）"]
 # The cards drawn when the page is ready: three in the Pop out tab, the two cards of the Search time tab (their tests open in a dialog, so
 # they have no figure frame), three in the Grouping tab, two in the Figure and ground tab, four in the Misreading tab and one in the
-# Optical illusions tab
+# Optical illusions tab. Each card has "Predict before you try" (closed) and why it happens; each of the six tabs ends with two
+# questions, whose figures number 17 (five questions show two figures, A and B)
 CARDS, FIGURES = 15, 13
+PREDICTIONS, WHYS, QUESTIONS, QUESTION_FIGURES = 15, 15, 12, 17
 # The lines of the term of the third tab at 320px before the page is ready (a <wbr> in the page; Firefox has no word-break: auto-phrase)
 GESTALT_LINES = """() => { const el = document.querySelector('#tab-gestalt .tab-term'), chars = [];
   const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node;
@@ -75,6 +77,7 @@ PROBE = """(() => {
   const sample = () => {
     const state = {ready: document.documentElement.dataset.appReady, cards: document.querySelectorAll('.entry').length,
       figures: document.querySelectorAll('.entry .figure-frame svg > rect, .entry .figure-frame svg > path, .entry .figure-frame svg > circle').length,
+      predictions: document.querySelectorAll('.entry details.predict').length, questions: document.querySelectorAll('.check-item').length,
       note: !!document.querySelector('#startup-note'),
       tools: (document.querySelector('#startup-tools') || {}).disabled, controls: (document.querySelector('#startup-controls') || {}).disabled};
     const key = JSON.stringify(state);
@@ -105,6 +108,9 @@ SNAPSHOT = """() => {
       && !b.getAttribute('aria-label')).map(b => b.id),
     cards: document.querySelectorAll('.entry').length,
     figures: document.querySelectorAll('.entry .figure-frame svg').length,
+    predictions: Array.from(document.querySelectorAll('.entry details.predict'), d => d.open),
+    whys: document.querySelectorAll('.entry .entry-why').length, questions: document.querySelectorAll('.check-item').length,
+    questionFigures: document.querySelectorAll('.check-item svg.check-svg').length,
     reading: Array.from(document.querySelectorAll('.read-live'), r => r.textContent),
     focus: document.activeElement === document.body ? 'BODY' : (document.activeElement.id || document.activeElement.tagName),
     client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth,
@@ -142,7 +148,7 @@ def pending_contract(page, snap, width):
     check(snap["tabs"] == TABS_JA, ("static Japanese tabs", snap["tabs"]))
     check(snap["headings"] == HEADINGS_JA, ("static panel headings", snap["headings"]))
     check("目の罠" in snap["intro"] and "迷彩" in snap["contrast"] and len(snap["table"]) == 9 and all(snap["table"]), "static introduction and table")
-    check(snap["cards"] == 0, "no card before the application")
+    check(snap["cards"] == 0 and not snap["predictions"] and snap["questions"] == 0, "no card or question before the application")
     check(page.locator(".intro-short").is_visible() and page.locator("#contrast-table").is_visible(), "the introduction and the table are shown")
     intro = page.locator("#intro-more")
     check(not intro.evaluate("el => el.open"), "the full introduction starts closed")
@@ -169,10 +175,14 @@ def ready_contract(page, snap):
     check(not snap["toolsDisabled"] and not snap["controlsDisabled"], "the startup guards are released")
     check(not snap["noteVisible"] and not snap["note"], "the startup notice is removed")
     check(snap["cards"] == CARDS and snap["figures"] == FIGURES and all(snap["reading"]), ("the cards", snap["cards"], snap["reading"]))
+    check(snap["predictions"] == [False] * PREDICTIONS and snap["whys"] == WHYS,
+          ("each card with its prediction (closed) and why", snap["predictions"], snap["whys"]))
+    check(snap["questions"] == QUESTIONS and snap["questionFigures"] == QUESTION_FIGURES, ("the questions", snap["questions"], snap["questionFigures"]))
     check(snap["scroll"] <= snap["client"], "no horizontal page scroll")
     ready_states = [s for s in snap["evidence"]["states"] if s["ready"] == "true"]
-    check(ready_states and all(s["cards"] == CARDS and s["figures"] >= 13 and not s["note"] and not s["tools"] and not s["controls"]
-                               for s in ready_states), ("readiness never comes before the complete first view", ready_states[:3]))
+    check(ready_states and all(s["cards"] == CARDS and s["figures"] >= 13 and s["predictions"] == PREDICTIONS and s["questions"] == QUESTIONS
+                               and not s["note"] and not s["tools"] and not s["controls"] for s in ready_states),
+          ("readiness never comes before the complete first view", ready_states[:3]))
     check(not page.evaluate("() => !!document.activeElement.closest('[hidden]')"), "the focus is never left in a hidden element")
 
 

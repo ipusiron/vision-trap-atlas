@@ -806,3 +806,160 @@ test('C: the camouflage chart: a bar per pattern with a median, a dot per valid 
   const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'style.css'), 'utf8');
   for (const c of ['res-dot', 'camo-mark']) assert.ok(css.includes('.' + c + ' {'), c);
 });
+
+// ===== The settings added for the figures of the questions: without them, the figures of the cards stay as they were =====
+const texts = (fig) => flat(fig.shapes).filter((s) => s.type === 'text').map((s) => s.text);
+const question = (id) => D.groups.flatMap((g) => g.checks).find((q) => q.id === id);
+const questionFigure = (id, i = 0) => V.renderCheckFigure(question(id).figures[i], ctx);
+
+test('C: barChart takes the heights of its popout bars (values); without them it draws the popout bars of the data', () => {
+  const base = { mode: 'popout', popKind: 'color', popDiff: 'large', popVariety: 'mixed' };
+  assert.deepEqual(V.renderPart('barChart', base, ctx), V.renderPart('barChart', { ...base, values: D.datasets.popBars }, ctx));
+  const plain = V.renderPart('barChart', base, ctx).shapes.filter((s) => s.type === 'rect');
+  assert.deepEqual(plain.map((b) => Math.round(b.attrs.height / 1.2)), D.datasets.popBars);
+  const values = [46, 60, 52, 88, 57, 66, 50, 63];
+  const bars = V.renderPart('barChart', { ...base, values }, ctx).shapes.filter((s) => s.type === 'rect');
+  assert.deepEqual(bars.map((b) => Math.round(b.attrs.height / 1.2)), values);
+  // The fourth bar (the tallest) keeps the highlight; the other seven take three colors in turn
+  assert.deepEqual(bars.map((b) => b.cls), ['fill-popOthers-0', 'fill-popOthers-1', 'fill-popOthers-2', 'fill-popColor-3', 'fill-popOthers-1',
+    'fill-popOthers-2', 'fill-popOthers-0', 'fill-popOthers-1']);
+  assert.deepEqual(questionFigure('popout-color-bars'), V.renderPart('barChart', { ...base, values }, ctx));
+});
+
+test('C: lineChart (search) takes the color and line of each series (styles); without them the series follow the kind of search', () => {
+  const classes = (fig) => fig.shapes.filter((s) => s.type === 'path').map((s) => s.cls);
+  const legend = (fig) => fig.shapes.filter((s) => s.type === 'line' && s.cls.includes('fig-series')).map((s) => s.cls);
+  const conj = ['stroke-seriesTarget', 'stroke-seriesTarget line-dashed', 'stroke-seriesTarget', 'stroke-seriesOthers-0 line-dashed',
+    'stroke-seriesOthers-1 line-dashed', 'stroke-seriesOthers-2 line-dashed'].map((c) => c + ' fig-series');
+  const feature = ['stroke-seriesOthers-0', 'stroke-seriesTarget', 'stroke-seriesOthers-1', 'stroke-seriesOthers-2', 'stroke-seriesOthers-0',
+    'stroke-seriesOthers-1'].map((c) => c + ' fig-series');
+  for (const [search, want] of [['conjunction', conj], ['feature', feature]]) {
+    const fig = V.renderPart('lineChart', { mode: 'search', search }, ctx);
+    assert.deepEqual([classes(fig), legend(fig)], [want, want], search);
+  }
+  const { styles } = question('search-legend-line').figures[0].params;
+  const fig = questionFigure('search-legend-line'), want = styles.map(([c, d]) => `stroke-${c}${d ? ' line-dashed' : ''} fig-series`);
+  assert.deepEqual([classes(fig), legend(fig)], [want, want], 'the lines and the samples of the legend');
+  // Blue and dashed: line D only; blue: B, D and F; dashed: A, C, D and E
+  const letters = (pick) => styles.map((s, i) => (pick(s) ? 'ABCDEF'[i] : '')).join('');
+  assert.deepEqual([letters(([c, d]) => c === 'seriesTarget' && d), letters(([c]) => c === 'seriesTarget'), letters(([, d]) => d)], ['D', 'BDF', 'ACDE']);
+  // The series keep their values
+  assert.deepEqual(fig.shapes.filter((s) => s.type === 'path').map((s) => s.attrs.d),
+    V.renderPart('lineChart', { mode: 'search' }, ctx).shapes.filter((s) => s.type === 'path').map((s) => s.attrs.d));
+});
+
+test('C: baselineChart takes three values and the key of its title; without them it draws the loans of the fictional library', () => {
+  const card = { bottom: 45, chart: 'bar', mark: 'none' };
+  assert.deepEqual(V.renderPart('baselineChart', card, ctx), V.renderPart('baselineChart', { ...card, values: D.datasets.libraryLoans3 }, ctx));
+  assert.deepEqual(texts(V.renderPart('baselineChart', card, ctx)), ['架空の図書館の貸出冊数', '貸出冊数（百冊）', '45', '50', '60', '4月', '5月', '6月']);
+  const fig = questionFigure('misread-value-ratio');
+  // The title names the values and their unit, so the axis has no title of its own; the ticks are 45, 50 and 60
+  assert.deepEqual(texts(fig), ['架空の書店の販売冊数（百冊）', '45', '50', '60', '4月', '5月', '6月']);
+  // The heights above the bottom 45 are 5, 10 and 15: June's bar three times as tall as April's, the values 1.2 times
+  const bars = fig.shapes.filter((s) => s.type === 'rect'), unit = bars[0].attrs.height / 5;
+  assert.deepEqual(bars.map((b) => Math.round(b.attrs.height / unit)), [5, 10, 15]);
+  assert.equal(C.baselineRatio([50, 55, 60], 45), 3);
+  assert.deepEqual(V.renderPart('baselineChart', { ...card, values: [50, 55, 60], titleKey: 'checkBookstoreTitle' }, ctx), fig);
+});
+
+test('C: heatmap takes the values of its two numbered cells (pair); without them both cells have the same value', () => {
+  const same = D.datasets.heatSame;
+  assert.deepEqual(V.renderPart('heatmap', { spread: 1 }, ctx), V.renderPart('heatmap', { spread: 1, pair: [same, same] }, ctx));
+  assert.deepEqual(texts(V.renderPart('heatmap', { spread: 0.75 }, ctx)), [String(same), String(same)]);
+  const fig = questionFigure('illusion-heat-numbers'), cells = fig.shapes.filter((s) => s.type === 'rect').map((s) => s.cls);
+  assert.deepEqual(texts(fig), ['46', '56']);
+  // 46 and 56 are away from the borders of the steps (45 and 55): steps 5 and 6. The cells around keep 10 and 90 (steps 1 and 9)
+  assert.deepEqual([cells[6], cells[18]], ['fill-heat-5', 'fill-heat-6']);
+  const around = (r, k) => [-1, 0, 1].flatMap((dr) => [-1, 0, 1].map((dk) => [r + dr, k + dk])).filter(([a, b]) => a !== r || b !== k);
+  assert.deepEqual(around(1, 1).map(([r, k]) => cells[r * 5 + k]), Array(8).fill('fill-heat-1'), 'all eight around 46 are 10');
+  assert.equal(around(3, 3).filter(([r, k]) => cells[r * 5 + k] === 'fill-heat-9').length, 7, 'seven of the eight around 56 are 90');
+  const others = D.datasets.heat5.flat().filter((c) => typeof c === 'number');
+  assert.deepEqual([Math.min(...others), Math.max(...others)], [30, 70]);
+});
+
+test('C: the figures of the questions stay inside their frames and show what their questions are about', () => {
+  for (const g of D.groups) {
+    for (const q of g.checks) {
+      q.figures.forEach((f, i) => {
+        const fig = V.renderCheckFigure(f, ctx);
+        assertInside(f.part === V.RESULT_CHART ? { ...fig, shapes: fig.shapes.filter((s) => s.type !== 'text') } : fig, `${q.id} ${i}`);
+      });
+    }
+  }
+  // The results of the camouflage test with the fictional medians: three bars (2.4, 3.6 and 1.7 s on the scale of 10 s), no dot of a round
+  const results = questionFigure('search-camo-results'), bars = results.shapes.filter((s) => s.type === 'rect');
+  assert.deepEqual(bars.map((b) => Math.round(b.attrs.width / (V.CAMO_CHART.x1 - V.CAMO_CHART.x0) * 100) / 10), [2.4, 3.6, 1.7]);
+  assert.equal(results.shapes.filter((s) => s.type === 'circle').length, 0);
+  assert.deepEqual(texts(results).slice(1, 4), C.CAMO_PATTERNS.map((p) => M.ja[`ctl.search-camo.pattern.${p}`]));
+  // A and B: the same scene, with one straight line on the object of B
+  const [la, lb] = [questionFigure('popout-added-line', 0), questionFigure('popout-added-line', 1)];
+  assert.deepEqual(lb.shapes.filter((s) => s.cls !== 'camo-line'), la.shapes);
+  assert.equal(lb.shapes.filter((s) => s.cls === 'camo-line').length, 1);
+  // Sixteen large spots on the edge of B, in the colors of the spots of the background; nothing else differs
+  const [ea, eb] = [questionFigure('gestalt-edge-spots', 0), questionFigure('gestalt-edge-spots', 1)];
+  const added = eb.shapes.slice(ea.shapes.length - 1, -1);
+  assert.deepEqual([...eb.shapes.slice(0, ea.shapes.length - 1), eb.shapes.at(-1)], ea.shapes);
+  assert.equal(added.length, 16);
+  assert.ok(added.every((s) => s.type === 'circle' && s.attrs.r >= 10 && /^fill-camoSpots-[0-2]$/.test(s.cls)), 'the colors of the background spots');
+  // The right half of B mirrors its left half; A has its own right half (the left halves are the same)
+  const spots = (fig) => {
+    const at = fig.shapes.findIndex((s) => s.type === 'path' && /fill-camoObj-/.test(s.cls));
+    return fig.shapes.slice(at + 1).filter((s) => s.type === 'circle').map((s) => ({ x: s.attrs.cx, y: s.attrs.cy, r: s.attrs.r, cls: s.cls }));
+  };
+  const [ma, mb] = [spots(questionFigure('figure-ground-mirror', 0)), spots(questionFigure('figure-ground-mirror', 1))];
+  assert.deepEqual(ma.slice(0, 4), mb.slice(0, 4));
+  assert.equal(partnered(mb, V.SIZES.small[0] / 2).length, 8);
+  assert.ok(partnered(ma, V.SIZES.small[0] / 2).length <= 4);
+  // The bars of the stores: A leaves wide gaps between the stores, B spaces the twelve bars evenly
+  const steps = (fig) => {
+    const xs = fig.shapes.filter((s) => s.type === 'rect' && (s.cls === 'fill-groups-0' || s.cls.includes('fig-barline'))).map((s) => s.attrs.x);
+    return xs.slice(1).map((x, i) => Math.round(x - xs[i]));
+  };
+  assert.deepEqual(steps(questionFigure('gestalt-store-bars', 0)), [11, 11, 11, 31, 11, 11, 11, 31, 11, 11, 11]);
+  assert.deepEqual(steps(questionFigure('gestalt-store-bars', 1)), Array(11).fill(11));
+  // The markers of the scatter plots: open zigzags in A, filled closed shapes in B, at the same twelve points
+  const [sa, sb] = [questionFigure('figure-ground-markers', 0), questionFigure('figure-ground-markers', 1)];
+  assert.ok(sa.shapes.filter((s) => s.type === 'path').every((s) => s.cls.includes('fig-nofill') && !s.attrs.d.includes('Z')));
+  assert.ok(sb.shapes.filter((s) => s.type === 'path').every((s) => s.cls === 'fill-seriesTarget' && s.attrs.d.endsWith('Z')));
+  // Two axes: the right one up to 250 mm, and three crossings
+  assert.deepEqual(texts(questionFigure('misread-line-order')).filter((x) => ['0', '125', '250'].includes(x)), ['0', '0', '125', '250']);
+  assert.equal(C.dualAxisCrossings(D.datasets.townTemp, D.datasets.townRain, [0, 30], [0, 250]), 3);
+  // The right background lighter with the white layer; the object in the color of the left background
+  const split = questionFigure('illusion-split-edge');
+  assert.deepEqual(split.shapes.filter((s) => s.cls === 'fill-veil').map((s) => [s.attrs.x, s.attrs['fill-opacity']]), [[100, 0.55]]);
+  assert.ok(split.shapes.some((s) => s.type === 'path' && s.cls === 'fill-camoObj-0'));
+  assert.equal(D.palette.light.camoObj[0], D.palette.light.camoBase);
+});
+
+test('C: Next frame (reduced motion) marks where each moving shape was with a dashed outline of its own size, over the figure', () => {
+  const motion = entry('popout-motion'), still = { amount: 'medium', others: 'still' }, all = { amount: 'medium', others: 'random' };
+  const pose = { pose: { u: 0.5, env: 1, prev: 0.25 } };
+  const main = V.renderMain(motion, still, ctx, undefined, pose);
+  const rings = main.shapes.filter((s) => s.cls === 'fig-trail'), circles = main.shapes.filter((s) => s.cls === 'fill-stimCool');
+  assert.equal(rings.length, 1);
+  assert.equal(rings[0].attrs.r, circles[0].attrs.r, 'as large as the circles');
+  assert.ok(main.shapes.indexOf(rings[0]) > main.shapes.indexOf(circles.at(-1)), 'over the circles');
+  // The frame before (a quarter of a stroke) put the moving circle at the right end of its stroke: the ring is 12 to the right of one circle
+  assert.ok(circles.some((c) => Math.abs(rings[0].attrs.cx - c.attrs.cx - V.MOTION.grid[2]) < 1e-6 && rings[0].attrs.cy === c.attrs.cy));
+  const [show, hide] = motion.uses.map((u) => V.renderUse(u, still, ctx, pose));
+  const lineRings = show.shapes.filter((s) => s.cls === 'fig-trail'), marks = show.shapes.filter((s) => s.type === 'circle' && /^fill-series/.test(s.cls));
+  assert.equal(lineRings.length, 1);
+  assert.equal(lineRings[0].attrs.r, marks[0].attrs.r, 'as large as the markers');
+  assert.ok(show.shapes.indexOf(lineRings[0]) > show.shapes.indexOf(marks.at(-1)), 'over the markers');
+  // The camouflage: the outline of the moving object at its place in the frame before (the same points, moved)
+  const outlines = hide.shapes.filter((s) => s.cls === 'fig-trail');
+  assert.equal(outlines.length, 1);
+  const ring = pathPoints(outlines[0].attrs.d);
+  const bodies = hide.shapes.filter((s) => s.type === 'g').map((g) => pathPoints(g.children[0].attrs.d));
+  const same = bodies.filter((b) => b.length === ring.length && b.every(([x, y], i) => Math.abs(ring[i][0] - x - (ring[0][0] - b[0][0])) < 0.02
+    && Math.abs(ring[i][1] - y - (ring[0][1] - b[0][1])) < 0.02));
+  assert.equal(same.length, 5, 'the outline has the shape of the objects');
+  assertInside(hide, 'the outline stays inside the scene');
+  // Every moving shape gets its outline (with the others moving: 36 circles, 4 markers and 5 objects); at rest, none
+  assert.equal(V.renderMain(motion, all, ctx, undefined, pose).shapes.filter((s) => s.cls === 'fig-trail').length, 36);
+  assert.deepEqual(motion.uses.map((u) => V.renderUse(u, all, ctx, pose).shapes.filter((s) => s.cls === 'fig-trail').length), [4, 5]);
+  assert.deepEqual(motion.uses.map((u) => V.renderUse(u, all, ctx).shapes.filter((s) => s.cls === 'fig-trail').length), [0, 0]);
+  // The look of the outline: a dashed line without a fill, in the ink of the page (style.css)
+  const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'style.css'), 'utf8');
+  assert.match(css, /\.fig-trail \{ fill: none; stroke: var\(--ink\); stroke-width: 2; stroke-dasharray: 4 3; \}/);
+});

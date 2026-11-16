@@ -172,7 +172,8 @@
   });
 
   // 動きの項目：6×6 のます目の同じ丸。1つ（種で決めたマス）だけが左右に往復する。「ばらばらに動く」では、ほかの丸がそれぞれの方向と位相で
-  // 「中」の振れ幅で動く。丸の色はどの時刻でも同じ（明るさを変えない）。コマ送りでは、前のコマの位置に薄い点（動きの跡）を置く
+  // 「中」の振れ幅で動く。丸の色はどの時刻でも同じ（明るさを変えない）。コマ送りでは、前のコマの位置に、動く丸と同じ大きさの破線の輪（動きの跡）を
+  // 丸の上に重ねる（色でなく線の形で見せる。丸が少ししか動かない「小」でも輪の全体が見える）
   register('motionGrid', (s) => {
     const rng = Core.xorshift32(s.seed || 1), target = Core.randInt(rng, 36), pose = s.pose || REST;
     const a = motionStep(s.amount), random = s.others === 'random', trails = [], circles = [];
@@ -181,12 +182,12 @@
       const item = cell === target ? { dir: 0, phase: 0, amp: MOTION.grid[a] } : { dir, phase, amp: random ? MOTION.grid[MOTION.others] : 0 };
       if (pose.prev !== null && item.amp > 0) {
         const [px, py] = swing(item, pose.prev, 1);
-        trails.push(circle(x + px, y + py, 3, 'fig-trail'));
+        trails.push(circle(x + px, y + py, 12, 'fig-trail'));
       }
       const [dx, dy] = swing(item, pose.u, pose.env);
       circles.push(circle(x + dx, y + dy, 12, 'fill-stimCool'));
     }
-    return { width: SQ, height: SQ, shapes: [...trails, ...circles] };
+    return { width: SQ, height: SQ, shapes: [...circles, ...trails] };
   });
 
   // 「探して押す」の印：押した図形＝太い丸の線、探すもの＝角の丸い四角の二重線（形で見分ける）
@@ -317,15 +318,15 @@
   });
 
   // ===== 誤読の上の図 =====
-  // 4-1：縦軸の始まり。縦軸の上端は60、下端はつまみ。横軸の目盛りが「4月・5月・6月」なので、横軸の題は置かない
+  // 4-1：縦軸の始まり。縦軸の上端は60、下端はつまみ。横軸の目盛りが「4月・5月・6月」なので、横軸の題は置かない。
+  // values＝3本の値（百冊。上端60以下で下端より大きい。渡さなければ架空の図書館の貸出冊数）。titleKey＝図の題のキー（値の名前と単位を題に
+  // 書くので、縦軸の題は置かない。渡さなければ架空の図書館の貸出冊数の題と縦軸の題）
   register('baselineChart', (s, ctx) => {
-    const t = ctx.t, values = ctx.data.datasets.libraryLoans3, bottom = s.bottom || 0, top = 60;
+    const t = ctx.t, values = s.values || ctx.data.datasets.libraryLoans3, bottom = s.bottom || 0, top = 60;
     const x0 = 64, x1 = 304, y0 = 44, y1 = 196, slot = (x1 - x0) / values.length;
     const yv = (v) => y1 - (v - bottom) / (top - bottom) * (y1 - y0);
-    const shapes = [
-      text(W / 2, 18, t('fig.misread-baseline.main.title'), 'fig-title ta-middle'),
-      text(8, 34, t('fig.misread-baseline.main.axisY'), 'fig-axisname ta-start'),
-    ];
+    const shapes = [text(W / 2, 18, t(s.titleKey || 'fig.misread-baseline.main.title'), 'fig-title ta-middle')];
+    if (!s.titleKey) shapes.push(text(8, 34, t('fig.misread-baseline.main.axisY'), 'fig-axisname ta-start'));
     const ticks = [bottom, ...[10, 20, 30, 40, 50, 60].filter((v) => v > bottom)];
     for (const v of ticks) shapes.push(line(x0 - 4, yv(v), x0, yv(v), 'fig-axis'), text(x0 - 7, yv(v) + 4, v, 'fig-tick ta-end'));
     shapes.push(line(x0, y0, x0, y1, 'fig-axis'), line(x0, y1, x1, y1, 'fig-axis'));
@@ -422,11 +423,12 @@
   // ===== 小さな図（見せる側・読みやすい形） =====
   const FRAME = () => rect(0.5, 0.5, SW - 1, SH - 1, 'fig-frame-small fig-nofill');
 
-  // 棒グラフ。mode＝popout（1-1）・share（3-1）・baseline（4-1の読みやすい形）・pair（4-2の読みやすい形）
+  // 棒グラフ。mode＝popout（1-1）・share（3-1）・baseline（4-1の読みやすい形）・pair（4-2の読みやすい形）。
+  // popout の values＝8本の高さ（0〜100。渡さなければ popBars。強調する棒は popHighlight の添字のまま）
   register('barChart', (s, ctx) => {
     const ds = ctx.data.datasets, mode = s.mode || 'popout', base = 140, scaleY = 1.2, shapes = [];
     if (mode === 'popout') {
-      const values = ds.popBars, hi = ds.popHighlight, slot = 180 / values.length;
+      const values = s.values || ds.popBars, hi = ds.popHighlight, slot = 180 / values.length;
       const kind = s.popKind || 'color', d = DIFF.indexOf(s.popDiff || 'large'), v = VARIETY.indexOf(s.popVariety || 'uniform');
       const rng = Core.xorshift32(s.seed || 1);
       values.forEach((val, i) => {
@@ -500,7 +502,8 @@
   });
 
   // 折れ線グラフ。mode＝search（タブ2）・contour（2-3）・region（2-2）・aspect（4-4の読みやすい形）・split（4-3の読みやすい形）・
-  // motion（動きの項目）
+  // motion（動きの項目）。search の styles＝6本の［色の名前, 破線か］（色の名前＝seriesTarget・seriesOthers-0〜2）。線と凡例の見本の両方に使い、
+  // 探し方（search）による割り当てより先に使う
   const MOTION_LINES = [1, 0, 3, 5]; // 動きの項目の4本（monthly12.series6 の添字。先頭が強調する1本）
   register('lineChart', (s, ctx) => {
     const ds = ctx.data.datasets, m12 = ds.monthly12, mode = s.mode || 'search', shapes = [];
@@ -509,6 +512,7 @@
     if (mode === 'search') {
       const conj = (s.search || 'conjunction') === 'conjunction', P = plot12(14, 158, 12, 138);
       const cls = (i) => {
+        if (s.styles) return `stroke-${s.styles[i][0]}${s.styles[i][1] ? ' line-dashed' : ''}`;
         if (conj) return i === m12.target ? 'stroke-seriesTarget line-dashed' : i < 3 ? 'stroke-seriesTarget' : `stroke-seriesOthers-${i - 3} line-dashed`;
         return i === m12.target ? 'stroke-seriesTarget' : `stroke-seriesOthers-${[0, 0, 1, 2, 0, 1][i]}`;
       };
@@ -562,7 +566,7 @@
       shapes.push(text(4, 20, '°C', 'fig-legend ta-start'), text(4, 96, 'mm', 'fig-legend ta-start'));
     } else if (mode === 'motion') {
       // 動きの項目：4本の折れ線（7〜12月）。終わりの点に印。強調する1本（探す系列）の印は、終わりの点から最後の区間を戻って往復する。
-      // 「ばらばらに動く」では、ほかの線の印も、それぞれの位相で動く。コマ送りでは、前のコマの印の位置に薄い点を置く
+      // 「ばらばらに動く」では、ほかの線の印も、それぞれの位相で動く。コマ送りでは、前のコマの印の位置に、印と同じ大きさの破線の輪を重ねる
       const pose = s.pose || REST, a = motionStep(s.motionAmount), random = s.motionOthers === 'random', rng = Core.xorshift32(s.seed || 1);
       const X = (i) => 16 + i * 34, Y = (v) => 138 - v * 1.26, trails = [], marks = [];
       shapes.push(...axes(14, 12, 190, 138));
@@ -576,12 +580,12 @@
         shapes.push(path(pts(vals.map((v, i) => [X(i), Y(v)])), `stroke-${color} fig-series`));
         if (pose.prev !== null && item.amp > 0) {
           const [px, py] = at(pose.prev, 1);
-          trails.push(circle(px, py, 2.5, 'fig-trail'));
+          trails.push(circle(px, py, 4, 'fig-trail'));
         }
         const [mx, my] = at(pose.u, pose.env);
         marks.push(circle(mx, my, 4, `fill-${color}`));
       });
-      shapes.push(...trails, ...marks);
+      shapes.push(...marks, ...trails);
     } else throw new Error('unknown lineChart mode ' + mode);
     return { width: SW, height: SH, shapes };
   });
@@ -626,17 +630,18 @@
   });
 
   // 明るさの対比の項目：5×5 のヒートマップ（1色の濃淡。値0〜100を10刻みの段 heat-0〜heat-10 で塗る）。値は datasets.heat5 から（A・B＝同じ値のマス、
-  // L・H＝その周り）。A・B のマスには数を書き添える
-  function heatValues(ds, spread) {
+  // L・H＝その周り）。A・B のマスには数を書き添える。pair＝A・B のマスの値［A, B］（渡さなければ両方とも heatSame。周りのマスは heatSame から決めたまま）
+  function heatValues(ds, spread, pair = null) {
     const d = Math.round(ds.heatStep * spread);
     return ds.heat5.map((row) => row.map((c) => {
-      if (c === 'A' || c === 'B') return ds.heatSame;
+      if (c === 'A' || c === 'B') return pair ? pair[c === 'A' ? 0 : 1] : ds.heatSame;
       if (c === 'L') return ds.heatSame - d;
       return c === 'H' ? ds.heatSame + d : c;
     }));
   }
   register('heatmap', (s, ctx) => {
-    const ds = ctx.data.datasets, v = heatValues(ds, s.spread ?? 0), size = 26, x0 = (SW - 5 * size) / 2, y0 = (SH - 5 * size) / 2, shapes = [];
+    const ds = ctx.data.datasets, v = heatValues(ds, s.spread ?? 0, s.pair || null), size = 26, x0 = (SW - 5 * size) / 2, y0 = (SH - 5 * size) / 2;
+    const shapes = [];
     ds.heat5.forEach((row, r) => row.forEach((c, k) => {
       const x = x0 + k * size, y = y0 + r * size;
       shapes.push(rect(x + 1, y + 1, size - 2, size - 2, `fill-heat-${Math.round(v[r][k] / 10)}`));
@@ -690,11 +695,13 @@
     return [...left, ...right].map((o, i) => circle(o.x, o.y, o.r, `fill-camoMarks-${BIG.colors[i % BIG.radii.length]}`));
   }
   // 動きの項目：背景に合わせた模様の物（地の色は背景と同じ、斑点は背景の色）が5つ。1つ（種で決める）が左右に往復する。「ばらばらに動く」では、
-  // ほかの4つもそれぞれの方向と位相で動く。物は g の translate で動かし、背景の斑点は動かさない
+  // ほかの4つもそれぞれの方向と位相で動く。物は g の translate で動かし、背景の斑点は動かさない。コマ送りでは、前のコマの位置に、物と同じ形の
+  // 破線の輪郭（動きの跡）を物の上に重ねる
   const CAMO_PLACES = [[50, 40], [150, 40], [100, 75], [50, 110], [150, 110]];
   function camoMotion(s, rng, spotCls) {
     const pose = s.pose || REST, a = motionStep(s.motionAmount), random = s.motionOthers === 'random', target = Core.randInt(rng, CAMO_PLACES.length);
-    return CAMO_PLACES.map(([cx, cy], i) => {
+    const trails = [];
+    const bodies = CAMO_PLACES.map(([cx, cy], i) => {
       const dir = Core.unit(rng) * 2 * Math.PI, phase = Core.unit(rng);
       const item = i === target ? { dir: 0, phase: 0, amp: MOTION.camo[a] } : { dir, phase, amp: random ? MOTION.camo[MOTION.others] : 0 };
       const body = [path(Core.polygonPath(blobPoints(cx, cy, 20, 13)), 'fill-camoObj-0')];
@@ -702,9 +709,14 @@
         const ang = Core.unit(rng) * 2 * Math.PI, rho = Math.sqrt(Core.unit(rng)) * 0.6;
         body.push(circle(cx + Math.cos(ang) * rho * 20, cy + Math.sin(ang) * rho * 13, 3.5, spotCls(Core.randInt(rng, 3))));
       }
+      if (pose.prev !== null && item.amp > 0) {
+        const [px, py] = swing(item, pose.prev, 1);
+        trails.push(path(Core.polygonPath(blobPoints(cx + px, cy + py, 20, 13)), 'fig-trail'));
+      }
       const [dx, dy] = swing(item, pose.u, pose.env);
       return group(body, { transform: `translate(${r2(dx)} ${r2(dy)})` });
     });
+    return [...bodies, ...trails];
   }
   // 明るさの対比の項目：右半分の背景に薄い白を重ねて明るくする（不透明度＝SPLIT_VEIL×差）。物（地の色は背景と同じ、斑点は背景の色）は左右の境に
   // またがり、明るさは変えない（左の背景に合ったまま）
@@ -870,6 +882,27 @@
 
   // ===== タブと項目の見せ方のモデル =====
   const SIDE_LABEL = { show: 'showLabel', hide: 'hideLabel', readable: 'readableLabel', read: 'readLabel' };
+  // 「動かす前に予想する」：問い・選択肢・正しい選択肢・説明のキー。選んだあとの文は、実験の項目だけ「実験をしてから確かめてください」
+  function predictModel(e) {
+    if (!e.predict) return null;
+    return { questionKey: `predict.${e.id}.question`, explainKey: `predict.${e.id}.explain`, answer: e.predict.answer,
+      chosenKey: e.experiment ? 'predictChosenTest' : 'predictChosen',
+      choices: e.predict.choices.map((c) => ({ id: c, key: `predict.${e.id}.choice.${c}`, label: null })) };
+  }
+  // 確かめの問い：図・図の名前と説明・問い・選択肢・正しい選択肢・説明。図の label（A・B）と同じ選択肢は、その名前をそのまま出す（訳さない）
+  function checkModel(q) {
+    const labels = q.figures.map((f) => f.label).filter(Boolean);
+    return { id: q.id, figures: q.figures, noteKey: q.noteKey || null, answer: q.answer, titleKey: `check.${q.id}.title`, descKey: `check.${q.id}.desc`,
+      questionKey: `check.${q.id}.question`, explainKey: `check.${q.id}.explain`,
+      choices: q.choices.map((c) => (labels.includes(c) ? { id: c, key: null, label: c } : { id: c, key: `check.${q.id}.choice.${c}`, label: null })) };
+  }
+  // 確かめの問いの図：部品を設定のとおりに描く。camoResultChart は迷彩の実験の結果のグラフを、決まった真ん中の値（ミリ秒）で描く（各回の点はない）
+  const RESULT_CHART = 'camoResultChart';
+  function renderCheckFigure(fig, ctx) {
+    if (fig.part !== RESULT_CHART) return renderPart(fig.part, fig.params || {}, ctx);
+    const rows = Object.fromEntries(Core.CAMO_PATTERNS.map((p) => [p, { median: fig.params.medians[p], times: [] }]));
+    return camoResultChart({ rows }, ctx);
+  }
   function entryModel(e) {
     const readable = e.uses.length > 0 && e.uses.every((u) => u.side === 'readable');
     // 見せる側の小さな図しかない項目（図形の数と探す時間）は、見出しに隠す側を書かない。隠す側だけの項目（迷彩の物を探す時間）はその逆
@@ -885,7 +918,7 @@
     return {
       id: e.id, group: e.group,
       titleKey: `item.${e.id}.title`, oneLineKey: `item.${e.id}.oneLine`, howToKey: `item.${e.id}.howTo`, titleTerms: e.titleTerms,
-      howToReducedKey: sf.motion === 'onPlay' ? `item.${e.id}.howToReduced` : null,
+      howToReducedKey: sf.motion === 'onPlay' ? `item.${e.id}.howToReduced` : null, whyKey: `item.${e.id}.why`, predict: predictModel(e),
       figure: e.figure, experiment: !!e.experiment,
       controls: e.controls.map((c) => ({
         ...c, labelKey: `ctl.${e.id}.${c.id}`,
@@ -908,6 +941,7 @@
     return {
       tabs: groups.map((g, i) => ({
         id: g.id, labelKey: g.labelKey, termKey: g.termKey, termTip: g.termTip || null, leadKeys: g.leadKeys || [], endBoxes: g.endBoxes || [],
+        checks: (g.checks || []).map(checkModel),
         next: groups[i + 1] ? { id: groups[i + 1].id, labelKey: groups[i + 1].labelKey } : null,
         entries: data.entries.filter((e) => e.group === g.id).sort((a, b) => a.order - b.order).map(entryModel),
       })),
@@ -1270,7 +1304,7 @@
     sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, shownValue, useSettings, linkedLine, linkedText, buildViewModel, readCases,
     numbersCase, readKeysAll, texts, resultTexts, resultSetTexts, experimentTitle, messageText, descCase, descText, RESULT_SERIES, resultRows,
     resultTop, resultChart, resultChartDesc, resultKey, numberText, stepLabel, motionPose, MOTION, mothSample, camoResultRows, camoResultChart,
-    camoResultTexts, camoContrastTexts, CAMO_CHART,
+    camoResultTexts, camoContrastTexts, CAMO_CHART, renderCheckFigure, RESULT_CHART,
     SIZES: Object.freeze({ square: SQ, cell: CELL, card: [W, H], small: [SW, SH], aspect: [AW, AH], aspectPlot: [AMAXW, AMAXH] }),
     ASPECT_EDGE,
     DIFF, VARIETY, ANGLES, SCALES, JIT_ANGLE, JIT_SCALE,

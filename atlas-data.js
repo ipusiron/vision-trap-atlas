@@ -13,24 +13,69 @@
   const still = (extra = {}) => ({ motion: 'none', maxSeconds: 0, stripes: false, flashes: false, colorOnly: false, ...extra });
   const COUNTS = [6, 12, 18];
 
+  // checks：タブの最後（endBoxes の後ろ、「次のタブへ」の上）に置く確かめの問い2つ。figures＝問いの図（部品と設定。2つなら label の A・B を
+  // 図の上に書く。camoResultChart は迷彩の実験の結果のグラフを medians〈ミリ秒〉で描く）、choices＝選択肢、answer＝正しい選択肢、noteKey＝図の上の1行。
+  // 文は messages.js の check.<id>.title（図の名前）・.desc（図の説明）・.question・.choice.<選択肢>・.explain。図の label と同じ選択肢は、その名前を出す
   const groups = [
-    { id: 'popout', order: 10, labelKey: 'tabPopout', termKey: 'tabPopoutTerm', termTip: 'termPreattentive' },
-    { id: 'search', order: 20, labelKey: 'tabSearch', termKey: 'tabSearchTerm', termTip: 'termVisualSearch' },
-    { id: 'gestalt', order: 30, labelKey: 'tabGestalt', termKey: 'tabGestaltTerm', termTip: 'termGrouping' },
+    { id: 'popout', order: 10, labelKey: 'tabPopout', termKey: 'tabPopoutTerm', termTip: 'termPreattentive',
+      checks: [
+        { id: 'popout-color-bars', choices: ['a', 'b', 'c'], answer: 'a',
+          figures: [{ part: 'barChart', params: { mode: 'popout', popKind: 'color', popDiff: 'large', popVariety: 'mixed',
+            values: [46, 60, 52, 88, 57, 66, 50, 63] } }] },
+        { id: 'popout-added-line', choices: ['a', 'b', 'c'], answer: 'a',
+          figures: [{ label: 'A', part: 'camoScene', params: { seed: 1593, objLevel: 1 } },
+            { label: 'B', part: 'camoScene', params: { seed: 1593, objLevel: 1, addedLine: true } }] },
+      ] },
+    { id: 'search', order: 20, labelKey: 'tabSearch', termKey: 'tabSearchTerm', termTip: 'termVisualSearch',
+      checks: [
+        { id: 'search-legend-line', choices: ['a', 'b', 'c'], answer: 'c',
+          figures: [{ part: 'lineChart', params: { mode: 'search', styles: [['seriesOthers-0', true], ['seriesTarget', false], ['seriesOthers-1', true],
+            ['seriesTarget', true], ['seriesOthers-2', true], ['seriesTarget', false]] } }] },
+        { id: 'search-camo-results', choices: ['a', 'b', 'c'], answer: 'b', noteKey: 'checkFictional',
+          figures: [{ part: 'camoResultChart', params: { medians: { match: 2400, disrupt: 3600, symmetric: 1700 } } }] },
+      ] },
+    { id: 'gestalt', order: 30, labelKey: 'tabGestalt', termKey: 'tabGestaltTerm', termTip: 'termGrouping',
+      checks: [
+        { id: 'gestalt-store-bars', choices: ['A', 'B', 'same'], answer: 'A',
+          figures: [{ label: 'A', part: 'groupedBars', params: { groupGap: -2, similarity: 'cols' } },
+            { label: 'B', part: 'groupedBars', params: { groupGap: 2, similarity: 'rows' } }] },
+        { id: 'gestalt-edge-spots', choices: ['a', 'b', 'c'], answer: 'a',
+          figures: [{ label: 'A', part: 'camoScene', params: { seed: 2593, objLevel: 2 } },
+            { label: 'B', part: 'camoScene', params: { seed: 2593, objLevel: 2, edgePatches: 0.4 } }] },
+      ] },
     // 項目の後ろに、迷彩を見破る手がかりの箱を置く（2つ目の行は「目立つ」タブの動きの項目へ移る）
     { id: 'figure-ground', order: 40, labelKey: 'tabFigureGround', termKey: 'tabFigureGroundTerm', termTip: 'termFigureGround',
       endBoxes: [{ id: 'camo-clues', headingKey: 'camoCluesHeading', leadKey: 'camoCluesLead', items: [
-        { textKey: 'camoClue1', entry: 'figure-ground-symmetry' }, { textKey: 'camoClue2', entry: 'popout-motion' }] }] },
+        { textKey: 'camoClue1', entry: 'figure-ground-symmetry' }, { textKey: 'camoClue2', entry: 'popout-motion' }] }],
+      checks: [
+        { id: 'figure-ground-markers', choices: ['A', 'B', 'same'], answer: 'B',
+          figures: [{ label: 'A', part: 'scatter', params: { mode: 'markers', marker: 'none' } },
+            { label: 'B', part: 'scatter', params: { mode: 'markers', marker: 'convex' } }] },
+        { id: 'figure-ground-mirror', choices: ['A', 'B', 'none'], answer: 'B',
+          figures: [{ label: 'A', part: 'camoScene', params: { seed: 3593, objLevel: 1, big: true, halves: true, symmetric: false } },
+            { label: 'B', part: 'camoScene', params: { seed: 3593, objLevel: 1, big: true, halves: true, symmetric: true } }] },
+      ] },
     // 誤読の「グラフ」は専門の言葉ではないので、解説を付けない。項目の後ろに、グラフを読むときの確かめ方の箱を置く
     { id: 'misread', order: 50, labelKey: 'tabMisread', termKey: 'tabMisreadTerm', termTip: null, leadKeys: ['misreadLead', 'misreadFictional'],
       endBoxes: [{ id: 'chart-checks', headingKey: 'chartChecksHeading', leadKey: 'chartChecksLead', items: [
         { textKey: 'chartCheck1', entry: 'misread-baseline' }, { textKey: 'chartCheck2', entry: 'misread-area' },
-        { textKey: 'chartCheck3', entry: 'misread-dual-axis' }, { textKey: 'chartCheck4', entry: 'misread-aspect-range' }] }] },
-    { id: 'illusion', order: 60, labelKey: 'tabIllusion', termKey: 'tabIllusionTerm', termTip: 'termIllusion' },
+        { textKey: 'chartCheck3', entry: 'misread-dual-axis' }, { textKey: 'chartCheck4', entry: 'misread-aspect-range' }] }],
+      checks: [
+        { id: 'misread-value-ratio', choices: ['a', 'b', 'c'], answer: 'c',
+          figures: [{ part: 'baselineChart', params: { bottom: 45, chart: 'bar', mark: 'none', values: [50, 55, 60], titleKey: 'checkBookstoreTitle' } }] },
+        { id: 'misread-line-order', choices: ['a', 'b', 'c'], answer: 'c', figures: [{ part: 'dualAxisChart', params: { rightTop: 250 } }] },
+      ] },
+    { id: 'illusion', order: 60, labelKey: 'tabIllusion', termKey: 'tabIllusionTerm', termTip: 'termIllusion',
+      checks: [
+        { id: 'illusion-heat-numbers', choices: ['a', 'b', 'c'], answer: 'b', figures: [{ part: 'heatmap', params: { spread: 1, pair: [46, 56] } }] },
+        { id: 'illusion-split-edge', choices: ['a', 'b', 'c'], answer: 'b', figures: [{ part: 'camoScene', params: { seed: 6593, splitDiff: 1 } }] },
+      ] },
   ];
 
   // endBoxes：タブの項目の後ろ（「次のタブへ」の上）に置く箱。見出し・1文・箇条（各行の末尾に、その項目へ移るボタン）。
   // ボタンの名前は item.<項目の id>.short を toEntry に差し込む。別のタブの項目も指せる（その場合は履歴に積んで移る）
+  // predict：「動かす前に予想する」の選択肢と正しい選択肢。文は messages.js の predict.<id>.question・.choice.<選択肢>・.explain。
+  // 「なぜそうなるか」の文は item.<id>.why（値で変わらない）
   // uses の bind：{ つまみの id: 小さな図の設定の名前 } か { つまみの id: { to: 設定の名前, map: { つまみの値: 設定の値 } } }。
   // bindWhen：{ つまみの id: [値…] }。いまの値がどれにも当たらないとき、その図はつながらない（既定の絵のまま）
   const entries = [
@@ -58,7 +103,8 @@
       gapKey: null,
       safety: still({ colorOnly: true, colorOnlyWhen: { kind: ['color'] }, colorAlt: { control: 'kind', values: ['direction', 'size'] },
         colorHintKey: 'colorHint' }),
-      sources: ['healeyEnns2012', 'wolfeHorowitz2004', 'wolfe2021', 'cuthill2005'],
+      sources: ['healeyEnns2012', 'wolfeHorowitz2004', 'wolfeHorowitz2017', 'wolfe2021', 'cuthill2005'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: ['day101', 'day085'],
     },
     {
@@ -80,6 +126,7 @@
       gapKey: 'asymGap',
       safety: still(),
       sources: ['treismanSouther1985', 'healeyEnns2012'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: ['day085'],
     },
     {
@@ -104,6 +151,7 @@
       gapKey: null,
       safety: still({ motion: 'onPlay', maxSeconds: 3 }),
       sources: ['wolfeHorowitz2004', 'wolfeHorowitz2017', 'hall2013'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: ['day085'],
     },
     {
@@ -121,7 +169,9 @@
       ],
       gapKey: 'searchGap',
       safety: still({ colorOnly: true, colorAlt: { experimentSet: 'fill' }, colorHintKey: 'setHint' }),
-      sources: ['treismanGelade1980', 'wolfe1994', 'wolfe1998', 'wolfe2021', 'wolfePalmerHorowitz2010', 'ratcliff1993', 'anwylIrvine2021'],
+      sources: ['treismanGelade1980', 'wolfe1994', 'wolfe1998', 'wolfe2021', 'wolfeHorowitz2017', 'wolfePalmerHorowitz2010', 'ratcliff1993',
+        'anwylIrvine2021'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: [],
     },
     {
@@ -144,7 +194,8 @@
       // 研究と画面の違いの注（探す実験の searchGap と同じ箱。見出しはこの項目のもの）
       gapKey: 'camoGap', gapHeadingKey: 'camoGapHeading',
       safety: still(),
-      sources: ['fraser2007', 'webster2013', 'cuthill2006', 'merilaita2017'],
+      sources: ['fraser2007', 'webster2013', 'cuthill2006', 'merilaita2017', 'stevensMerilaita2009'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: ['day085'],
     },
     {
@@ -166,6 +217,7 @@
       gapKey: 'proxGap',
       safety: still(),
       sources: ['wertheimer1923', 'wagemans2012'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'a' },
       related: ['day085'],
     },
     {
@@ -188,6 +240,7 @@
       gapKey: 'regionGap',
       safety: still(),
       sources: ['palmer1992', 'palmerRock1994', 'wagemans2012', 'stevensMerilaita2009'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'a' },
       related: [],
     },
     {
@@ -207,7 +260,8 @@
       ],
       gapKey: null,
       safety: still(),
-      sources: ['wertheimer1923', 'cuthill2005', 'stevensMerilaita2009'],
+      sources: ['wertheimer1923', 'wagemans2012', 'cuthill2005', 'stevensMerilaita2009', 'stevensCuthill2006', 'merilaita2017'],
+      predict: { choices: ['a', 'b'], answer: 'a' },
       related: ['day085', 'day075'],
     },
     {
@@ -227,7 +281,8 @@
       ],
       gapKey: 'areaGap',
       safety: still(),
-      sources: ['wagemans2012', 'rubin1915'],
+      sources: ['wagemans2012', 'fowlkes2007', 'rubin1915'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'a' },
       related: ['day070'],
     },
     {
@@ -252,7 +307,8 @@
       ],
       gapKey: 'symGap',
       safety: still(),
-      sources: ['wagemans2012', 'cuthill2006'],
+      sources: ['wagemans2012', 'fowlkes2007', 'cuthill2006'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'a' },
       related: ['day085'],
     },
     {
@@ -278,6 +334,7 @@
       gapKey: null,
       safety: still(),
       sources: ['correll2020', 'clevelandMcGill1984', 'lo2022'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'c' },
       related: [],
     },
     {
@@ -298,6 +355,7 @@
       gapKey: null,
       safety: still(),
       sources: ['clevelandMcGill1984', 'heerBostock2010', 'pandey2015'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: [],
     },
     {
@@ -317,6 +375,7 @@
       gapKey: null,
       safety: still(),
       sources: ['lo2022', 'datawrapperDualAxis'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: [],
     },
     {
@@ -338,6 +397,7 @@
       gapKey: null,
       safety: still(),
       sources: ['cleveland1988', 'cleveland1993', 'heerAgrawala2006', 'talbot2012', 'lo2022'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: [],
     },
     {
@@ -360,6 +420,7 @@
       gapKey: null,
       safety: still(),
       sources: ['adelson2000', 'mittelstadt2014', 'merilaita2017'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: ['day101', 'day085'],
     },
   ];
@@ -438,6 +499,10 @@
       + 'reducing detectability. Proceedings of the Royal Society B, 274(1615), 1325–1331.', doi: '10.1098/rspb.2007.0153', level: 'A' },
     webster2013: { cite: 'Webster, R. J., Hassall, C., Herdman, C. M., Godin, J.-G. J., & Sherratt, T. N. (2013). Disruptive camouflage impairs '
       + 'object recognition. Biology Letters, 9(6), 20130501.', doi: '10.1098/rsbl.2013.0501', level: 'A' },
+    stevensCuthill2006: { cite: 'Stevens, M., & Cuthill, I. C. (2006). Disruptive coloration, crypsis and edge detection in early visual processing. '
+      + 'Proceedings of the Royal Society B, 273(1598), 2141–2147.', doi: '10.1098/rspb.2006.3556', level: 'A' },
+    fowlkes2007: { cite: 'Fowlkes, C. C., Martin, D. R., & Malik, J. (2007). Local figure–ground cues are valid for natural images. Journal of Vision, '
+      + '7(8), 2.', doi: '10.1167/7.8.2', level: 'B' },
   };
 
   // 関連ツール（目の性質を扱うものだけ）。リンクは別タブ

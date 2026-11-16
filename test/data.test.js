@@ -143,7 +143,7 @@ test('B: the camouflage experiment: the second entry of the search tab, an exper
   assert.deepEqual([e.gapKey, e.gapHeadingKey], ['camoGap', 'camoGapHeading']);
   assert.equal(e.safety.motion, 'none');
   assert.equal(e.safety.colorOnly, false);
-  assert.deepEqual(e.sources, ['fraser2007', 'webster2013', 'cuthill2006', 'merilaita2017']);
+  assert.deepEqual(e.sources, ['fraser2007', 'webster2013', 'cuthill2006', 'merilaita2017', 'stevensMerilaita2009']);
   assert.deepEqual(e.related, ['day085']);
   // The two sources of the screen experiments, with their DOIs
   assert.equal(D.sources.fraser2007.doi, '10.1098/rspb.2007.0153');
@@ -338,4 +338,88 @@ test('B: the illusion group and the lightness-contrast entry have the expected s
   assert.equal(lc.uses[1].part, 'camoScene');
   // The related tools name both Day101 (color illusions) and Day085 (camouflage)
   assert.deepEqual(lc.related.sort(), ['day085', 'day101']);
+});
+
+// ===== Why it happens, the predictions and the questions at the end of each tab =====
+test('B: every entry has why it happens and a prediction: two or three choices, one of them right, and the texts in both languages', () => {
+  for (const e of D.entries) {
+    assert.ok(inBoth(`item.${e.id}.why`), `${e.id} why`);
+    const p = e.predict;
+    assert.ok(p && Array.isArray(p.choices) && p.choices.length >= 2 && p.choices.length <= 3, `${e.id} choices`);
+    assert.equal(new Set(p.choices).size, p.choices.length, `${e.id} distinct choices`);
+    assert.equal(p.choices.filter((c) => c === p.answer).length, 1, `${e.id} one right choice`);
+    for (const k of ['question', 'explain', ...p.choices.map((c) => `choice.${c}`)]) assert.ok(inBoth(`predict.${e.id}.${k}`), `${e.id} ${k}`);
+    for (const lang of ['ja', 'en']) {
+      assert.equal(new Set(p.choices.map((c) => M[lang][`predict.${e.id}.choice.${c}`])).size, p.choices.length, `${lang} ${e.id} choices differ`);
+    }
+  }
+  assert.equal(D.entries.filter((e) => e.predict).length, 15);
+});
+
+test('B: every tab ends with two questions: figures of known parts, two or three choices with one right answer, and the texts in both languages',
+  () => {
+    const parts = new Set([...V.partNames(), V.RESULT_CHART]), ids = new Set();
+    for (const g of D.groups) {
+      assert.equal((g.checks || []).length, 2, g.id);
+      for (const q of g.checks) {
+        assert.ok(!ids.has(q.id) && /^[a-z]+(?:-[a-z]+)*$/.test(q.id), q.id);
+        ids.add(q.id);
+        for (const f of q.figures) assert.ok(parts.has(f.part), `${q.id} ${f.part}`);
+        // Two figures are named A and B (the names stand above them); one figure has no name
+        assert.deepEqual(q.figures.map((f) => f.label || null), q.figures.length === 2 ? ['A', 'B'] : [null], q.id);
+        assert.ok(q.choices.length >= 2 && q.choices.length <= 3 && new Set(q.choices).size === q.choices.length, q.id);
+        assert.equal(q.choices.filter((c) => c === q.answer).length, 1, `${q.id} one right choice`);
+        for (const k of ['title', 'desc', 'question', 'explain']) assert.ok(inBoth(`check.${q.id}.${k}`), `${q.id} ${k}`);
+        // A choice named after a figure (A, B) shows that name; every other choice has its text in both languages
+        for (const c of q.choices) {
+          if (q.figures.some((f) => f.label === c)) assert.equal(M.ja[`check.${q.id}.choice.${c}`], undefined, `${q.id} ${c}`);
+          else assert.ok(inBoth(`check.${q.id}.choice.${c}`), `${q.id} ${c}`);
+        }
+        if (q.noteKey) assert.ok(inBoth(q.noteKey), q.noteKey);
+      }
+    }
+    assert.equal(ids.size, 12);
+    // The view model: each tab with its two questions, each entry with its prediction (the experiments say to run the test) and why
+    const vm = V.buildViewModel(D);
+    assert.deepEqual(vm.tabs.map((t) => t.checks.length), [2, 2, 2, 2, 2, 2]);
+    for (const tab of vm.tabs) {
+      for (const e of tab.entries) {
+        assert.equal(e.whyKey, `item.${e.id}.why`);
+        assert.equal(e.predict.chosenKey, e.experiment ? 'predictChosenTest' : 'predictChosen', e.id);
+      }
+    }
+    assert.deepEqual(vm.tabs[2].checks[0].choices.map((c) => [c.id, c.label, c.key]),
+      [['A', 'A', null], ['B', 'B', null], ['same', null, 'check.gestalt-store-bars.choice.same']]);
+    // A group without questions (the shape of another group) has none
+    assert.deepEqual(V.buildViewModel(fixture.data).tabs.at(-1).checks, []);
+  });
+
+test('B: the sources of why it happens and of the answers are listed under their entries; the questions cite studies listed in the atlas', () => {
+  const sourcesOf = (id) => D.entries.find((e) => e.id === id).sources;
+  const expected = {
+    'popout-feature': ['wolfeHorowitz2004', 'wolfeHorowitz2017'], 'popout-asymmetry': ['treismanSouther1985', 'healeyEnns2012'],
+    'popout-motion': ['wolfeHorowitz2004', 'wolfeHorowitz2017', 'hall2013'], 'search-time': ['treismanGelade1980', 'wolfe2021', 'wolfeHorowitz2017'],
+    'search-camo': ['fraser2007', 'webster2013', 'cuthill2006', 'merilaita2017', 'stevensMerilaita2009'],
+    'gestalt-proximity-similarity': ['wagemans2012'], 'gestalt-region-connection': ['wagemans2012'],
+    'gestalt-contour': ['merilaita2017', 'wagemans2012', 'stevensMerilaita2009', 'stevensCuthill2006'],
+    'figure-ground-area': ['wagemans2012', 'fowlkes2007'], 'figure-ground-symmetry': ['fowlkes2007', 'cuthill2006', 'wagemans2012'],
+    'misread-baseline': ['correll2020'], 'misread-area': ['heerBostock2010', 'clevelandMcGill1984'], 'misread-dual-axis': ['datawrapperDualAxis', 'lo2022'],
+    'misread-aspect-range': ['heerAgrawala2006', 'lo2022'], 'illusion-lightness-contrast': ['mittelstadt2014', 'adelson2000'],
+  };
+  for (const [id, keys] of Object.entries(expected)) for (const k of keys) assert.ok(sourcesOf(id).includes(k), `${id} ${k}`);
+  // The two sources added for why it happens (level A or B, with their DOIs)
+  assert.deepEqual([D.sources.stevensCuthill2006.doi, D.sources.stevensCuthill2006.level], ['10.1098/rspb.2006.3556', 'A']);
+  assert.deepEqual([D.sources.fowlkes2007.doi, D.sources.fowlkes2007.level], ['10.1167/7.8.2', 'B']);
+  // A study named in parentheses: in the answer of a prediction, among the sources of its entry; in a question, among the sources of the atlas
+  const cited = { 'Treisman & Gelade 1980': 'treismanGelade1980', 'Fraser et al. 2007': 'fraser2007', 'Cuthill, Hiby & Lloyd 2006': 'cuthill2006' };
+  const named = (text) => [...text.matchAll(/（([^（）]*\d{4})）/g)].map((m) => m[1]);
+  for (const e of D.entries) {
+    for (const study of named(M.ja[`predict.${e.id}.explain`])) assert.ok(e.sources.includes(cited[study]), `${e.id}: ${study}`);
+  }
+  const listed = new Set(D.entries.flatMap((e) => e.sources));
+  let count = 0;
+  for (const [key, text] of Object.entries(M.ja).filter(([k]) => k.startsWith('check.'))) {
+    for (const study of named(text)) { assert.ok(listed.has(cited[study]), `${key}: ${study}`); count += 1; }
+  }
+  assert.equal(count, 2, 'the questions name two studies');
 });

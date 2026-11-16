@@ -35,6 +35,7 @@
     'item.search-time.howTo': [{ term: 'termFeature', ja: '特徴探索', en: 'feature search' }, { term: 'termConjunction', ja: '結合探索', en: 'conjunction search' }],
     searchTheory: [{ term: 'termFit', ja: '特徴統合理論', en: 'feature integration theory' }, { term: 'termGuided', ja: '誘導探索', en: 'guided search' }],
     resChartUse: [{ term: 'termMedian', ja: '真ん中の値', en: 'middle value' }],
+    camoResChartUse: [{ term: 'termMedian', ja: '真ん中の値', en: 'median' }],
     resDevice: [{ term: 'termIntercept', ja: '線の高さ', en: 'height of the lines' }],
   };
 
@@ -50,6 +51,9 @@
     experiment: { set: 'color', results: { feature: null, conjunction: null }, version: 0 },
     // The camouflage test: the summary of its last run (or null), on this page only like the results above
     camo: { results: null, version: 0 },
+    // "Predict before you try" of each entry (the box open, the choice, the answer shown) and the choice of each question at the end of a
+    // tab: on this page only (never stored), and kept when the cards are drawn again (a change of language or of reduced motion)
+    learn: { predict: {}, checks: {} },
   };
 
   const dictionaries = { ja: View.dictionary(Messages, 'ja'), en: View.dictionary(Messages, 'en') };
@@ -523,12 +527,14 @@
       read.append(stack);
     }
 
+    // Why it happens: from 720px right under the sentences (beside the small figures), below 720px after the small figures, so that the
+    // controls, the figure and the small figures still fit the height of a phone together
     const uses = buildUses(entry, model, parts, used);
-    const stage = E('div', { class: 'entry-stage' }, E('div', { class: 'entry-main' }, frame), read, uses);
+    const stage = E('div', { class: 'entry-stage' }, E('div', { class: 'entry-main' }, frame), read, uses, whyBlock(model));
     const article = E('article', { id, class: 'entry' + (square ? ' square' : ''), 'aria-labelledby': title.id, tabindex: '-1' },
       title, E('p', { class: 'entry-oneline' }, phrases(t(model.oneLineKey))),
       E('p', { class: 'entry-howto' }, phrases(t(model.howToReducedKey && reduceMotion.matches ? model.howToReducedKey : model.howToKey))),
-      controls, stage);
+      predictBox(model), controls, stage);
     if (model.gapKey) article.append(gapNote(model));
     article.append(sourcesBox(model));
     parts.article = article;
@@ -596,6 +602,111 @@
     return box;
   }
 
+  // ===== Why it happens, "Predict before you try" and the questions at the end of a tab. Nothing of them is stored; the choices stay in
+  // the state, so that the cards drawn again (a change of language or of reduced motion) show them as they were =====
+  // "Why": a heading in the look of the other headings of a card, and the sentence of the entry (it never changes with the values)
+  const whyBlock = (model) => E('div', { class: 'entry-why' }, E('h4', { class: 'why-heading' }, phrases(t('whyHeading'))),
+    E('p', { class: 'why-text' }, phrases(t(model.whyKey))));
+  const predictState = (id) => state.learn.predict[id] || (state.learn.predict[id] = { open: false, choice: null, shown: false });
+  const checkState = (id) => state.learn.checks[id] || (state.learn.checks[id] = { choice: null });
+  // The parts of each prediction and each question drawn now (made again with the cards)
+  const predictions = new Map(), questions = new Map();
+  // A row of choices: aria-pressed buttons, one pressed at a time. data-label keeps the width of the bold (pressed) label
+  function choiceButtons(scope, choices, labelOf, onChoose) {
+    return new Map(choices.map((c) => {
+      const label = labelOf(c);
+      const button = E('button', { type: 'button', 'data-key': `${scope}:${c.id}`, 'data-label': label }, phrases(label));
+      button.addEventListener('click', () => onChoose(c.id));
+      return [c.id, button];
+    }));
+  }
+  // "Predict before you try" (closed at first, under how to use the entry): the question and its choices. A choice says what was chosen
+  // and offers "Show the answer", which gives the right choice and why; another choice hides the answer again. Opening the box pushes what
+  // is below it down and never changes the size of the figures. Each of the two lines is read aloud when it changes
+  function predictBox(model) {
+    const p = model.predict;
+    if (!p) return null;
+    const id = model.id, st = predictState(id), questionId = `${id}-predict-q`, choiceText = (cid) => t(p.choices.find((c) => c.id === cid).key);
+    const box = E('details', { class: 'predict', open: st.open });
+    box.addEventListener('toggle', () => { st.open = box.open; });
+    const ui = { p, choiceText, buttons: choiceButtons(`predict:${id}`, p.choices, (c) => t(c.key), (cid) => choosePrediction(id, cid)),
+      chosen: E('div', { class: 'predict-chosen', 'aria-live': 'polite' }), answer: E('div', { class: 'predict-answer', 'aria-live': 'polite' }),
+      reveal: E('button', { type: 'button', class: 'predict-reveal', 'data-key': `predict:${id}:reveal` }, phrases(t('predictReveal'))) };
+    ui.reveal.addEventListener('click', () => revealPrediction(id));
+    box.append(E('summary', { 'data-key': `predict:${id}:open` }, phrases(t('predictSummary'))),
+      E('p', { class: 'predict-question', id: questionId }, phrases(t(p.questionKey))),
+      E('div', { class: 'choice predict-choices', role: 'group', 'aria-labelledby': questionId }, [...ui.buttons.values()]), ui.chosen, ui.reveal,
+      ui.answer);
+    predictions.set(id, ui);
+    paintChosen(id);
+    paintAnswer(id);
+    return box;
+  }
+  function paintChosen(id) {
+    const ui = predictions.get(id), st = predictState(id);
+    for (const [cid, button] of ui.buttons) button.setAttribute('aria-pressed', String(cid === st.choice));
+    ui.chosen.replaceChildren(...(st.choice ? [E('p', {}, phrases(t(ui.p.chosenKey, { choice: ui.choiceText(st.choice) })))] : []));
+    ui.reveal.hidden = !st.choice;
+  }
+  function paintAnswer(id) {
+    const ui = predictions.get(id), st = predictState(id);
+    ui.answer.replaceChildren(...(st.choice && st.shown ? [E('p', { class: 'predict-answer-line' },
+      phrases(t('predictAnswer', { choice: ui.choiceText(ui.p.answer) }))), E('p', {}, phrases(t(ui.p.explainKey)))] : []));
+  }
+  function choosePrediction(id, choice) {
+    const st = predictState(id), shown = st.shown;
+    if (st.choice === choice) return;
+    Object.assign(st, { choice, shown: false });
+    paintChosen(id);
+    if (shown) paintAnswer(id);
+  }
+  function revealPrediction(id) {
+    const st = predictState(id);
+    if (!st.choice || st.shown) return;
+    st.shown = true;
+    paintAnswer(id);
+  }
+  // The questions at the end of a tab (before the button to the next tab): each a figure (one, or two named A and B above them), the
+  // question and its choices. A choice says at once whether it is right, with why (read aloud once); another choice can be pressed. No
+  // score is kept. The first figure has the name and the description of the whole (the second is the same picture's other half)
+  const questionChoice = (c) => (c.label !== null ? c.label : t(c.key));
+  function buildChecks(tab) {
+    if (!tab.checks.length) return null;
+    const headingId = `box-checks-${tab.id}-heading`;
+    return E('section', { class: 'end-box checks-box', id: 'box-checks-' + tab.id, 'aria-labelledby': headingId },
+      E('h3', { id: headingId, class: 'end-box-heading' }, phrases(t('checksHeading'))),
+      // role: a list without markers stays a list for screen readers (the numbers are drawn before the sentences of the questions)
+      E('ol', { class: 'check-list', role: 'list' }, tab.checks.map(checkItem)));
+  }
+  function checkItem(q) {
+    const questionId = `check-${q.id}-q`;
+    const figures = E('div', { class: 'check-figures' + (q.figures.length > 1 ? ' pair' : '') }, q.figures.map((fig, i) => {
+      const result = View.renderCheckFigure(fig, ctx()), svg = i === 0 ? svgFor('check-svg', `check-${q.id}-figure`) : pictureSvg(result, 'check-svg');
+      if (i === 0) paintSvg(svg, result, t(q.titleKey), t(q.descKey));
+      return E('div', { class: 'check-panel' }, fig.label ? E('p', { class: 'check-label', 'aria-hidden': 'true' }, fig.label) : null, svg);
+    }));
+    const ui = { q, buttons: choiceButtons(`check:${q.id}`, q.choices, questionChoice, (cid) => chooseCheck(q.id, cid)),
+      feedback: E('div', { class: 'check-feedback', 'aria-live': 'polite' }) };
+    questions.set(q.id, ui);
+    paintCheck(q.id);
+    return E('li', { class: 'check-item', id: 'check-' + q.id }, q.noteKey ? E('p', { class: 'check-note' }, phrases(t(q.noteKey))) : null, figures,
+      E('p', { class: 'check-question', id: questionId }, phrases(t(q.questionKey))),
+      E('div', { class: 'choice check-choices', role: 'group', 'aria-labelledby': questionId }, [...ui.buttons.values()]), ui.feedback);
+  }
+  function paintCheck(id) {
+    const ui = questions.get(id), st = checkState(id), q = ui.q;
+    for (const [cid, button] of ui.buttons) button.setAttribute('aria-pressed', String(cid === st.choice));
+    if (st.choice === null) { ui.feedback.replaceChildren(); return; }
+    const verdict = st.choice === q.answer ? t('checkRight') : t('checkWrong', { choice: questionChoice(q.choices.find((c) => c.id === q.answer)) });
+    ui.feedback.replaceChildren(E('p', { class: 'check-verdict' }, phrases(verdict)), E('p', {}, phrases(t(q.explainKey))));
+  }
+  function chooseCheck(id, choice) {
+    const st = checkState(id);
+    if (st.choice === choice) return;
+    st.choice = choice;
+    paintCheck(id);
+  }
+
   // ===== The search time tab: why it is measured, measuring (the feature pair, the bars of each search, the two start buttons, the
   // length of a run), the results, how to read them, the showing side and the limits. The experiment runs in a dialog over the
   // whole screen (below) =====
@@ -656,15 +767,16 @@
     // How to read: the two ideas behind the slopes
     const read = E('section', { class: 'search-read', 'aria-labelledby': id + '-read' }, heading('searchReadHeading', 'read'),
       E('p', {}, richText(t('searchTheory'), TEXT_TERMS.searchTheory, used, id)));
-    // The showing side: the switch of the kind of search right above the small chart (apart from the buttons that measure)
+    // The showing side: the switch of the kind of search right above the small chart (apart from the buttons that measure), and why it
+    // happens under the sentence of the small chart (this card has no sentence under a main figure)
     const view = entry.controls.find((c) => c.id === 'view');
-    const uses = buildUses(entry, model, parts, used, [E('div', { class: 'controls' }, buildControl(entry, view, parts))]);
+    const uses = buildUses(entry, model, parts, used, [E('div', { class: 'controls' }, buildControl(entry, view, parts))], [whyBlock(model)]);
     // The limits (with results only)
     sp.limits = E('section', { class: 'search-limits', 'aria-labelledby': id + '-limits' }, heading('searchLimitsHeading', 'limits'),
       E('p', {}, richText(t('resDevice'), TEXT_TERMS.resDevice, used, id)), E('p', {}, phrases(t('resLimits'))));
     const article = E('article', { id, class: 'entry search-entry', 'aria-labelledby': title.id, tabindex: '-1' },
       title, E('p', { class: 'entry-oneline' }, phrases(t(model.oneLineKey))),
-      E('p', { class: 'entry-howto' }, richText(t(model.howToKey), TEXT_TERMS[model.howToKey], used, id)),
+      E('p', { class: 'entry-howto' }, richText(t(model.howToKey), TEXT_TERMS[model.howToKey], used, id)), predictBox(model),
       E('p', { class: 'search-why' }, phrases(t('searchWhy'))), measure, results, read, uses);
     if (model.gapKey) article.append(gapNote(model));
     article.append(sp.limits, sourcesBox(model));
@@ -792,10 +904,11 @@
     parts.readSigs = readSignatures(entry);
     parts.readLive = E('div', { class: 'read-live' });
     const controls = E('div', { class: 'controls' }, displayControls(entry).map((control) => buildControl(entry, control, parts)));
-    const uses = buildUses(entry, model, parts, used, [controls], [stackOf([...parts.readSigs.values()], parts.readLive, 'read-stack use-read')]);
+    const uses = buildUses(entry, model, parts, used, [controls], [stackOf([...parts.readSigs.values()], parts.readLive, 'read-stack use-read'),
+      whyBlock(model)]);
     const article = E('article', { id, class: 'entry search-entry camo-entry', 'aria-labelledby': title.id, tabindex: '-1' },
       title, E('p', { class: 'entry-oneline' }, phrases(t(model.oneLineKey))), E('p', { class: 'entry-howto' }, phrases(t(model.howToKey))),
-      measure, results, uses);
+      predictBox(model), measure, results, uses);
     if (model.gapKey) article.append(gapNote(model));
     article.append(sourcesBox(model));
     parts.article = article;
@@ -826,7 +939,9 @@
     const svg = svgFor('res-chart-svg camo-chart', 'camo-chart');
     paintSvg(svg, View.camoResultChart(summary, { t: (key) => t(key) }), t('camoResChartTitle'), t('camoResChartDesc'));
     const lines = (list, className) => E('div', { class: className }, list.map((line) => E('p', {}, phrases(line))));
-    return [E('p', { class: 'res-use' }, phrases(t('camoResChartUse'))), E('div', { class: 'res-chart' }, svg),
+    // 真ん中の値 (the median) gets its explanation, as in the results of the search experiment
+    return [E('p', { class: 'res-use' }, richText(t('camoResChartUse'), TEXT_TERMS.camoResChartUse, new Set(), 'camo-results')),
+      E('div', { class: 'res-chart' }, svg),
       ...camoTables(View.camoResultRows(summary)), E('p', { class: 'res-excluded-note' }, phrases(t('camoValidNote'))),
       lines(camoLines(summary), 'res-texts'),
       E('div', { class: 'camo-research' }, E('p', { class: 'gap-head' }, phrases(t('camoResearchHeading'))), E('p', {}, phrases(t('camoResearch')))),
@@ -1268,6 +1383,8 @@
   // ===== Panels: the leads, "Entries in this tab", the cards and the way to the next tab =====
   function buildPanels() {
     cards.clear();
+    predictions.clear();
+    questions.clear();
     for (const tab of VM.tabs) {
       panelHeading(tab);
       const body = $('body-' + tab.id), used = new Set(), children = [];
@@ -1293,6 +1410,8 @@
         children.push(article);
       }
       for (const box of tab.endBoxes) children.push(buildEndBox(box));
+      const checks = buildChecks(tab);
+      if (checks) children.push(checks);
       if (tab.next) {
         const next = E('button', { type: 'button', class: 'next-tab', 'data-key': 'next:' + tab.id },
           phrases(t('nextTab', { tab: t(tab.next.labelKey) })));

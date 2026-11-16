@@ -457,7 +457,7 @@ test('E: the sentences of the camouflage results: the two patterns against the b
     'You found no clear difference between the symmetric pattern and the background-matching pattern.');
   assert.deepEqual(camoTexts('ja', camoRows(1500, 4200, null, { aborted: true, mixedInput: true })), [
     '「輪郭を途切れさせる模様」は、背景に合わせた模様より2.7秒長くかかりました。',
-    '有効な回が3回に届かない模様があるので、その模様の中央値は出していません。', '途中で止めたので、測れた回までを出しています。',
+    '有効な回が3回に届かない模様があるので、その模様の真ん中の値は出していません。', '途中で止めたので、測れた回までを出しています。',
     M.ja.resMixed]);
   assert.deepEqual(camoTexts('ja', null), ['まだ測っていません。上の「迷彩の実験を始める」から始めます。']);
   // Every case is filled in, in both languages
@@ -472,7 +472,7 @@ test('E: the camouflage results set charts beside camouflage, with the median of
   const feature = C.summarizeBlock([3, 6, 12, 18].flatMap((n) => [r(n, true, 600 + n), r(n, true, 640 + n), r(n, false, 900)]));
   // The median of every valid "present" round of the feature search (the numbers of items together)
   assert.equal(feature.rows.present.median, (618 + 643) / 2);
-  assert.deepEqual(V.camoContrastTexts(M, 'ja', feature), [M.ja.camoContrast, '同じ画面で測った特徴探索の「ある」の回の中央値は0.6秒でした。']);
+  assert.deepEqual(V.camoContrastTexts(M, 'ja', feature), [M.ja.camoContrast, '同じ画面で測った特徴探索の「ある」の回の真ん中の値は0.6秒でした。']);
   assert.equal(V.camoContrastTexts(M, 'en', feature)[1], 'In the feature search you ran here, your median for "present" rounds was 0.6 s.');
   // Fewer than 3 valid "present" rounds: no median, no second sentence
   const few = C.summarizeBlock([r(3, true, 600), r(6, true, 700), r(3, false, 800)]);
@@ -493,7 +493,8 @@ test('E: the texts of the camouflage test: the frame, the keyboard, the result o
   assert.equal(C.CAMO_PATTERNS.length * C.CAMO_PRACTICE_REPS, 3);
   assert.equal(C.CAMO_PATTERNS.length * C.CAMO_MAIN_REPS, 15);
   assert.equal(S.TIMING.camoTimeout, 10000);
-  assert.match(M.ja.camoDuration, /^1回は練習3回と本番15回です。どの回も10秒たつと/);
+  assert.match(M.ja.camoDuration, /^実験は練習3回と本番15回です。どの回も10秒たつと/);
+  assert.match(M.en.camoDuration, /^The test has 3 practice rounds and 15 recorded rounds\. Every round moves on after 10 seconds/);
   // The names of the patterns: the same on the buttons, in the table and in the sentences (English starts the inline names in lower case)
   for (const p of C.CAMO_PATTERNS) {
     assert.equal(M.ja[`camoPatternInline.${p}`], M.ja[`ctl.search-camo.pattern.${p}`]);
@@ -502,4 +503,68 @@ test('E: the texts of the camouflage test: the frame, the keyboard, the result o
   // The research and the gap note do not compare the times of the studies with yours
   assert.match(M.ja.camoResearch, /研究の時間の値は自分の値と並べていません。$/);
   assert.match(M.ja.camoGap, /研究の時間の値とは並べていません。$/);
+});
+
+// ===== Why it happens, the predictions and the questions =====
+test('E: the lines of the predictions and the answers of the questions are filled in for every choice, in both languages', () => {
+  const vm = V.buildViewModel(D);
+  let n = 0;
+  for (const lang of ['ja', 'en']) {
+    const L = M[lang];
+    for (const tab of vm.tabs) {
+      for (const e of tab.entries) {
+        const p = e.predict, right = L[p.choices.find((c) => c.id === p.answer).key];
+        for (const c of p.choices) {
+          const line = V.fill(L[p.chosenKey], { choice: L[c.key] });
+          assert.doesNotMatch(line, LEFTOVER, line);
+          assert.ok(line.includes(L[c.key]), line);
+          n += 1;
+        }
+        assert.equal(V.fill(L.predictAnswer, { choice: right }), (lang === 'ja' ? '答え：' : 'Answer: ') + right);
+        assert.ok(L[e.whyKey].length > 20 && L[p.explainKey].length > 20, e.id);
+      }
+      for (const q of tab.checks) {
+        const text = (c) => (c.label !== null ? c.label : L[c.key]), right = text(q.choices.find((c) => c.id === q.answer));
+        for (const c of q.choices) {
+          const verdict = c.id === q.answer ? L.checkRight : V.fill(L.checkWrong, { choice: right });
+          assert.doesNotMatch(verdict, LEFTOVER, verdict);
+          n += 1;
+        }
+      }
+    }
+  }
+  assert.equal(n, 2 * (14 * 3 + 2 + 12 * 3));
+  // The experiments say to run the test; the other entries say to move the controls
+  assert.equal(V.fill(M.ja.predictChosen, { choice: M.ja['predict.popout-feature.choice.b'] }), '予想：目立ちにくくなる。つまみを動かして確かめてください。');
+  assert.equal(V.fill(M.en.predictChosen, { choice: M.en['predict.popout-feature.choice.b'] }),
+    'Your prediction: It stands out less. Move the controls to check.');
+  assert.equal(V.fill(M.ja.predictChosenTest, { choice: M.ja['predict.search-time.choice.b'] }), '予想：「ない」回のほうが大きい。実験をしてから確かめてください。');
+  assert.equal(V.fill(M.en.predictChosenTest, { choice: M.en['predict.search-camo.choice.b'] }),
+    'Your prediction: Pattern that breaks up the outline. Run the test to check.');
+  assert.equal(V.fill(M.ja.predictAnswer, { choice: M.ja['predict.misread-baseline.choice.c'] }), '答え：4倍');
+  assert.deepEqual([M.ja.predictSummary, M.en.predictSummary, M.ja.predictReveal, M.en.predictReveal],
+    ['動かす前に予想する', 'Predict before you try', '答えを見る', 'Show the answer']);
+  assert.deepEqual([M.ja.whyHeading, M.en.whyHeading, M.ja.checksHeading, M.en.checksHeading], ['なぜそうなるか', 'Why', '確かめの問い', 'Check your understanding']);
+  assert.equal(M.ja.checkRight, '正しい答えです。');
+  assert.equal(M.en.checkRight, 'That\'s right.');
+  assert.equal(V.fill(M.ja.checkWrong, { choice: M.ja['check.misread-value-ratio.choice.c'] }), '違います。正しい答えは「1.2倍」です。');
+  assert.equal(V.fill(M.en.checkWrong, { choice: 'A' }), 'Not quite. The answer is "A".');
+  assert.deepEqual([M.ja.checkFictional, M.en.checkFictional], ['架空の値', 'Fictional values']);
+  // The figure of the question on the truncated axis names another place than the card (a bookstore, not the library)
+  assert.equal(M.ja.checkBookstoreTitle, '架空の書店の販売冊数（百冊）');
+  assert.ok(M.ja['check.misread-value-ratio.desc'].startsWith('架空の書店の販売冊数の棒グラフ。'));
+  assert.ok(M.en['check.misread-value-ratio.desc'].startsWith('Bar chart of books sold at a fictional bookstore.'));
+});
+
+test('E: the camouflage results call the median 真ん中の値 (the word of the glossary), as the results of the search experiment do', () => {
+  for (const key of ['camoResChartUse', 'camoResChartDesc', 'camoColMedian', 'camoTableMedian', 'camoValidNote', 'camoResFew', 'camoContrastFeature']) {
+    assert.ok(M.ja[key].includes(M.ja.termMedian), key);
+    assert.match(M.en[key], /median/i, key);
+  }
+  for (const [key, text] of Object.entries(M.ja)) if (key !== 'termMedianExpert') assert.ok(!text.includes('中央値'), key);
+  assert.ok(M.ja['check.search-camo-results.desc'].includes('見つけるまでの時間の真ん中の値は'));
+  // The pattern that matches the background in two sentences
+  assert.equal(M.ja['camoRead.match'], '背景と同じ色と大きさの斑点で描いた模様です。物の面は背景になじみますが、三角形の縁では斑点がまっすぐ途切れます。');
+  assert.equal(M.en.camoDuration, 'The test has 3 practice rounds and 15 recorded rounds. Every round moves on after 10 seconds, so it takes about 4 minutes '
+    + 'at most.');
 });
