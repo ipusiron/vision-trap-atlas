@@ -29,9 +29,10 @@ SOURCES = ("index.html", "style.css", "theme-init.js", "atlas-core.js", "atlas-d
 SCRIPTS = ["theme-init.js", "atlas-core.js", "atlas-data.js", "atlas-view.js", "atlas-search.js", "messages.js", "app.js"]
 TABS_JA = ["目立つ前注意の特徴", "探す時間視覚探索", "まとまるゲシュタルトの法則", "図と地図と地の分化", "誤読グラフ", "目の錯覚錯視"]
 HEADINGS_JA = ["目立つ（前注意の特徴）", "探す時間（視覚探索）", "まとまる（ゲシュタルトの法則）", "図と地（図と地の分化）", "誤読（グラフ）", "目の錯覚（錯視）"]
-# The cards drawn when the page is ready: three in the Pop out tab, the Search time card (its experiment opens in a dialog, so it has no
-# figure frame), three in the Grouping tab, two in the Figure and ground tab, four in the Misreading tab and one in the Optical illusions tab
-CARDS, FIGURES = 14, 13
+# The cards drawn when the page is ready: three in the Pop out tab, the two cards of the Search time tab (their tests open in a dialog, so
+# they have no figure frame), three in the Grouping tab, two in the Figure and ground tab, four in the Misreading tab and one in the
+# Optical illusions tab
+CARDS, FIGURES = 15, 13
 # The lines of the term of the third tab at 320px before the page is ready (a <wbr> in the page; Firefox has no word-break: auto-phrase)
 GESTALT_LINES = """() => { const el = document.querySelector('#tab-gestalt .tab-term'), chars = [];
   const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node;

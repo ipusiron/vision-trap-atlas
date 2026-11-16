@@ -450,6 +450,195 @@ test('D: the summary of a real block goes through resultCases', () => {
   assert.deepEqual(cases[1].values, { d: 40 });
 });
 
+// ===== The camouflage experiment =====
+const camoExp = (clock, opts = {}) => S.createCamoExperiment({ now: clock.now, raf: clock.raf, seed32: seeds(opts.seed || 21),
+  onChange: opts.onChange });
+// One try: through the fixation point to the display, then `how`: right (the cell of the moth shape), wrong, early (150 ms) or timeout
+function camoTry(clock, exp, { rt = 1200, how = 'right', input = 'mouse' } = {}) {
+  let t = clock.now();
+  assert.equal(exp.state().phase, 'fixation');
+  clock.frame(t += 16);              // the fixation point is on screen
+  clock.frame(t += 500);             // 500 ms later the pattern is made visible
+  assert.equal(exp.state().phase, 'stimulus');
+  assert.equal(exp.state().visible, true);
+  clock.frame(t += 16);              // the next frame is the display start
+  const t0 = t, trial = exp.state().trial;
+  if (how === 'timeout') {
+    clock.frame(t0 + 9999);
+    assert.equal(exp.state().phase, 'stimulus', 'still searching at 9,999 ms');
+    clock.frame(t = t0 + 10000);
+  } else {
+    t = t0 + (how === 'early' ? 150 : rt);
+    exp.respond({ cell: how === 'wrong' ? (trial.cell + 1) % 36 : trial.cell, timeStamp: t, input });
+  }
+  const st = exp.state(), marked = how === 'wrong' || how === 'timeout';
+  assert.equal(st.phase, 'feedback');
+  assert.deepEqual([st.visible, st.mark], [marked, marked], 'the pattern stays with the mark after a wrong spot or a time-out');
+  clock.frame(t + (marked ? 999 : 499));
+  assert.equal(exp.state().phase, 'feedback');
+  clock.frame(t += marked ? 1000 : 500);
+  assert.equal(exp.state().phase, 'gap');
+  assert.deepEqual([exp.state().visible, exp.state().mark], [false, false]);
+  clock.frame(t += 300);
+  return trial;
+}
+
+test('D: makeCamoTrials: 3 practice rounds (one of each pattern) and 15 recorded rounds (five of each), mixed by the seed', () => {
+  assert.deepEqual([C.CAMO_PRACTICE_REPS, C.CAMO_MAIN_REPS, C.CAMO_TIMEOUT_MS], [1, 5, 10000]);
+  for (const seed of [1, 7, 2026]) {
+    const t = C.makeCamoTrials({ rng: C.xorshift32(seed) });
+    assert.equal(t.practice.length, 3);
+    assert.equal(t.main.length, 15);
+    for (const pattern of C.CAMO_PATTERNS) {
+      assert.equal(t.practice.filter((x) => x.pattern === pattern).length, 1, pattern);
+      assert.equal(t.main.filter((x) => x.pattern === pattern).length, 5, pattern);
+    }
+    const all = [...t.practice, ...t.main];
+    for (const x of all) assert.ok(Number.isInteger(x.cell) && x.cell >= 0 && x.cell < 36 && x.seed > 0);
+    // Never the same cell twice in a row
+    for (let i = 1; i < all.length; i += 1) assert.notEqual(all[i].cell, all[i - 1].cell, `${seed} ${i}`);
+    assert.deepEqual(C.makeCamoTrials({ rng: C.xorshift32(seed) }), t, 'the same seed gives the same rounds');
+  }
+  const orders = new Set([1, 2, 3, 4, 5, 6].map((seed) => C.makeCamoTrials({ rng: C.xorshift32(seed) }).main.map((x) => x.pattern).join()));
+  assert.ok(orders.size > 1, 'the order is mixed by the seed');
+});
+
+test('D: classifyCamo at 199, 200, 9,999 and 10,000 ms, a wrong spot and the fixation point', () => {
+  const c = (cell, rt, phase = 'stimulus') => C.classifyCamo({ phase, cell, target: 8, rt });
+  assert.equal(c(8, 199), 'early');
+  assert.equal(c(8, 200), 'correct');
+  assert.equal(c(8, 9999), 'correct');
+  assert.equal(c(8, 10000), 'timeout');
+  assert.equal(c(null, 10000), 'timeout');
+  assert.equal(c(9, 900), 'wrong');
+  assert.equal(c(3, 120), 'early', 'too early wins over a wrong spot');
+  assert.equal(c(8, 900, 'fixation'), 'early');
+});
+
+test('D: a camouflage try: fixation 500, the pattern, a tap, the result 0.5 s (right) or the mark 1 s (wrong spot, time-out), gap 300', () => {
+  const clock = fakeTime(), exp = camoExp(clock);
+  assert.equal(exp.state().phase, 'ready');
+  exp.start();
+  assert.deepEqual(exp.state().progress, { block: 'practice', i: 1, total: 3 });
+  assert.equal(exp.state().tries, 1);
+  camoTry(clock, exp, { rt: 1500 });
+  let st = exp.state();
+  assert.deepEqual(st.practiceRecords[0], { pattern: st.practiceRecords[0].pattern, target: st.practiceRecords[0].target,
+    cell: st.practiceRecords[0].target, outcome: 'correct', rt: 1500, input: 'mouse', requeued: false });
+  camoTry(clock, exp, { how: 'wrong', input: 'key' });
+  camoTry(clock, exp, { how: 'timeout' });
+  st = exp.state();
+  assert.deepEqual(st.practiceRecords.map((r) => r.outcome), ['correct', 'wrong', 'timeout']);
+  assert.equal(st.practiceRecords[2].rt, 10000);
+  assert.equal(st.phase, 'practiceDone');
+  assert.equal(st.records.length, 0, 'the practice is not recorded');
+  assert.equal(exp.summary(), null);
+  // The feedback keys
+  const keys = [];
+  const clock2 = fakeTime(), exp2 = camoExp(clock2, { onChange: (s) => { if (s.feedback) keys.push(s.feedback.key); } });
+  exp2.start();
+  camoTry(clock2, exp2);
+  camoTry(clock2, exp2, { how: 'wrong' });
+  camoTry(clock2, exp2, { how: 'timeout' });
+  assert.deepEqual([...new Set(keys)], ['camoFbCorrect', 'camoFbWrong', 'camoFbTimeout']);
+});
+
+test('D: the camouflage test: 3 practice and 15 recorded rounds; an early tap goes to the end once; a hidden page stops the try; the summary', () => {
+  const clock = fakeTime(), exp = camoExp(clock, { seed: 33 });
+  exp.start();
+  // An early tap during the fixation point: not counted, the round comes back at the end of the practice
+  clock.frame(clock.now() + 16);
+  exp.respond({ cell: 0, timeStamp: clock.now(), input: 'touch' });
+  assert.deepEqual(exp.state().feedback, { key: 'fbEarly', values: {} });
+  assert.equal(exp.state().visible, false);
+  clock.frame(clock.now() + 500);
+  clock.frame(clock.now() + 300);
+  let tries = 0;
+  while (exp.state().phase !== 'practiceDone') { camoTry(clock, exp); tries += 1; }
+  assert.equal(tries, 3, 'the early round comes back once');
+  assert.equal(exp.state().practiceRecords.length, 4);
+  assert.equal(exp.state().practiceRecords.at(-1).requeued, true);
+  exp.proceed();
+  assert.deepEqual(exp.state().progress, { block: 'main', i: 1, total: 15 });
+  // A repeated key does nothing
+  clock.frame(clock.now() + 16);
+  exp.respond({ cell: 1, timeStamp: clock.now(), input: 'key', repeat: true });
+  assert.equal(exp.state().phase, 'fixation');
+  clock.frame(clock.now() + 500);
+  clock.frame(clock.now() + 16);
+  // A hidden page during the display: the try stops, does not count, and comes back at the end
+  exp.setHidden(true);
+  assert.equal(exp.state().phase, 'paused');
+  assert.deepEqual(exp.state().feedback, { key: 'expHidden', values: {} });
+  clock.frame(clock.now() + 5000);
+  assert.equal(exp.state().phase, 'paused', 'nothing runs while paused');
+  exp.resume();
+  const kinds = ['right', 'right', 'wrong', 'right', 'timeout', 'right', 'right', 'early', 'right', 'right', 'right', 'right', 'right', 'right',
+    'right', 'right', 'right'];
+  let n = 0;
+  while (exp.state().phase !== 'done') { camoTry(clock, exp, { how: kinds[n], rt: 900 + 100 * n, input: n === 3 ? 'key' : 'mouse' }); n += 1; }
+  assert.equal(n, 16, 'the 14 rounds after the hidden one, then the hidden round and the early round once more at the end');
+  const st = exp.state();
+  assert.equal(st.records.filter((r) => r.outcome === 'hidden').length, 1);
+  assert.equal(st.records.filter((r) => r.outcome === 'early').length, 1);
+  assert.equal(st.mainTotal, 15);
+  const s = exp.summary();
+  assert.equal(s.measured, st.records.length - 1, 'the hidden try is not counted');
+  for (const pattern of C.CAMO_PATTERNS) {
+    const rs = st.records.filter((r) => r.pattern === pattern && r.outcome !== 'hidden' && r.outcome !== 'early');
+    assert.equal(rs.length, 5, `five counted rounds of ${pattern}`);
+  }
+  assert.equal(s.mixedInput, true, 'one key among the taps');
+  assert.equal(s.aborted, false);
+  // Stopping keeps the results; nothing runs afterwards
+  const clock3 = fakeTime(), exp3 = camoExp(clock3, { seed: 5 });
+  exp3.start();
+  for (let i = 0; i < 3; i += 1) camoTry(clock3, exp3);
+  exp3.proceed();
+  camoTry(clock3, exp3, { rt: 800 });
+  exp3.abort();
+  assert.deepEqual(exp3.state().feedback, { key: 'expAborted', values: {} });
+  assert.equal(exp3.summary().aborted, true);
+  assert.equal(exp3.summary().measured, 1);
+  clock3.frame(clock3.now() + 1000);
+  assert.equal(exp3.state().phase, 'aborted');
+});
+
+test('D: summarizeCamo: a median from 3 valid rounds but not from 2; not found and wrong spots counted; the times in their order', () => {
+  assert.equal(C.MIN_VALID, 3);
+  const r = (pattern, outcome, rt, input = 'mouse') => ({ pattern, target: 4, cell: outcome === 'wrong' ? 5 : 4, outcome, rt, input });
+  const s = C.summarizeCamo([r('match', 'correct', 1200), r('match', 'correct', 900), r('match', 'correct', 1500), r('match', 'timeout', 10000),
+    r('disrupt', 'correct', 2000), r('disrupt', 'correct', 2600), r('disrupt', 'wrong', 1800), r('disrupt', 'wrong', 2100), r('disrupt', 'timeout', 10000),
+    r('symmetric', 'correct', 700), r('symmetric', 'correct', 650), r('symmetric', 'correct', 190), r('symmetric', 'early', 150),
+    r('symmetric', 'hidden', null)]);
+  assert.deepEqual(s.rows.match, { n: 4, valid: 3, times: [1200, 900, 1500], median: 1200, timeout: 1, wrong: 0, early: 0 });
+  assert.deepEqual(s.rows.disrupt, { n: 5, valid: 2, times: [2000, 2600], median: null, timeout: 1, wrong: 2, early: 0 });
+  // A right tap under 200 ms is not valid; the hidden try is not counted
+  assert.deepEqual(s.rows.symmetric, { n: 4, valid: 2, times: [700, 650], median: null, timeout: 0, wrong: 0, early: 1 });
+  assert.deepEqual([s.measured, s.aborted, s.mixedInput], [13, false, false]);
+  assert.equal(C.summarizeCamo([r('match', 'correct', 900), r('match', 'correct', 800, 'key')], { aborted: true }).mixedInput, true);
+});
+
+test('D: camoResultCases: longer, sooner or no clear difference at 20% of the background-matching median, compared after rounding to 0.1 s', () => {
+  assert.equal(C.CAMO_SIMILAR, 0.2);
+  const summary = (match, disrupt, symmetric, extra = {}) => ({ rows: { match: { median: match }, disrupt: { median: disrupt },
+    symmetric: { median: symmetric } }, aborted: false, mixedInput: false, ...extra });
+  const keys = (cases) => cases.map((c) => c.key);
+  assert.deepEqual(C.camoResultCases(null), [{ key: 'camoResNone', values: {} }]);
+  // 2.0 s for the background-matching pattern: 2.4 s is 0.4 s longer (20%, a difference), 2.3 s is not
+  assert.deepEqual(C.camoResultCases(summary(2000, 2400, 1600)), [{ key: 'camoResLonger', values: { pattern: 'disrupt', d: 0.4 } },
+    { key: 'camoResShorter', values: { pattern: 'symmetric', d: 0.4 } }]);
+  assert.deepEqual(C.camoResultCases(summary(2000, 2349, 1650)), [{ key: 'camoResSimilar', values: { pattern: 'disrupt' } },
+    { key: 'camoResSimilar', values: { pattern: 'symmetric' } }], '2.349 s is shown as 2.3; 1.65 s as 1.7');
+  assert.deepEqual(keys(C.camoResultCases(summary(2049, 2450, 1550))), ['camoResLonger', 'camoResShorter'], '2.049 is 2.0; 2.45 is 2.5; 1.55 is 1.6');
+  assert.deepEqual(C.camoResultCases(summary(1450, 3450, 1450))[0], { key: 'camoResLonger', values: { pattern: 'disrupt', d: 2 } }, '1.45 is 1.5');
+  // A median missing: no sentence for that pattern, and the sentence of too few valid rounds
+  assert.deepEqual(keys(C.camoResultCases(summary(2000, null, 2800))), ['camoResLonger', 'camoResFew']);
+  assert.deepEqual(keys(C.camoResultCases(summary(null, 2000, 2800))), ['camoResFew']);
+  assert.deepEqual(keys(C.camoResultCases(summary(2000, 2100, 1990, { aborted: true, mixedInput: true }))),
+    ['camoResSimilar', 'camoResSimilar', 'camoResPartial', 'resMixed']);
+});
+
 // ===== createMotion: the clock that moves popout-motion (push to play, stop after `seconds`, stop button and next-frame) =====
 
 test('D: createMotion: push to play, the state updates every frame, and it stops at seconds', () => {

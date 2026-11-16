@@ -13,12 +13,12 @@ const entry = (id) => D.entries.find((e) => e.id === id);
 const OKABE_ITO = ['#000000', '#e69f00', '#56b4e9', '#009e73', '#f0e442', '#0072b2', '#d55e00', '#cc79a7'];
 const PARTS = ['popoutGrid', 'asymGrid', 'motionGrid', 'searchDisplay', 'proximityGrid', 'regionDots', 'contour', 'sectors', 'symmetryBands',
   'baselineChart', 'areaPictures', 'dualAxisChart', 'aspectChart', 'lightnessSquares', 'barChart', 'groupedBars', 'lineChart', 'scatter', 'markTable',
-  'heatmap', 'camoScene'];
+  'heatmap', 'camoScene', 'camoSearchScene'];
 // Classes without a color of their own; style.css gives each a look (line, text, fill with the ink or paper of the theme)
-const PLAIN_CLASSES = ['camo-line', 'camo-outline', 'fig-axis', 'fig-axisname', 'fig-barline', 'fig-break', 'fig-cellnum', 'fig-cross', 'fig-dot',
-  'fig-frame', 'fig-frame-small', 'fig-legend', 'fig-link', 'fig-mark', 'fig-missing', 'fig-nofill', 'fig-outline', 'fig-pattern', 'fig-rule',
-  'fig-series', 'fig-spine', 'fig-stroke', 'fig-textbar', 'fig-tick', 'fig-title', 'fig-trail', 'fixation', 'line-dashed', 'mark-pressed',
-  'mark-target', 'stim-outline', 'stim-solid', 'ta-end', 'ta-middle', 'ta-start'];
+const PLAIN_CLASSES = ['camo-line', 'camo-mark', 'camo-outline', 'fig-axis', 'fig-axisname', 'fig-barline', 'fig-break', 'fig-cellnum', 'fig-cross',
+  'fig-dot', 'fig-frame', 'fig-frame-small', 'fig-legend', 'fig-link', 'fig-mark', 'fig-missing', 'fig-nofill', 'fig-outline', 'fig-pattern',
+  'fig-rule', 'fig-series', 'fig-spine', 'fig-stroke', 'fig-textbar', 'fig-tick', 'fig-title', 'fig-trail', 'fixation', 'line-dashed',
+  'mark-pressed', 'mark-target', 'stim-outline', 'stim-solid', 'ta-end', 'ta-middle', 'ta-start'];
 
 // ----- bounding box of a shape list (paths use M, L, A and Z; arcs are sampled from their center) -----
 function arcPoints(x0, y0, r, large, sweep, x1, y1) {
@@ -55,6 +55,7 @@ function points(shapes, ox = 0, oy = 0, out = []) {
     const add = (x, y) => out.push([ox + x, oy + y]);
     if (s.type === 'rect') { add(a.x, a.y); add(a.x + a.width, a.y + a.height); assert.ok(a.width >= 0 && a.height >= 0); }
     else if (s.type === 'circle') { add(a.cx - a.r, a.cy - a.r); add(a.cx + a.r, a.cy + a.r); }
+    else if (s.type === 'ellipse') { add(a.cx - a.rx, a.cy - a.ry); add(a.cx + a.rx, a.cy + a.ry); }
     else if (s.type === 'line') { add(a.x1, a.y1); add(a.x2, a.y2); }
     else if (s.type === 'text') { add(a.x, a.y); assert.ok(s.text.length > 0); }
     else if (s.type === 'path') for (const [x, y] of pathPoints(a.d)) add(x, y);
@@ -78,7 +79,7 @@ function combos(e) {
 }
 const rendered = (use, values, extra = {}) => JSON.stringify(V.renderUse(use, values, ctx, extra));
 
-test('C: the twenty-one parts are registered', () => {
+test('C: the twenty-two parts are registered', () => {
   assert.deepEqual(V.partNames(), PARTS);
   assert.throws(() => V.renderPart('pieChart3d', {}, ctx), /unknown part/);
 });
@@ -93,7 +94,8 @@ test('C: every figure of every entry stays inside its viewBox for every combinat
       n += 1;
     }
   }
-  assert.equal(n, 514);
+  // 514 before the camouflage experiment, whose small figure has 3 patterns × 2 marks
+  assert.equal(n, 520);
   // The 1-1 and 1-2 figures stay inside with other seeds as well
   for (let seed = 1; seed <= 30; seed += 1) {
     for (const kind of ['color', 'direction', 'size', 'shape', 'lightness']) {
@@ -121,7 +123,7 @@ test('C: the color classes refer to palette entries of both themes, and the othe
     take(V.renderPart('searchDisplay', { items: t.main[0].items, set }, ctx));
     for (const k of ['target', 'same-dir', 'same-color']) take(V.sampleShapes(k, set));
   }
-  take({ shapes: [...V.fixationShapes(), ...V.markShapes({ pressed: 0, target: 35 })] });
+  take({ shapes: [...V.fixationShapes(), ...V.markShapes({ pressed: 0, target: 35 }), ...V.mothSample().shapes] });
   // The moving entry with a non-rest pose: the main figure and the two small ones show the fig-trail dots of the frame-by-frame step
   const motionPose = { pose: { u: 0.5, env: 1, prev: 0.25 } }, motion = entry('popout-motion'), motionValues = V.controlValues(motion);
   take(V.renderPart(motion.figure.part, { ...motion.figure.params, ...motionValues, seed: motion.figure.seed, ...motionPose }, ctx));
@@ -396,7 +398,7 @@ function readKeys(id, extras = [{}]) {
 test('C: the reading sentences: every chosen key exists, and the number of cases matches the spec', () => {
   const TIMES = [{}, { times: { withLine: 0.7, noLine: null } }, { times: { withLine: null, noLine: 2.1 } }, { times: { withLine: 0.7, noLine: 2.1 } }];
   const expected = { 'popout-feature': 12, 'popout-asymmetry': 5, 'gestalt-proximity-similarity': 9, 'gestalt-region-connection': 3,
-    'gestalt-contour': 5, 'figure-ground-area': 3, 'figure-ground-symmetry': 4, 'misread-area': 4, 'misread-dual-axis': 2 };
+    'gestalt-contour': 5, 'figure-ground-area': 3, 'figure-ground-symmetry': 4, 'misread-area': 4, 'misread-dual-axis': 2, 'search-camo': 3 };
   for (const [id, n] of Object.entries(expected)) {
     const { keys } = readKeys(id, id === 'popout-asymmetry' ? TIMES : [{}]);
     assert.equal(keys.length, n, `${id}: ${keys.join(', ')}`);
@@ -424,6 +426,10 @@ test('C: the reading sentences: every chosen key exists, and the number of cases
   assert.equal(V.readKeysAll(D, 'popout-feature').length, 12);
   assert.equal(V.readKeysAll(D, 'popout-asymmetry', TIMES).length, 5);
   assert.deepEqual(V.readCases(D, 'search-time', { view: 'feature' }), []);
+  // The camouflage card: one sentence for each pattern, the same with the mark on or off
+  for (const pattern of C.CAMO_PATTERNS) {
+    for (const mark of ['off', 'on']) assert.deepEqual(V.readCases(D, 'search-camo', { pattern, mark }), [{ key: `camoRead.${pattern}`, values: {} }]);
+  }
 });
 
 test('C: the reading sentences use the rounded values shown for their borders', () => {
@@ -503,7 +509,7 @@ test('C: each title contains its underlined terms in both languages, and each te
 test('C: the view model lists the tabs in order with their entries, headings and next tab', () => {
   const vm = V.buildViewModel(D);
   assert.deepEqual(vm.tabs.map((t) => t.id), ['popout', 'search', 'gestalt', 'figure-ground', 'misread', 'illusion']);
-  assert.deepEqual(vm.tabs.map((t) => t.entries.length), [3, 1, 3, 2, 4, 1]);
+  assert.deepEqual(vm.tabs.map((t) => t.entries.length), [3, 2, 3, 2, 4, 1]);
   assert.deepEqual(vm.tabs.map((t) => (t.next ? t.next.labelKey : null)),
     ['tabSearch', 'tabGestalt', 'tabFigureGround', 'tabMisread', 'tabIllusion', null]);
   assert.deepEqual(vm.tabs[4].leadKeys, ['misreadLead', 'misreadFictional']);
@@ -511,8 +517,10 @@ test('C: the view model lists the tabs in order with their entries, headings and
   assert.deepEqual(vm.tabs.map((t) => t.endBoxes.map((b) => b.id)), [[], [], [], ['camo-clues'], ['chart-checks'], []]);
   for (const tab of vm.tabs) {
     for (const e of tab.entries) {
-      // The search time card has the showing side only, so its heading names that side alone
-      assert.equal(e.usesHeadingKey, tab.id === 'misread' ? 'usesHeadingReadable' : tab.id === 'search' ? 'usesHeadingShow' : 'usesHeading', e.id);
+      // The search time card has the showing side only, so its heading names that side alone; the camouflage card the hiding side
+      const heading = { misread: 'usesHeadingReadable', search: e.id === 'search-camo' ? 'usesHeadingHide' : 'usesHeadingShow' }[tab.id] || 'usesHeading';
+      assert.equal(e.usesHeadingKey, heading, e.id);
+      assert.equal(e.gapHeadingKey, e.id === 'search-camo' ? 'camoGapHeading' : 'gapHeading', e.id);
       for (const key of [e.titleKey, e.oneLineKey, e.howToKey, e.usesHeadingKey, ...e.uses.map((u) => u.labelKey), ...e.uses.map((u) => u.titleKey),
         ...e.controls.map((c) => c.labelKey), ...e.controls.flatMap((c) => c.optionKeys)]) {
         assert.equal(typeof M.ja[key], 'string', `${e.id} ${key}`);
@@ -691,4 +699,110 @@ test('C: popout-motion does not change the fill colors of the circles while the 
   const rest = fillsAt({ u: 0, env: 0, prev: null });
   const play = fillsAt({ u: 0.4, env: 1, prev: null });
   assert.deepEqual(play, rest, 'motion never recolors a circle (no flashing)');
+});
+
+// ===== The camouflage experiment: the scene part (the small figure and the square of the test) and the results =====
+const box = (list) => [Math.min(...list.map((p) => p[0])), Math.min(...list.map((p) => p[1])), Math.max(...list.map((p) => p[0])),
+  Math.max(...list.map((p) => p[1]))];
+
+test('C: the camouflage scene: the bark ground, the background spots, the moth shape with its patches, and the mark only when asked', () => {
+  const use = entry('search-camo').uses[0];
+  const plain = V.renderUse(use, { pattern: 'match', mark: 'off' }, ctx), marked = V.renderUse(use, { pattern: 'match', mark: 'on' }, ctx);
+  assert.deepEqual([plain.width, plain.height], [360, 360]);
+  assert.deepEqual([plain.shapes[0].type, plain.shapes[0].cls], ['rect', 'fill-bark-1']);
+  assert.equal(plain.shapes.filter((s) => s.type === 'ellipse').length, C.CAMO.ground);
+  const paths = plain.shapes.filter((s) => s.type === 'path');
+  assert.equal(paths.length, 1 + C.CAMO.patches, 'the moth shape and its patches');
+  assert.equal(pathPoints(paths[0].attrs.d).length, 3, 'the moth shape is the first path, a triangle');
+  assert.equal(paths[0].cls, 'fill-bark-1', 'in the color of the ground');
+  assert.equal(plain.shapes.filter((s) => s.cls.includes('camo-mark')).length, 0);
+  // The mark: one dashed triangle around the moth shape, drawn last; the rest of the scene stays the same
+  const mark = marked.shapes.at(-1);
+  assert.equal(mark.cls, 'stroke-barkMark camo-mark');
+  assert.deepEqual(marked.shapes.slice(0, -1), plain.shapes);
+  const m = box(pathPoints(mark.attrs.d)), moth = box(pathPoints(paths[0].attrs.d));
+  assert.ok(m[0] < moth[0] && m[1] < moth[1] && m[2] > moth[2] && m[3] > moth[3], 'the mark goes around the moth shape');
+  // A pattern changes the patches of the object only: the ground, the spots and the place stay
+  const patterned = (pattern) => V.renderUse(use, { pattern, mark: 'off' }, ctx).shapes;
+  const ground = (shapes) => shapes.filter((s) => s.type !== 'path');
+  for (const pattern of ['disrupt', 'symmetric']) {
+    assert.deepEqual(ground(patterned(pattern)), ground(plain.shapes), pattern);
+    assert.deepEqual(patterned(pattern).find((s) => s.type === 'path'), paths[0], `${pattern}: the same moth shape`);
+    assert.notDeepEqual(patterned(pattern), plain.shapes, pattern);
+  }
+  // The square of the test is drawn by the same part, with the cell and the seed of the try
+  const scene = V.renderPart('camoSearchScene', { seed: 5, pattern: 'disrupt', cell: 0, mark: true }, ctx);
+  assertInside(scene, 'the scene with the moth shape in the top-left cell');
+  assert.deepEqual(box(pathPoints(scene.shapes.find((s) => s.type === 'path').attrs.d)), [6, 18, 54, 42]);
+  // The sample of the shape to find in the dialog: a triangle with its base at the top, twice as wide as it is high
+  const sample = box(pathPoints(V.mothSample().shapes[0].attrs.d));
+  assert.equal((sample[2] - sample[0]) / (sample[3] - sample[1]), 2);
+});
+
+test('C: the bark colors of the camouflage experiment: the same in both themes, darkest to lightest, not Okabe–Ito, and the mark 3:1 on each', () => {
+  const { light, dark } = D.palette;
+  assert.deepEqual(light.bark, dark.bark);
+  assert.equal(light.barkMark, dark.barkMark);
+  assert.equal(light.bark.length, 4);
+  const lum = light.bark.map((c) => C.relativeLuminance(c));
+  assert.deepEqual(lum.slice().sort((a, b) => a - b), lum, 'bark-0 is the darkest, bark-3 the lightest');
+  for (const c of light.bark) {
+    assert.ok(!OKABE_ITO.includes(c), c);
+    assert.ok(C.contrastRatio(light.barkMark, c) >= 3, `the mark on ${c}: ${C.contrastRatio(light.barkMark, c).toFixed(2)}`);
+  }
+  // The dark and the light patches of the disruptive pattern stand apart from each other and from the ground
+  assert.ok(C.contrastRatio(light.bark[C.CAMO.darkest], light.bark[C.CAMO.lightest]) >= 3);
+});
+
+// A camouflage summary from known times (right taps), time-outs and wrong spots of each pattern
+function camoSummary(times, { timeouts = {}, wrong = {}, aborted = false } = {}) {
+  const records = [];
+  for (const [pattern, list] of Object.entries(times)) {
+    for (const rt of list) records.push({ pattern, target: 0, cell: 0, outcome: 'correct', rt, input: 'mouse' });
+  }
+  for (const [pattern, n] of Object.entries(timeouts)) {
+    for (let i = 0; i < n; i += 1) records.push({ pattern, target: 0, cell: null, outcome: 'timeout', rt: 10000, input: null });
+  }
+  for (const [pattern, n] of Object.entries(wrong)) {
+    for (let i = 0; i < n; i += 1) records.push({ pattern, target: 0, cell: 1, outcome: 'wrong', rt: 1500, input: 'mouse' });
+  }
+  return C.summarizeCamo(records, { aborted });
+}
+const KNOWN_CAMO = () => camoSummary({ match: [1200, 1450, 2000, 3100], disrupt: [2500, 2649, 3000], symmetric: [800, 950] },
+  { timeouts: { disrupt: 2 }, wrong: { symmetric: 1 } });
+
+test('C: the camouflage results: the rows of the table give the median in seconds with one decimal, and none when it is not given', () => {
+  assert.deepEqual(V.camoResultRows(KNOWN_CAMO()).map((r) => [r.pattern, r.labelKey, r.median, r.valid, r.notFound, r.wrong]), [
+    ['match', 'ctl.search-camo.pattern.match', '1.7', 4, 0, 0],
+    ['disrupt', 'ctl.search-camo.pattern.disrupt', '2.6', 3, 2, 0],
+    ['symmetric', 'ctl.search-camo.pattern.symmetric', null, 2, 0, 1]]);
+  assert.deepEqual(V.camoResultRows(null).map((r) => [r.measured, r.median, r.valid, r.notFound, r.wrong]), Array(3).fill([false, null, null, null, null]));
+  // The rounding of the table is the one the sentences compare (1.45 s is 1.5, not 1.4)
+  assert.equal(V.camoResultRows(camoSummary({ match: [1450, 1450, 1450] }))[0].median, '1.5');
+});
+
+const CAMO_CHART_CLASSES = ['fig-axis', 'fig-axisname', 'fig-legend', 'fig-tick', 'fill-seriesTarget', 'res-dot', 'ta-middle', 'ta-start'];
+test('C: the camouflage chart: a bar per pattern with a median, a dot per valid round, the names of the patterns, and a scale of 0 to 10 s', () => {
+  const t = (key) => M.ja[key], fig = V.camoResultChart(KNOWN_CAMO(), { t });
+  assert.deepEqual([fig.width, fig.height], [V.CAMO_CHART.width, V.CAMO_CHART.height]);
+  assertInside({ ...fig, shapes: fig.shapes.filter((s) => s.type !== 'text') }, 'camouflage chart');
+  assert.ok(classesOf(fig).every((c) => CAMO_CHART_CLASSES.includes(c)), classesOf(fig).join(' '));
+  const bars = fig.shapes.filter((s) => s.type === 'rect');
+  assert.equal(bars.length, 2, 'no bar for a pattern without a median');
+  assert.ok(bars.every((b) => b.cls === 'fill-seriesTarget'), 'one color for every bar: the names tell them apart');
+  assert.equal(fig.shapes.filter((s) => s.type === 'circle').length, 4 + 3 + 2, 'a dot for each valid round');
+  // The bar of the background-matching pattern ends at its median (1,725 ms) on the scale from 14 (0 s) to 262 (10 s)
+  assert.ok(Math.abs(bars[0].attrs.x + bars[0].attrs.width - (14 + 1725 / 10000 * 248)) < 0.01);
+  const texts = (f) => f.shapes.filter((s) => s.type === 'text').map((s) => [s.attrs.x, s.attrs.y, s.text]);
+  assert.deepEqual(texts(fig).map((x) => x[2]), [M.ja.camoResAxis, ...C.CAMO_PATTERNS.map((p) => M.ja[`ctl.search-camo.pattern.${p}`]),
+    '0', '2', '4', '6', '8', '10']);
+  // The frame, the names and the scale do not move with the values
+  const other = V.camoResultChart(camoSummary({ match: [9000, 9500, 9900], disrupt: [300, 400, 500], symmetric: [5000, 5000, 5000] }), { t });
+  assert.deepEqual(texts(other), texts(fig));
+  assert.deepEqual([other.width, other.height], [fig.width, fig.height]);
+  // The longest name in English stays inside the chart (about 5.6 px per letter of 11 px)
+  const longest = Math.max(...C.CAMO_PATTERNS.map((p) => M.en[`ctl.search-camo.pattern.${p}`].length));
+  assert.ok(V.CAMO_CHART.x0 + longest * 5.6 <= V.CAMO_CHART.width, String(longest));
+  const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'style.css'), 'utf8');
+  for (const c of ['res-dot', 'camo-mark']) assert.ok(css.includes('.' + c + ' {'), c);
 });

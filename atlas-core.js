@@ -1,6 +1,7 @@
 /* Vision Trap Atlas - MIT (c) 2026 ipusiron. */
 // 計算部（UMD・依存なし・DOM非依存）。
-// 乱数・ます目の配置・探す実験の試行と集計・結果の文の場合分け・誤読の比・図の形の計算（点・線・扇形・破線）を持つ。
+// 乱数・ます目の配置・探す実験の試行と集計・結果の文の場合分け・迷彩の探す実験の場面と集計・誤読の比・図の形の計算（点・線・扇形・破線・
+// 多角形の切り抜き）を持つ。
 // 乱数は種つきの xorshift32 だけを使う（同じ種なら同じ並びになり、テストで座標を確かめられる）。
 (function (root, factory) {
   'use strict';
@@ -127,7 +128,8 @@
   const isError = (r) => r.outcome === 'miss' || r.outcome === 'falseAlarm';
 
   // records＝本番の回の記録 { setSize, present, outcome, rt, input }。outcome が hidden の回（ページが隠れた）は数えない。
-  // set＝測った特徴の組（color・fill。結果に書くため、そのまま持たせる）
+  // set＝測った特徴の組（color・fill。結果に書くため、そのまま持たせる）。
+  // 行の median＝図形の数をまとめた、その行（ある・ない）の有効な回すべての中央値（迷彩の実験の結果の欄で並べて出す）
   function summarizeBlock(records, { aborted = false, granularity = null, set = null } = {}) {
     const counted = records.filter((r) => r.outcome !== 'hidden');
     const rows = {};
@@ -147,9 +149,11 @@
       }
       const fit = fitLine(SET_SIZES.filter((n) => cells[n].median !== null).map((n) => ({ x: n, y: cells[n].median })));
       const answered = correct + errors;
+      const all = counted.filter((r) => r.present === present && isValid(r)).map((r) => r.rt);
       rows[present ? 'present' : 'absent'] = {
         cells, slope: fit ? fit.slope : null, intercept: fit ? fit.intercept : null,
         correct, errors, early, timeout, answered, accuracy: answered ? correct / answered : null, excluded: early + timeout + errors,
+        median: all.length >= MIN_VALID ? median(all) : null,
       };
     }
     // 比は表示と同じ丸め（小数1桁）のあとの傾きで計算する。「ある」の傾きが1ミリ秒／項目未満なら出さない
@@ -234,6 +238,232 @@
       if (t - start >= limitMs) break;
     }
     return min === Infinity ? null : min;
+  }
+
+  // ===== 迷彩の探す実験（search-camo）：場面 =====
+  // 一辺 360 の正方形を6×6のます目に分け（線は描かない）、どれかのマスの中央に蛾の形を1つ置く。蛾の形は底辺を上にした二等辺三角形で、
+  // 幅はマスの8割、幅：高さ＝2：1。背景は樹皮のような模様（縦に長い楕円の斑点）。物の模様の作り方は3種：
+  //   match（背景合わせ）：背景と同じ作り方（同じ色・同じ大きさの分布）で、別の種で描いた斑点を三角形で切り抜く。斑点の数は、三角形の中で
+  //     斑点が覆う面積の割合が背景と同じくらい（約45%）になる数にする
+  //   disrupt（分断色）：match の斑点のうち edges 個を縁の上へ移し、樹皮の色の中で最も濃い色と最も明るい色に交互に塗る（Fraser et al.
+  //     2007）。移した斑点は、切り抜いたあとの面積が移す前と同じになるように大きさを変える
+  //   symmetric（左右対称）：match の斑点のうち左寄りの半分を、三角形の縦の中心線で右へ写す（数が奇数なら1つを中心線の上に置く）。
+  //     全体の大きさを同じ割合で変えて、面積の合計を match にそろえる
+  // どの種も、斑点の数（切り抜いた多角形の数）と面積の合計は match と同じになる
+  const CAMO_PATTERNS = Object.freeze(['match', 'disrupt', 'symmetric']);
+  const CAMO_TIMEOUT_MS = 10000;  // 1回の制限（この時間で見つからなければ次へ進む）
+  const CAMO_MAIN_REPS = 5;       // 本番：模様ごとに5回（15回）
+  const CAMO_PRACTICE_REPS = 1;   // 練習：模様ごとに1回（3回。数えない）
+  const CAMO_SIMILAR = 0.2;       // 背景合わせの中央値の2割より小さい差は「はっきりした差はない」とする（文を選ぶための値）
+  const CAMO_SIZE = 360, CAMO_GRID = 6, MOTH_W = 48, MOTH_H = 24, CAMO_GROUND = 1800;
+  const CAMO = Object.freeze({
+    size: CAMO_SIZE, grid: CAMO_GRID, mothW: MOTH_W, mothH: MOTH_H,
+    ground: CAMO_GROUND,                          // 背景の斑点の数（正方形の約45%を覆う）
+    // 物の斑点の数（中心は三角形の中）。背景と同じ密度の8個では、縁の近くに外から斑点がかからないぶん覆う割合が約34%に下がり、地の色の
+    // 三角形として浮いて見えるので、覆う割合が背景とそろう12個にする（左右対称は6組になる）
+    patches: 12,
+    rx: Object.freeze([1.2, 2.6]),                // 斑点の横の半径
+    ratio: Object.freeze([2.6, 4.4]),             // 斑点の縦の半径÷横の半径
+    base: 1, spots: Object.freeze([0, 2, 3]),     // 地の色と斑点の色（palette.bark の添字。0が最も濃く、3が最も明るい）
+    darkest: 0, lightest: 3,
+    sides: 12,                                    // 物の斑点を描く多角形の頂点の数
+    edges: 4,                                     // 分断色で縁へ移す斑点の数
+    markGap: 2.4,                                 // 印の三角形と物の縁の間（どのマスでも正方形からはみ出さない長さ）
+  });
+  // 蛾の形（中心が原点）：左上・右上・下
+  const MOTH = Object.freeze([[-MOTH_W / 2, -MOTH_H / 2], [MOTH_W / 2, -MOTH_H / 2], [0, MOTH_H / 2]].map((p) => Object.freeze(p)));
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  // 多角形（頂点 [x, y] の配列）の符号つき面積と面積
+  function signedArea(points) {
+    let s = 0;
+    for (let i = 0; i < points.length; i += 1) {
+      const [x0, y0] = points[i], [x1, y1] = points[(i + 1) % points.length];
+      s += x0 * y1 - x1 * y0;
+    }
+    return s / 2;
+  }
+  const polygonArea = (points) => Math.abs(signedArea(points));
+  // 凸多角形 clip の中だけを残して subject を切り抜く（Sutherland–Hodgman）。辺の上の点は中に数える。凸どうしなら結果も1つの凸多角形
+  function clipConvex(subject, clip) {
+    const orient = signedArea(clip) < 0 ? -1 : 1;
+    let out = subject;
+    for (let i = 0; i < clip.length && out.length; i += 1) {
+      const [ax, ay] = clip[i], [bx, by] = clip[(i + 1) % clip.length];
+      const side = ([x, y]) => orient * ((bx - ax) * (y - ay) - (by - ay) * (x - ax));
+      const input = out;
+      out = [];
+      for (let j = 0; j < input.length; j += 1) {
+        const p = input[j], q = input[(j + 1) % input.length], sp = side(p), sq = side(q);
+        if (sp >= 0) out.push(p);
+        if ((sp >= 0) !== (sq >= 0)) {
+          const t = sp / (sp - sq);
+          out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]);
+        }
+      }
+    }
+    return out;
+  }
+  // 点が凸多角形の内側にあるか（辺の上は外とみなす）
+  function insideConvex([x, y], poly) {
+    const orient = signedArea(poly) < 0 ? -1 : 1;
+    return poly.every(([ax, ay], i) => {
+      const [bx, by] = poly[(i + 1) % poly.length];
+      return orient * ((bx - ax) * (y - ay) - (by - ay) * (x - ax)) > 0;
+    });
+  }
+  // 楕円を n 角形で表した頂点（中心 cx・cy、横の半径 rx、縦の半径 ry）。角度の並びは左右対称（鏡に写すと同じ頂点の組になる）
+  function ellipsePoints(cx, cy, rx, ry, n = CAMO.sides) {
+    return Array.from({ length: n }, (_, j) => {
+      const t = 2 * Math.PI * j / n;
+      return [cx + rx * Math.cos(t), cy + ry * Math.sin(t)];
+    });
+  }
+  const perimeterOf = (poly) => poly.reduce((sum, a, i) => {
+    const b = poly[(i + 1) % poly.length];
+    return sum + Math.hypot(b[0] - a[0], b[1] - a[1]);
+  }, 0);
+  // 周の上で、最初の頂点から長さ s だけ進んだ点
+  function perimeterPoint(poly, s) {
+    let left = s;
+    for (let i = 0; i < poly.length; i += 1) {
+      const a = poly[i], b = poly[(i + 1) % poly.length], length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (left <= length) return [a[0] + (b[0] - a[0]) * left / length, a[1] + (b[1] - a[1]) * left / length];
+      left -= length;
+    }
+    return poly[0].slice();
+  }
+  // 三角形の3つの辺を、外へ gap だけ離した三角形（内心を中心に拡げる）
+  function grownTriangle(tri, gap) {
+    const [A, B, C] = tri;
+    const a = Math.hypot(B[0] - C[0], B[1] - C[1]), b = Math.hypot(C[0] - A[0], C[1] - A[1]), c = Math.hypot(A[0] - B[0], A[1] - B[1]);
+    const p = a + b + c, ix = (a * A[0] + b * B[0] + c * C[0]) / p, iy = (a * A[1] + b * B[1] + c * C[1]) / p;
+    const r = 2 * polygonArea(tri) / p, f = (r + gap) / r;
+    return tri.map(([x, y]) => [ix + (x - ix) * f, iy + (y - iy) * f]);
+  }
+  // 面積が target になる倍率（areaAt は倍率が大きいほど大きくなる関数）。二分法
+  function solveScale(areaAt, target, lo = 0.05, hi = 8) {
+    for (let i = 0; i < 60; i += 1) {
+      const mid = (lo + hi) / 2;
+      if (areaAt(mid) < target) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+
+  // 迷彩の探す実験の場面。seed が同じなら同じ場面（背景・物の模様・マス）。cell を渡すとそのマスに置き、渡さなければ種で決める。
+  // 物の模様は蛾の形の中心からの位置で持つので、どのマスに置いても同じ。3種とも、背景と match の斑点は同じ
+  function camoSearchLayout({ seed = 1, pattern = 'match', cell = null } = {}) {
+    if (!CAMO_PATTERNS.includes(pattern)) throw new Error('unknown pattern ' + pattern);
+    const step = CAMO_SIZE / CAMO_GRID, cells = CAMO_GRID * CAMO_GRID;
+    const groundRng = xorshift32(seed), own = xorshift32(Math.imul(seed >>> 0 || 1, 0x9e3779b1) >>> 0 || 1);
+    const drawn = randInt(own, cells), at = cell === null || cell === undefined ? drawn : cell;
+    if (!Number.isInteger(at) || at < 0 || at >= cells) throw new RangeError('cell must be 0..' + (cells - 1));
+    const cx = (at % CAMO_GRID + 0.5) * step, cy = (Math.floor(at / CAMO_GRID) + 0.5) * step;
+    const spot = (rng) => {
+      const rx = lerp(CAMO.rx[0], CAMO.rx[1], unit(rng));
+      return { rx, ry: rx * lerp(CAMO.ratio[0], CAMO.ratio[1], unit(rng)), color: CAMO.spots[randInt(rng, CAMO.spots.length)] };
+    };
+    // 背景：斑点は正方形からはみ出さない所に置く
+    const ground = Array.from({ length: CAMO.ground }, () => {
+      const s = spot(groundRng);
+      return { cx: s.rx + unit(groundRng) * (CAMO_SIZE - 2 * s.rx), cy: s.ry + unit(groundRng) * (CAMO_SIZE - 2 * s.ry), rx: s.rx, ry: s.ry,
+        color: s.color };
+    });
+    // 物の斑点（蛾の形の中心からの位置 u・v）：中心が三角形の中にあるものを、背景と同じ密度の数だけ
+    const match = [];
+    for (let guard = 0; match.length < CAMO.patches; guard += 1) {
+      if (guard > 10000) throw new Error('no room for a patch');
+      const s = spot(own), u = (unit(own) - 0.5) * MOTH_W, v = (unit(own) - 0.5) * MOTH_H;
+      if (insideConvex([u, v], MOTH)) match.push({ u, v, rx: s.rx, ry: s.ry, color: s.color });
+    }
+    const cut = (p, k = 1) => clipConvex(ellipsePoints(p.u, p.v, p.rx * k, p.ry * k), MOTH);
+    const areas = match.map((p) => polygonArea(cut(p)));
+    let patches = match;
+    if (pattern === 'disrupt') {
+      const moved = shuffle(match.map((_, i) => i), own).slice(0, CAMO.edges), length = perimeterOf(MOTH);
+      patches = match.slice();
+      moved.forEach((i, j) => {
+        const [u, v] = perimeterPoint(MOTH, length * (j + 0.25 + 0.5 * unit(own)) / CAMO.edges);
+        const p = { u, v, rx: match[i].rx, ry: match[i].ry, color: j % 2 === 0 ? CAMO.darkest : CAMO.lightest };
+        const k = solveScale((x) => polygonArea(cut(p, x)), areas[i]);
+        patches[i] = { ...p, rx: p.rx * k, ry: p.ry * k };
+      });
+    } else if (pattern === 'symmetric') {
+      const order = match.map((_, i) => i).sort((i, j) => match[i].u - match[j].u || i - j), half = Math.floor(match.length / 2);
+      const left = order.slice(0, half).map((i) => ({ ...match[i], u: -Math.abs(match[i].u) }));
+      const middle = match.length % 2 ? [{ ...match[order[half]], u: 0 }] : [];
+      const pieces = [...left, ...left.map((p) => ({ ...p, u: -p.u })), ...middle];
+      const total = areas.reduce((a, b) => a + b, 0);
+      const k = solveScale((x) => pieces.reduce((sum, p) => sum + polygonArea(cut(p, x)), 0), total);
+      patches = pieces.map((p) => ({ ...p, rx: p.rx * k, ry: p.ry * k }));
+    }
+    const place = ([x, y]) => [cx + x, cy + y];
+    return {
+      size: CAMO_SIZE, cell: at, center: [cx, cy], pattern, base: CAMO.base, ground,
+      moth: MOTH.map(place), mark: grownTriangle(MOTH, CAMO.markGap).map(place),
+      patches: patches.map((p) => {
+        const points = cut(p);
+        return { points: points.map(place), color: p.color, area: polygonArea(points) };
+      }),
+    };
+  }
+
+  // ===== 迷彩の探す実験：試行と集計 =====
+  // 1回の実験＝練習（模様ごとに practiceReps 回）と本番（模様ごとに reps 回）。順は乱数で混ぜる。各回は模様・蛾の形を置くマス・場面の種を
+  // 持つ。続く2回で同じマスにはしない
+  function makeCamoTrials({ rng, reps = CAMO_MAIN_REPS, practiceReps = CAMO_PRACTICE_REPS }) {
+    const cells = CAMO_GRID * CAMO_GRID;
+    let last = -1;
+    const build = (k) => shuffle(CAMO_PATTERNS.flatMap((pattern) => Array.from({ length: k }, () => pattern)), rng).map((pattern) => {
+      let cell = randInt(rng, cells);
+      if (cell === last) cell = (cell + 1 + randInt(rng, cells - 1)) % cells;
+      last = cell;
+      return { pattern, cell, seed: rng() >>> 0 || 1 };
+    });
+    const practice = build(practiceReps);
+    const main = build(reps);
+    return { practice, main };
+  }
+  // 反応の分類。cell＝押したマス（null＝押さなかった）、target＝蛾の形のマス
+  function classifyCamo({ phase, cell, target, rt }) {
+    if (phase === 'fixation') return 'early';
+    if (cell === null || cell === undefined || rt >= CAMO_TIMEOUT_MS) return 'timeout';
+    if (rt < EARLY_MS) return 'early';
+    return cell === target ? 'correct' : 'wrong';
+  }
+  const isCamoValid = (r) => r.outcome === 'correct' && r.rt >= EARLY_MS && r.rt < CAMO_TIMEOUT_MS;
+  // records＝本番の回の記録 { pattern, target, cell, outcome, rt, input }。ページが隠れた回（hidden）は数えない。模様ごとに、有効な回の時間
+  // （times。記録の順）、中央値（有効な回が MIN_VALID 回以上のとき）、見つからなかった回（timeout）、違う場所を押した回（wrong）、早すぎた回
+  function summarizeCamo(records, { aborted = false } = {}) {
+    const counted = records.filter((r) => r.outcome !== 'hidden');
+    const rows = {};
+    for (const pattern of CAMO_PATTERNS) {
+      const rs = counted.filter((r) => r.pattern === pattern), times = rs.filter(isCamoValid).map((r) => r.rt);
+      const count = (outcome) => rs.filter((r) => r.outcome === outcome).length;
+      rows[pattern] = { n: rs.length, valid: times.length, times, median: times.length >= MIN_VALID ? median(times) : null,
+        timeout: count('timeout'), wrong: count('wrong'), early: count('early') };
+    }
+    const inputs = new Set(counted.filter((r) => r.input).map((r) => (r.input === 'key' ? 'key' : 'pointer')));
+    return { rows, aborted: !!aborted, mixedInput: inputs.size > 1, measured: counted.length };
+  }
+  // 秒の小数1桁に丸めたときの値を、0.1秒単位の整数で（表示と、文を選ぶ比べに使う）
+  const tenths = (ms) => Math.round(ms / 100);
+  // 結果の文のキーと差し込む値（画面の順）。分断色と左右対称を、それぞれ背景合わせと比べる。比べは表示と同じ丸め（0.1秒）のあとの値で
+  // 行い、差が背景合わせの中央値の2割より小さければ「はっきりした差はない」。研究と同じになったかは判定しない
+  function camoResultCases(summary) {
+    if (!summary) return [{ key: 'camoResNone', values: {} }];
+    const out = [], base = summary.rows.match.median;
+    for (const pattern of ['disrupt', 'symmetric']) {
+      const m = summary.rows[pattern].median;
+      if (base === null || m === null) continue;
+      const a = tenths(base), d = tenths(m) - a;
+      if (Math.abs(d) < CAMO_SIMILAR * a) out.push({ key: 'camoResSimilar', values: { pattern } });
+      else out.push({ key: d > 0 ? 'camoResLonger' : 'camoResShorter', values: { pattern, d: Math.abs(d) / 10 } });
+    }
+    if (CAMO_PATTERNS.some((p) => summary.rows[p].median === null)) out.push({ key: 'camoResFew', values: {} });
+    if (summary.aborted) out.push({ key: 'camoResPartial', values: {} });
+    if (summary.mixedInput) out.push({ key: 'resMixed', values: {} });
+    return out;
   }
 
   // ===== 色 =====
@@ -396,9 +626,11 @@
 
   return Object.freeze({
     SET_SIZES, EARLY_MS, TIMEOUT_MS, MAIN_REPS, PRACTICE_REPS, MIN_VALID, MIN_POINTS, CMP_STEP, ERROR_PERCENT, COARSE_MS,
+    CAMO, CAMO_PATTERNS, CAMO_TIMEOUT_MS, CAMO_MAIN_REPS, CAMO_PRACTICE_REPS, CAMO_SIMILAR,
     round1, round2, xorshift32, randInt, unit, shuffle, gridLayout, makeSearchTrials, classify, requeue, median, fitLine,
     summarizeBlock, resultCases, timerGranularity, mixHex, relativeLuminance, contrastRatio, barCorners, polygonPath, polylinePath,
     proximityDots, dashForGap, sectorPaths, sectorPath, baselineRatio, areaScales, dualAxisCrossings, niceRange, meanAbsAngle,
-    validateData,
+    signedArea, polygonArea, clipConvex, insideConvex, ellipsePoints, camoSearchLayout, makeCamoTrials, classifyCamo, summarizeCamo, tenths,
+    camoResultCases, validateData,
   });
 }));

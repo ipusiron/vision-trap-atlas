@@ -143,6 +143,10 @@ test('A: summarizeBlock gives medians, slopes and the ratio, and leaves out trie
   assert.equal(s.ratioState, 'ok');
   assert.equal(s.rows.present.cells[3].n, 4, 'the hidden try is not counted');
   assert.equal(s.rows.present.cells[3].median, 530);
+  // The median of every valid try of a row (the numbers of items together): 530, 560, 620 and 680 four times each
+  assert.equal(s.rows.present.median, 590);
+  assert.equal(s.rows.absent.median, 745);
+  assert.equal(C.summarizeBlock(records({ sizes: [3], count: 2 })).rows.present.median, null, 'two valid tries give no median');
   assert.equal(s.mixedInput, false);
   assert.equal(s.aborted, false);
   assert.equal(s.granularity, 0.1);
@@ -303,4 +307,171 @@ test('A: barCorners places a vertical bar for 0 degrees and a horizontal bar for
   const h = C.barCorners(100, 100, 30, 10, 90);
   const xs = h.map((p) => p[0]), ys = h.map((p) => p[1]);
   assert.deepEqual([Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)], [85, 115, 95, 105]);
+});
+
+// ===== The camouflage experiment: the scene (pure functions of a seed) =====
+// A point on or inside a convex polygon (the edges count as inside, within a small tolerance)
+function onOrInside([x, y], poly, eps = 1e-9) {
+  const orient = C.signedArea(poly) < 0 ? -1 : 1;
+  return poly.every(([ax, ay], i) => {
+    const [bx, by] = poly[(i + 1) % poly.length];
+    return orient * ((bx - ax) * (y - ay) - (by - ay) * (x - ax)) >= -eps;
+  });
+}
+// The distance from a point to the nearest edge of a polygon
+function edgeDistance([x, y], poly) {
+  return Math.min(...poly.map(([ax, ay], i) => {
+    const [bx, by] = poly[(i + 1) % poly.length], dx = bx - ax, dy = by - ay;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(x - ax - t * dx, y - ay - t * dy);
+  }));
+}
+const layouts = (seed, cell = null) => Object.fromEntries(C.CAMO_PATTERNS.map((pattern) => [pattern, C.camoSearchLayout({ seed, pattern, cell })]));
+const totalArea = (lay) => lay.patches.reduce((sum, p) => sum + p.area, 0);
+
+test('A: polygonArea and clipConvex give the known areas; a convex piece clipped by a convex shape stays one convex piece', () => {
+  const square = [[0, 0], [10, 0], [10, 10], [0, 10]];
+  assert.equal(C.polygonArea(square), 100);
+  assert.equal(C.signedArea(square), 100);
+  assert.equal(C.signedArea(square.slice().reverse()), -100, 'the sign follows the order of the points');
+  const tri = [[0, 0], [10, 0], [0, 10]];
+  close(C.polygonArea(C.clipConvex(square, tri)), 50);
+  close(C.polygonArea(C.clipConvex(tri, square)), 50);
+  close(C.polygonArea(C.clipConvex([[5, -5], [15, -5], [15, 5], [5, 5]], square)), 25);
+  assert.deepEqual(C.clipConvex([[20, 20], [30, 20], [30, 30]], square), [], 'nothing is left of a piece outside');
+  // The polygon of an ellipse: its points are symmetric about its vertical axis
+  const e = C.ellipsePoints(0, 0, 2, 6);
+  assert.equal(e.length, C.CAMO.sides);
+  for (const [x, y] of e) assert.ok(e.some(([u, v]) => Math.abs(u + x) < 1e-9 && Math.abs(v - y) < 1e-9), `${x} ${y}`);
+  assert.equal(C.insideConvex([1, 1], tri), true);
+  assert.equal(C.insideConvex([5, 5], tri), false, 'a point on an edge is not inside');
+});
+
+test('A: camoSearchLayout: the same seed gives the same scene; the background and the background-matching patches are the same for the three patterns', () => {
+  for (const seed of [1, 2603, 4242]) {
+    const a = layouts(seed), b = layouts(seed);
+    assert.deepEqual(a, b, String(seed));
+    assert.deepEqual(a.disrupt.ground, a.match.ground);
+    assert.deepEqual(a.symmetric.ground, a.match.ground);
+    assert.equal(a.match.ground.length, C.CAMO.ground);
+    assert.deepEqual([a.disrupt.cell, a.symmetric.cell], [a.match.cell, a.match.cell]);
+    // Another seed: another background
+    assert.notDeepEqual(C.camoSearchLayout({ seed: seed + 1 }).ground, a.match.ground);
+  }
+  // The pattern of the object does not depend on its cell (it is kept relative to the center of the moth shape)
+  const at = (cell) => C.camoSearchLayout({ seed: 77, pattern: 'disrupt', cell });
+  const shift = (lay) => lay.patches.map((p) => p.points.map(([x, y]) => [x - lay.center[0], y - lay.center[1]]));
+  const p0 = shift(at(0)), p35 = shift(at(35));
+  p0.forEach((poly, i) => poly.forEach(([x, y], k) => { close(x, p35[i][k][0]); close(y, p35[i][k][1]); }));
+  assert.throws(() => C.camoSearchLayout({ seed: 1, pattern: 'plaid' }), /unknown pattern/);
+  assert.throws(() => C.camoSearchLayout({ seed: 1, cell: 36 }), RangeError);
+});
+
+test('A: camoSearchLayout: the moth shape is a triangle with its base at the top, 80% of a cell wide and half as high, at the center of its cell', () => {
+  const step = C.CAMO.size / C.CAMO.grid;
+  assert.deepEqual([C.CAMO.size, C.CAMO.grid, C.CAMO.mothW, C.CAMO.mothH], [360, 6, 48, 24]);
+  assert.equal(C.CAMO.mothW, 0.8 * step);
+  assert.equal(C.CAMO.mothW / C.CAMO.mothH, 2);
+  for (let cell = 0; cell < 36; cell += 1) {
+    const lay = C.camoSearchLayout({ seed: 9, cell });
+    const [A, B, tip] = lay.moth, cx = (cell % 6 + 0.5) * step, cy = (Math.floor(cell / 6) + 0.5) * step;
+    assert.deepEqual(lay.center, [cx, cy]);
+    // The base at the top (two points on one line), the tip below; the box of the triangle is centered on the cell
+    assert.equal(A[1], B[1]);
+    assert.ok(tip[1] > A[1]);
+    assert.deepEqual([(A[0] + B[0]) / 2, (A[1] + tip[1]) / 2], [cx, cy]);
+    assert.deepEqual([B[0] - A[0], tip[1] - A[1], tip[0]], [48, 24, cx]);
+    // The mark: a larger triangle around the moth shape, inside the square in every cell
+    for (const [x, y] of lay.mark) assert.ok(x >= 0 && x <= 360 && y >= 0 && y <= 360, `cell ${cell}: ${x} ${y}`);
+    for (const p of lay.moth) assert.ok(onOrInside(p, lay.mark) && edgeDistance(p, lay.mark) > 1, `cell ${cell}`);
+  }
+  // Without a cell, the seed chooses it
+  const cells = new Set(Array.from({ length: 200 }, (_, i) => C.camoSearchLayout({ seed: i + 1 }).cell));
+  assert.ok(cells.size > 30, 'the seeds spread the moth over the grid');
+});
+
+// Whether a point is inside a polygon (ray casting)
+function inPolygon([x, y], poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i, i += 1) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+test('A: camoSearchLayout: the patches of the moth shape cover about as much of it as the spots of the background cover the square', () => {
+  assert.equal(C.CAMO.patches, 12);
+  const share = (points, covered) => points.filter(covered).length / points.length;
+  let ground = 0, object = 0;
+  for (let seed = 1; seed <= 40; seed += 1) {
+    const lay = C.camoSearchLayout({ seed, cell: 14 }), rng = C.xorshift32(seed + 1000);
+    const inSquare = Array.from({ length: 400 }, () => [30 + C.unit(rng) * 300, 30 + C.unit(rng) * 300]);
+    ground += share(inSquare, ([x, y]) => lay.ground.some((g) => ((x - g.cx) / g.rx) ** 2 + ((y - g.cy) / g.ry) ** 2 <= 1)) / 40;
+    const inMoth = Array.from({ length: 800 }, () => [lay.center[0] + (C.unit(rng) - 0.5) * 48, lay.center[1] + (C.unit(rng) - 0.5) * 24])
+      .filter((p) => inPolygon(p, lay.moth));
+    object += share(inMoth, (p) => lay.patches.some((q) => inPolygon(p, q.points))) / 40;
+  }
+  // About 45% of the square, and of the moth shape within 5 points
+  assert.ok(ground > 0.4 && ground < 0.5, String(ground));
+  assert.ok(Math.abs(object - ground) < 0.05, `object ${object.toFixed(3)}, background ${ground.toFixed(3)}`);
+});
+
+test('A: camoSearchLayout: the background spots stay inside the square, and the patches inside the moth shape', () => {
+  for (const seed of [3, 5, 2603]) {
+    for (const [pattern, lay] of Object.entries(layouts(seed))) {
+      for (const g of lay.ground) {
+        assert.ok(g.cx - g.rx >= 0 && g.cx + g.rx <= 360 && g.cy - g.ry >= 0 && g.cy + g.ry <= 360, `${seed} ${pattern}`);
+        assert.ok(g.rx >= C.CAMO.rx[0] && g.rx <= C.CAMO.rx[1] && g.ry >= g.rx * C.CAMO.ratio[0] - 1e-9 && g.ry <= g.rx * C.CAMO.ratio[1] + 1e-9);
+        assert.ok(C.CAMO.spots.includes(g.color));
+      }
+      for (const p of lay.patches) {
+        assert.ok(p.points.length >= 3 && p.area > 0, `${seed} ${pattern}`);
+        for (const q of p.points) assert.ok(onOrInside(q, lay.moth, 1e-6), `${seed} ${pattern} ${q}`);
+      }
+    }
+  }
+});
+
+test('A: camoSearchLayout: the three patterns have the same number of patches and the same total area', () => {
+  for (let seed = 1; seed <= 150; seed += 1) {
+    const l = layouts(seed), a = totalArea(l.match);
+    for (const pattern of ['disrupt', 'symmetric']) {
+      assert.equal(l[pattern].patches.length, l.match.patches.length, `${seed} ${pattern}: count`);
+      assert.ok(Math.abs(totalArea(l[pattern]) - a) <= 1e-6 * a, `${seed} ${pattern}: ${totalArea(l[pattern])} vs ${a}`);
+    }
+    // The area of each patch is that of its polygon
+    for (const p of l.symmetric.patches) close(p.area, C.polygonArea(p.points));
+  }
+});
+
+test('A: camoSearchLayout: the symmetric pattern is the same on the left and on the right of the vertical center line', () => {
+  for (const seed of [1, 8, 2603, 9999]) {
+    const lay = C.camoSearchLayout({ seed, pattern: 'symmetric' }), cx = lay.center[0];
+    const mirrored = (poly) => poly.map(([x, y]) => [2 * cx - x, y]);
+    const same = (p, q) => p.length === q.length && p.every(([x, y]) => q.some(([u, v]) => Math.abs(u - x) < 1e-6 && Math.abs(v - y) < 1e-6));
+    for (const p of lay.patches) {
+      assert.ok(lay.patches.some((q) => q.color === p.color && Math.abs(q.area - p.area) < 1e-6 && same(mirrored(p.points), q.points)), String(seed));
+    }
+    // The background-matching pattern is not symmetric
+    const match = C.camoSearchLayout({ seed, pattern: 'match' });
+    assert.ok(!match.patches.every((p) => match.patches.some((q) => same(mirrored(p.points), q.points))), `${seed}: match is not symmetric`);
+  }
+});
+
+test('A: camoSearchLayout: the disruptive pattern moves four patches onto the edge, in the darkest and the lightest bark colors', () => {
+  assert.deepEqual([C.CAMO.edges, C.CAMO.darkest, C.CAMO.lightest, C.CAMO.base], [4, 0, 3, 1]);
+  for (const seed of [2, 11, 2603]) {
+    const { match, disrupt } = layouts(seed);
+    const moved = disrupt.patches.map((p, i) => i).filter((i) => JSON.stringify(disrupt.patches[i]) !== JSON.stringify(match.patches[i]));
+    assert.equal(moved.length, 4, String(seed));
+    assert.deepEqual(moved.map((i) => disrupt.patches[i].color).sort(), [0, 0, 3, 3], 'two darkest and two lightest');
+    for (const i of moved) {
+      const p = disrupt.patches[i];
+      // On the edge: two points or more of the patch lie on the outline of the moth shape
+      assert.ok(p.points.filter((q) => edgeDistance(q, disrupt.moth) < 1e-6).length >= 2, `${seed} patch ${i}`);
+      // The same area as before the move
+      close(p.area, match.patches[i].area, 1e-6 * match.patches[i].area);
+    }
+  }
 });

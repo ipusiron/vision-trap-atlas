@@ -40,6 +40,8 @@
   --c-heat-5: #73b1d5; --c-heat-6: #5ca5ce; --c-heat-7: #4598c7; --c-heat-8: #2e8bc0; --c-heat-9: #177fb9; --c-heat-10: #0072b2;
   --c-heatText: #152b45;
   --c-veil: #ffffff;
+  --c-bark-0: #2e2822; --c-bark-1: #4f4438; --c-bark-2: #6e6a62; --c-bark-3: #8f877b;
+  --c-barkMark: #ffffff;
 }
 @media screen {
   :root[data-theme="dark"] {
@@ -82,6 +84,8 @@
     --c-heat-5: #73b1d5; --c-heat-6: #5ca5ce; --c-heat-7: #4598c7; --c-heat-8: #2e8bc0; --c-heat-9: #177fb9; --c-heat-10: #0072b2;
     --c-heatText: #152b45;
     --c-veil: #ffffff;
+    --c-bark-0: #2e2822; --c-bark-1: #4f4438; --c-bark-2: #6e6a62; --c-bark-3: #8f877b;
+    --c-barkMark: #ffffff;
   }
 }
 *, *::before, *::after { box-sizing: border-box; }
@@ -555,7 +559,16 @@ svg text { font-family: system-ui, sans-serif; }
 .fill-heat-10 { fill: var(--c-heat-10); } .stroke-heat-10 { stroke: var(--c-heat-10); }
 .fill-heatText { fill: var(--c-heatText); } .stroke-heatText { stroke: var(--c-heatText); }
 .fill-veil { fill: var(--c-veil); } .stroke-veil { stroke: var(--c-veil); }
+.fill-bark-0 { fill: var(--c-bark-0); } .stroke-bark-0 { stroke: var(--c-bark-0); }
+.fill-bark-1 { fill: var(--c-bark-1); } .stroke-bark-1 { stroke: var(--c-bark-1); }
+.fill-bark-2 { fill: var(--c-bark-2); } .stroke-bark-2 { stroke: var(--c-bark-2); }
+.fill-bark-3 { fill: var(--c-bark-3); } .stroke-bark-3 { stroke: var(--c-bark-3); }
+.fill-barkMark { fill: var(--c-barkMark); } .stroke-barkMark { stroke: var(--c-barkMark); }
 .fig-nofill, svg .fig-nofill { fill: none; }
+/* The mark on the moth shape of the camouflage test: a dashed line just outside its edges (its color is stroke-barkMark) */
+.camo-mark { fill: none; stroke-width: 3; stroke-dasharray: 7 4; stroke-linejoin: round; }
+/* A dot of the camouflage results (the time of one round): the paper inside and the ink around it, on the bar and beside it */
+.res-dot { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
 /* A month without data in the small chart of the contour entry: a light band behind the lines (the color of the lines of the page, see-through) */
 .fig-missing { fill: var(--line); fill-opacity: .45; }
 /* An open mark of the result chart (the bar was not there): the paper inside, the line of the series around it */
@@ -623,6 +636,16 @@ svg.res-key { display: block; width: 32px; height: 14px; }
   .res-table th, .res-table td { padding: .25rem .3rem; }
 }
 @media (min-width: 720px) { .res-body .res-narrow, .res-body .res-legend { display: none; } }
+/* The camouflage card: the chart of its results smaller than that of the search experiment (its letters stay near the size of the
+   page's), the names of the patterns in the tables wrapping between words, the box of what studies have found, and the sentence of
+   the pattern under the small figure */
+.res-chart > svg.camo-chart { max-width: 24rem; }
+:lang(ja) .camo-table tbody th { white-space: normal; }
+.camo-research {
+  margin: .6rem 0 .5rem; padding: .45rem .7rem; border-left: 4px solid var(--muted); background: var(--bg); font-size: .875rem; line-height: 1.5;
+}
+.camo-research p { margin: 0; }
+.use-read { margin: .25rem 0 0; font-size: .875rem; line-height: 1.5; }
 
 /* The search experiment: a dialog over the whole screen on a plain ground. The side of the square of the display: on a portrait screen
    the width less 32px, the height less 200px or 360px, whichever is smallest, with the two answer buttons under it; on a landscape
@@ -658,6 +681,14 @@ svg.res-key { display: block; width: 32px; height: 14px; }
 .exp-feedback { grid-area: feedback; font-size: .9375rem; font-weight: 700; line-height: 1.5; text-align: center; }
 .exp-feedback p { margin: 0; }
 .exp-answer { min-height: 64px; font-weight: 700; touch-action: manipulation; }
+/* The camouflage test: the spots over the square are buttons without lines or colors (the 6 × 6 grid is not drawn). The keyboard focus is
+   a light frame with a dark band inside the spot, so that it shows both on the paper and on the bark */
+.camo-grid {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); width: 100%; aspect-ratio: 1;
+  align-self: start;
+}
+.camo-spot { min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; touch-action: manipulation; }
+.camo-spot:focus-visible { outline: 2px solid var(--c-barkMark); outline-offset: -4px; box-shadow: inset 0 0 0 5px var(--c-bark-0); }
 /* The narrowest screens: the message before the start in smaller letters, so that the answer buttons stay on the screen */
 @media (max-width: 359px) {
   .exp-message { padding: .6rem; font-size: .875rem; line-height: 1.45; }

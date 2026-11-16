@@ -14,7 +14,9 @@ and the sentences of the results must be those that AtlasCore computes from the 
 the figure and the small figures change, the sentence under the figure, the line under each small figure and the description of
 each figure follow the settings (the test computes them from the data and the dictionary), and nothing moves. From --stage 5,
 the four cards of the Misreading tab in the same way, with the line of numbers under the figure and the line of what to check
-(the test computes the ratios, the crossings and the slopes from the definitions of the spec). Then the
+(the test computes the ratios, the crossings and the slopes from the definitions of the spec), and the camouflage card of the
+Search time tab with its test: the clock held and the seed of each run known, so that the rounds, the table, the chart and the
+sentences of the results are those that AtlasCore computes from the test's own record of the tries. Then the
 addresses with a group or an entry id, the button to the next tab and the browser's back button, the links to other
 sites, the saved preferences, and the page served over HTTP.
 Results and viewport screenshots are written to --output (default: a new folder in the system temporary directory).
@@ -1887,7 +1889,8 @@ def experiment_case(browser, browser_name, url, width, height, language, theme, 
         page.locator('[data-key="exp:set:fill"]').click()
         check(samples() == ["stim-solid", "stim-outline", "stim-outline", "stim-solid"], ("samples without color", samples()))
         check(card.locator(".search-measure .control-note").evaluate("el => getComputedStyle(el).visibility") == "hidden", "no color hint")
-        check(page.locator("#panel-search .term").count() == 7, ("the terms of the tab", page.locator("#panel-search .term").count()))
+        # The heading of the tab, the titles of its two cards (one and two terms), how to use the first card, the theory and the limits
+        check(page.locator("#panel-search .term").count() == 9, ("the terms of the tab", page.locator("#panel-search .term").count()))
         set_ = "fill" if index % 4 == 3 else "color"
         page.locator(f'[data-key="exp:set:{set_}"]').click()
         assert_layout(page, width, "search-tab", layouts)
@@ -1959,6 +1962,11 @@ def experiment_case(browser, browser_name, url, width, height, language, theme, 
             expected = assert_results(page, width, language, blocks, f"results-{n}")
             summary[search] = {"whole": whole, "keys": expected["keys"], "tries": tries}
             assert_layout(page, width, f"results-{n}", layouts)
+        if shots:
+            # A short camouflage run on the same page: its results put the median of the feature search beside the comparison with charts
+            # (both runs are whole in the light theme, so the median is there)
+            lines = camo_contrast_check(page, language, touch, blocks["feature"]["records"])
+            check(lines == 2 or theme == "dark", ("the median of the feature search after a whole run", lines))
         page.evaluate("() => document.getElementById('search-time-results').scrollIntoView({block: 'start'})")
         shoot("results")
         if shots:
@@ -1989,12 +1997,499 @@ def experiment_case(browser, browser_name, url, width, height, language, theme, 
         check(page.evaluate(ACTIVE)["id"] == "search-time-results", "the focus on the results heading after Clear")
         got = page.evaluate(RESULTS_STATE)
         check(got["none"] == [L["resNone"]] and not got["tables"] and not got["limits"] and got["clear"], ("cleared", got))
+        if shots:
+            # Without the results of the feature search, the camouflage results keep the comparison with charts alone
+            contrast = page.evaluate(CAMO_RESULTS)["contrast"]
+            check(contrast == [L["camoContrast"]], ("the camouflage results after Clear", contrast))
         if language == "en":
             text = page.evaluate("() => { const c = document.body.cloneNode(true); c.querySelectorAll('noscript').forEach(n => n.remove()); "
                                  "return c.textContent; }")
             check(not JAPANESE.search(text), ("Japanese on the English page", JAPANESE.findall(text)[:10]))
         assert_clean(errors, violations)
         return {"case": name, "status": "passed", "runs": summary, "layouts": len(layouts)}
+    except Exception as error:
+        try:
+            shot(page, output / (name + "-failed.png"))
+        except Exception:
+            pass
+        return {"case": name, "status": "failed", "error": str(error), "errors": errors, "violations": violations}
+    finally:
+        context.close()
+
+
+# ===== The camouflage test (the second card of the Search time tab) =====
+# The clock is held as for the search experiment. The page's seeds come from crypto.getRandomValues, which the test makes give the
+# numbers from a start value, so the test knows the seed of each run and computes its rounds (the pattern and the cell of the moth
+# shape of each) with AtlasCore in Node. The cell is also read from the scene (its first path is the moth shape: three points) and must
+# be the computed one. The test keeps its own record of the tries and computes the table, the chart and the sentences with AtlasCore
+# and AtlasView in Node; the page must show the same.
+SEED_STUB = """((start) => { let n = start;
+  Crypto.prototype.getRandomValues = function (a) { for (let i = 0; i < a.length; i += 1) a[i] = n++; return a; }; })"""
+CAMO_STATE = """() => {
+  const qa = window.__qa, svg = document.querySelector('#exp-stage > svg'), message = document.querySelector('.exp-message');
+  const ellipses = svg.querySelectorAll('ellipse').length, moth = ellipses ? svg.querySelector('path') : null;
+  let cell = null;
+  if (moth) { const n = moth.getAttribute('d').match(/-?\\d+(?:\\.\\d+)?/g).map(Number), xs = [n[0], n[2], n[4]], ys = [n[1], n[3], n[5]];
+    cell = Math.floor((Math.min(...ys) + Math.max(...ys)) / 2 / 60) * 6 + Math.floor((Math.min(...xs) + Math.max(...xs)) / 2 / 60); }
+  const live = document.querySelector('#exp-feedback [aria-live]'), grid = document.querySelector('.camo-grid');
+  return {shows: qa.shows, ellipses, cell, mothPoints: moth ? moth.getAttribute('d').match(/[ML]/g).length : 0,
+    marked: svg.querySelectorAll('.camo-mark').length, fixation: svg.querySelectorAll('.fixation').length,
+    progress: document.getElementById('exp-progress').textContent, feedback: live ? live.textContent : '',
+    message: message.hidden ? null : message.textContent, results: Array.from(document.querySelectorAll('.exp-results p'), p => p.textContent),
+    focus: (document.activeElement.dataset || {}).key || document.activeElement.id, gridShown: !grid.hidden && grid.getClientRects().length > 0,
+    spots: Array.from(document.querySelectorAll('.camo-spot'), b => b.tabIndex),
+    t0: qa.shownAt === null ? null : (qa.frames.find(f => f > qa.shownAt) ?? null),
+    pressed: qa.presses.length ? qa.presses[qa.presses.length - 1] : null, open: document.getElementById('exp-dialog').open,
+    answersHidden: document.getElementById('exp-absent').hidden && document.getElementById('exp-present').hidden,
+    stopShown: document.getElementById('exp-abort').getClientRects().length > 0};
+}"""
+CAMO_LAYOUT = """() => {
+  const box = el => { const r = el.getBoundingClientRect(); return {left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width,
+    height: r.height}; };
+  const d = document.getElementById('exp-dialog');
+  return {stage: box(document.getElementById('exp-stage')), grid: box(document.querySelector('.camo-grid')),
+    svg: box(document.querySelector('#exp-stage > svg')), abort: box(document.getElementById('exp-abort')), title: box(document.getElementById('exp-title')),
+    feedback: box(document.getElementById('exp-feedback')), spots: Array.from(document.querySelectorAll('.camo-spot'), box),
+    answers: ['exp-absent', 'exp-present'].map(id => document.getElementById(id).getClientRects().length),
+    scrollW: d.scrollWidth, clientW: d.clientWidth, innerW: innerWidth, innerH: innerHeight, modal: d.matches(':modal'),
+    buttons: Array.from(d.querySelectorAll('button'), b => b.id || (b.dataset || {}).key), terms: d.querySelectorAll('.term, .term-help').length,
+    page: document.documentElement.scrollWidth, client: document.documentElement.clientWidth};
+}"""
+# The card: the places of the small figure and of its sentence (page coordinates), its texts, its shapes and the pressed buttons
+CAMO_CARD = """() => {
+  const card = document.getElementById('search-camo'), top = el => el.getBoundingClientRect().top + scrollY;
+  const svg = card.querySelector('.use-figure svg'), b = svg.getBoundingClientRect();
+  return {figure: top(svg), width: b.width, height: b.height, read: top(card.querySelector('.read-stack')),
+    readText: card.querySelector('.read-live').textContent.trim(),
+    linked: card.querySelector('.use-linked > p:not([aria-hidden])').textContent.trim(), desc: svg.querySelector('desc').textContent.trim(),
+    marks: svg.querySelectorAll('.camo-mark').length, ellipses: Array.from(svg.querySelectorAll('ellipse'), e => e.getAttribute('cx')).join(' '),
+    paths: Array.from(svg.querySelectorAll('path'), p => p.getAttribute('class') + ' ' + p.getAttribute('d')).join('|'),
+    pressed: Array.from(card.querySelectorAll('.controls button[aria-pressed=true]'), x => x.dataset.key),
+    terms: card.querySelectorAll('#search-camo-title .term').length};
+}"""
+CAMO_RESULTS = """() => {
+  const shown = el => !!el && el.getClientRects().length > 0, text = el => el.textContent.trim();
+  const card = document.getElementById('search-camo'), chart = card.querySelector('svg.camo-chart');
+  return {none: Array.from(card.querySelectorAll('.res-none'), text),
+    tables: Array.from(card.querySelectorAll('.camo-table')).filter(shown).map(t => ({caption: t.caption ? text(t.caption) : null,
+      heads: Array.from(t.tHead.rows[0].cells, text), rows: Array.from(t.tBodies[0].rows, r => Array.from(r.cells, text))})),
+    texts: Array.from(card.querySelectorAll('.camo-results .res-texts:not(.camo-contrast) p'), text),
+    research: Array.from(card.querySelectorAll('.camo-research p'), text), contrast: Array.from(card.querySelectorAll('.camo-contrast p'), text),
+    note: Array.from(card.querySelectorAll('.camo-results .res-excluded-note'), text),
+    bars: chart ? chart.querySelectorAll('rect').length : null, dots: chart ? chart.querySelectorAll('circle').length : null,
+    chartTexts: chart ? Array.from(chart.querySelectorAll('text'), text) : [], clear: card.querySelector('[data-key="camo:clear"]').disabled};
+}"""
+CAMO_TRIALS_JS = """const C = require(process.argv[1] + '/atlas-core.js');
+process.stdout.write(JSON.stringify(C.makeCamoTrials({ rng: C.xorshift32(Number(process.argv[2]) >>> 0 || 1) })));"""
+CAMO_EXPECT_JS = r"""
+const [root, input] = [process.argv[1], require('fs').readFileSync(0, 'utf8')];
+const C = require(root + '/atlas-core.js'), V = require(root + '/atlas-view.js'), M = require(root + '/messages.js');
+const q = JSON.parse(input);
+const summary = q.records.length ? C.summarizeCamo(q.records, { aborted: q.aborted }) : null;
+const feature = q.feature ? C.summarizeBlock(q.feature) : null;
+const cases = C.camoResultCases(summary), out = { keys: cases.map((c) => c.key), texts: {}, rows: {}, contrast: {} };
+for (const lang of ['ja', 'en']) {
+  const none = M[lang].resNoValue, value = (x) => (x === null ? none : String(x));
+  out.texts[lang] = V.camoResultTexts(M, lang, cases);
+  out.rows[lang] = V.camoResultRows(summary).map((r) => [M[lang][r.labelKey], value(r.median), value(r.valid), value(r.notFound), value(r.wrong)]);
+  out.contrast[lang] = V.camoContrastTexts(M, lang, feature);
+}
+out.bars = summary ? C.CAMO_PATTERNS.filter((p) => summary.rows[p].median !== null).length : 0;
+out.dots = summary ? C.CAMO_PATTERNS.reduce((n, p) => n + summary.rows[p].valid, 0) : 0;
+process.stdout.write(JSON.stringify(out));
+"""
+
+
+def camo_trials(seed):
+    out = subprocess.run(["node", "-e", CAMO_TRIALS_JS, str(ROOT), str(seed)], capture_output=True, check=True, encoding="utf-8").stdout
+    return json.loads(out)
+
+
+def camo_expected(records, aborted, feature=None):
+    query = {"records": records, "aborted": aborted, "feature": feature}
+    out = subprocess.run(["node", "-e", CAMO_EXPECT_JS, str(ROOT)], input=json.dumps(query), capture_output=True, check=True,
+                         encoding="utf-8").stdout
+    return json.loads(out)
+
+
+# The times of the right taps (ms) for each pattern, and a small fixed spread. The designs give other result sentences (longer and
+# sooner, no clear difference, longer for the symmetric pattern)
+CAMO_DESIGNS = ({"match": 1500, "disrupt": 2400, "symmetric": 1000}, {"match": 1800, "disrupt": 1900, "symmetric": 1700},
+                {"match": 1200, "disrupt": 1300, "symmetric": 2600})
+CAMO_SPREAD = (0, 48, -32, 96, -64, 16, 32, -16)
+
+
+class CamoRun:
+    """Drives the camouflage test with the clock held and keeps the test's own record of the recorded tries. rounds: the rounds
+    computed from the seed (None: the cell of each round is read from the scene, and the pattern is not known)."""
+
+    # The steps of the clock to the next scene (ms, a frame each): after a right spot or a press too early, the end of the result line
+    # (500); after a wrong spot or a time-out, the end of the mark (1,000); then the end of the pause (300) and the fixation point (500)
+    AFTER = {"short": (510, 310, 16, 510), "mark": (1010, 310, 16, 510)}
+
+    def __init__(self, page, language, touch, rounds=None):
+        self.page, self.L, self.touch = page, M[language], touch
+        self.rounds = {k: [dict(r) for r in rounds[k]] for k in ("practice", "main")} if rounds else None
+        self.block, self.index, self.records, self.skip, self.shows = "practice", 0, [], (510,), 0
+
+    def state(self):
+        return self.page.evaluate(CAMO_STATE)
+
+    def forward(self, *steps):
+        for step in steps:
+            self.page.clock.fast_forward(step)
+
+    def wait_scene(self):
+        """Moves the clock to the next scene; None when a message takes the place of the square instead."""
+        before = self.shows
+        self.forward(*self.skip)
+        for _ in range(60):
+            s = self.state()
+            self.shows = s["shows"]
+            if s["shows"] > before:
+                return s
+            if s["message"] is not None:
+                return None
+            self.forward(100)
+        raise AssertionError("the scene did not come")
+
+    def tap(self, cell, how):
+        b = self.page.locator(f'[data-key="camo:spot:{cell}"]').bounding_box()
+        x, y = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+        if how == "tap" and self.touch:
+            self.page.touchscreen.tap(x, y)
+            return "touch"
+        self.page.mouse.click(x, y)
+        return "mouse"
+
+    def keys_to(self, cell):
+        """From the starting spot (row 2, column 2, counted from 0) with the arrow keys, then Enter."""
+        row, col = divmod(cell, 6)
+        for key, count in (("ArrowDown" if row > 2 else "ArrowUp", abs(row - 2)), ("ArrowRight" if col > 2 else "ArrowLeft", abs(col - 2))):
+            for _ in range(count):
+                self.page.keyboard.press(key)
+        check(self.page.evaluate(ACTIVE)["key"] == f"camo:spot:{cell}", ("the arrow keys reach the spot", cell, self.page.evaluate(ACTIVE)))
+        self.page.keyboard.press("Enter")
+        return "key"
+
+    def trial(self, kind, rt=1200, how="mouse", seen=None):
+        """One try: kind = right, wrong, early (at once), timeout or hidden. Returns the scene, or None at the end of the block."""
+        s = self.wait_scene()
+        if s is None:
+            return None
+        current = self.rounds[self.block][self.index] if self.rounds else {"pattern": None, "cell": s["cell"]}
+        check(s["cell"] == current["cell"] and s["mothPoints"] == 3, ("the moth shape in the cell of the round", s["cell"], current))
+        check(s["ellipses"] == 1800 and s["fixation"] == 0 and s["marked"] == 0 and s["gridShown"] and s["answersHidden"], ("the scene", s))
+        check(s["spots"].count(0) == 1 and s["spots"][14] == 0 and s["focus"] == "camo:spot:14", ("the starting spot takes the focus", s))
+        if seen:
+            seen(s)
+        record = {"pattern": current["pattern"], "target": current["cell"], "requeued": bool(current.get("requeued"))}
+        after = "short"
+        if kind in ("right", "wrong"):
+            # The display starts at the frame after the one that showed it; the tap comes rt later
+            self.forward(16, rt)
+            cell = current["cell"] if kind == "right" else (current["cell"] + 7) % 36
+            record["cell"], record["input"] = cell, self.keys_to(cell) if how == "key" else self.tap(cell, how)
+            a = self.state()
+            real = a["pressed"] - a["t0"]
+            check(abs(real - rt) < 17, ("the time of the tap", rt, real))
+            record["rt"], record["outcome"] = real, "correct" if kind == "right" else "wrong"
+            if kind == "right":
+                check(a["feedback"] == self.L["camoFbCorrect"] and a["ellipses"] == 0, ("right: the scene goes away", a["feedback"]))
+            else:
+                check(a["feedback"] == self.L["camoFbWrong"] and a["ellipses"] == 1800 and a["marked"] == 1, ("wrong: the mark", a["feedback"]))
+                after = "mark"
+        elif kind == "timeout":
+            self.forward(16, 9990)
+            check(self.state()["feedback"] == "", "still searching at 9,990 ms")
+            self.forward(20)
+            a = self.state()
+            check(a["feedback"] == self.L["camoFbTimeout"] and a["marked"] == 1 and a["ellipses"] == 1800, ("time is up at 10 s: the mark", a))
+            record.update(outcome="timeout", rt=10000, cell=None, input=None)
+            after = "mark"
+        elif kind == "early":
+            self.page.keyboard.press("Enter")
+            check(self.state()["feedback"] == self.L["fbEarly"] and self.state()["ellipses"] == 0, "too early")
+            record.update(outcome="early", rt=0, cell=14, input="key")
+        elif kind == "hidden":
+            self.page.evaluate("""() => { Object.defineProperty(document, 'hidden', {configurable: true, get: () => true});
+              Object.defineProperty(document, 'visibilityState', {configurable: true, get: () => 'hidden'});
+              document.dispatchEvent(new Event('visibilitychange')); }""")
+            a = self.state()
+            check(a["message"] and self.L["expHidden"] in a["message"] and not a["gridShown"] and a["focus"] == "exp:expResume", ("paused", a))
+            self.page.evaluate("""() => { delete document.hidden; delete document.visibilityState;
+              document.dispatchEvent(new Event('visibilitychange')); }""")
+            self.forward(400, 400)
+            check(self.state()["message"] is not None, "paused until Resume")
+            self.page.keyboard.press("Enter")
+            record.update(outcome="hidden", rt=None, cell=None, input=None)
+        if self.rounds and kind in ("early", "hidden") and not current.get("requeued"):
+            self.rounds[self.block].append({**current, "requeued": True})
+        self.skip = (16, 510) if kind == "hidden" else self.AFTER[after]
+        self.records.append(record)
+        self.index += 1
+        return s
+
+    def practice(self, seen=None):
+        """Start, the fixation point, the three practice tries (a key answer, a wrong spot, a time-out), then Continue."""
+        L = self.L
+        self.page.keyboard.press("Enter")
+        self.forward(16)
+        s = self.state()
+        check(s["message"] is None and s["fixation"] == 2 and s["progress"] == fill(L["camoExpPractice"], i=1), ("the fixation point", s))
+        check(s["focus"] == "camo:spot:14" and s["gridShown"], ("the focus on the starting spot", s["focus"]))
+        self.skip = (510,)
+        for i, (kind, how) in enumerate((("right", "key"), ("wrong", "tap"), ("timeout", None))):
+            s = self.trial(kind, rt=1400 + 160 * i, how=how, seen=seen if i == 0 else None)
+            check(s is not None and s["progress"] == fill(L["camoExpPractice"], i=i + 1), ("practice progress", i, s and s["progress"]))
+        check(self.wait_scene() is None, "three practice tries")
+        s = self.state()
+        check(s["message"] and L["expPracticeDone"] in s["message"] and s["focus"] == "exp:expContinue", ("practice done", s["message"]))
+        self.records.clear()
+        self.block, self.index = "main", 0
+        self.page.keyboard.press("Enter")
+        self.skip = (16, 510)
+
+    def recorded(self, design, mixed=False, stop_after=None, seen=None):
+        """The recorded tries: the design's times, a wrong spot, a time-out, a press too early (whole runs) and a key answer (mixed).
+        stop_after: the number of tries before stopping (None: to the end). Returns the number of tries."""
+        tries = 0
+        for i in range(30):
+            if stop_after is not None and i == stop_after:
+                break
+            kind = "wrong" if i == 2 else "timeout" if i == 6 else "early" if i == 9 else "right"
+            how = "key" if mixed and i == 4 else "tap" if i % 2 else "mouse"
+            current = self.rounds["main"][self.index] if self.rounds and self.index < len(self.rounds["main"]) else None
+            rt = max(240, round((design[current["pattern"]] if current else 1500) + CAMO_SPREAD[i % len(CAMO_SPREAD)]) // 16 * 16)
+            s = self.trial(kind, rt=rt, how=how, seen=seen if i == 1 else None)
+            if s is None:
+                break
+            if i == 0:
+                check(s["progress"] == fill(self.L["camoExpMain"], i=1), ("the first recorded try", s["progress"]))
+            tries += 1
+        return tries
+
+
+def camo_open(page):
+    page.locator('[data-key="camo:start"]').click()
+    s = page.evaluate(CAMO_STATE)
+    check(page.locator("#exp-dialog").evaluate("el => el.open && el.matches(':modal')"), "a modal dialog")
+    check(s["focus"] == "exp:expStart" and s["answersHidden"] and not s["gridShown"], ("the focus on Start, no answer buttons", s))
+    return s
+
+
+def camo_closed(page):
+    """The dialog is closed and the focus is back on the button that opened it."""
+    wait_until(page, "() => !document.getElementById('exp-dialog').open")
+    try:
+        wait_until(page, "() => (document.activeElement.dataset || {}).key === 'camo:start'", timeout=2)
+    except AssertionError:
+        raise AssertionError(("the focus back on the start button", page.evaluate(ACTIVE)))
+
+
+def assert_camo_layout(page, name, layouts, trial=True):
+    """The square of the scene at the size of the spec with the 6 × 6 spots over it (44px or more), Stop inside the screen, no answer
+    buttons, no sideways scroll, no theme or language button and no explanation of a term in the dialog."""
+    m = page.evaluate(CAMO_LAYOUT)
+    portrait = m["innerH"] >= m["innerW"]
+    side = min(m["innerW"] - 32, m["innerH"] - 200, 360) if portrait else min(m["innerH"] - 48, m["innerW"] - 288, 360)
+    check(abs(m["stage"]["width"] - side) <= 1 and (abs(m["stage"]["height"] - side) <= 1 or not trial and m["stage"]["height"] > side),
+          (name, "the square", side, m["stage"]))
+    check(m["modal"] and m["scrollW"] <= m["clientW"] and m["page"] <= m["client"], (name, "no sideways scroll", m))
+    check(m["answers"] == [0, 0], (name, "no answer buttons", m["answers"]))
+    for key in ("abort", "title") + (("stage", "feedback") if trial else ()):
+        b = m[key]
+        check(b["left"] >= -0.5 and b["right"] <= m["innerW"] + 0.5 and b["top"] >= -0.5 and b["bottom"] <= m["innerH"] + 0.5,
+              (name, key, "inside the screen", b))
+    check(m["abort"]["height"] + 1e-3 >= 44 and m["abort"]["width"] + 1e-3 >= 44, (name, "Stop 44px", m["abort"]))
+    if trial:
+        for key in ("left", "top", "width", "height"):
+            check(abs(m["grid"][key] - m["svg"][key]) <= 1, (name, "the spots over the scene", m["grid"], m["svg"]))
+        check(len(m["spots"]) == 36 and all(b["width"] + 1e-3 >= 44 and b["height"] + 1e-3 >= 44 for b in m["spots"]), (name, "spots 44px", m["spots"][0]))
+        check(abs(m["spots"][7]["left"] - m["grid"]["left"] - side / 6) <= 1 and abs(m["spots"][7]["top"] - m["grid"]["top"] - side / 6) <= 1,
+              (name, "six spots a row", m["spots"][7]))
+    check(not any(b in ("theme", "language", "help") for b in m["buttons"]), (name, "no theme or language button", m["buttons"]))
+    check(m["terms"] == 0, (name, "no term explanations in the test"))
+    layouts.append({"state": name, "side": side})
+
+
+def assert_camo_results(page, width, language, expected, name):
+    """The card shows the values that AtlasCore computes from the test's own record: the table (two tables below 720px), the chart,
+    what a valid round is, the sentences, what studies have found and the comparison with charts."""
+    got, L = page.evaluate(CAMO_RESULTS), M[language]
+    rows = expected["rows"][language]
+    if width < 720:
+        check([t["caption"] for t in got["tables"]] == [L["camoTableMedian"], L["camoTableMisses"]], (name, "two tables below 720px", got["tables"]))
+        check(got["tables"][0]["rows"] == [r[:3] for r in rows], (name, "medians and valid rounds", got["tables"][0]["rows"], rows))
+        check(got["tables"][1]["rows"] == [[r[0], r[3], r[4]] for r in rows], (name, "not found and wrong spots", got["tables"][1]["rows"]))
+    else:
+        check(len(got["tables"]) == 1 and got["tables"][0]["caption"] is None, (name, "one table from 720px", got["tables"]))
+        check(got["tables"][0]["heads"] == [L[k] for k in ("camoColPattern", "camoColMedian", "camoColValid", "camoColNotFound", "camoColWrong")],
+              (name, "the heads of the table", got["tables"][0]["heads"]))
+        check(got["tables"][0]["rows"] == rows, (name, "the table", got["tables"][0]["rows"], rows))
+    check(got["texts"] == expected["texts"][language], (name, "the sentences", got["texts"], expected["texts"][language]))
+    check(got["research"] == [L["camoResearchHeading"], L["camoResearch"]], (name, "what studies have found", got["research"]))
+    check(got["contrast"] == expected["contrast"][language], (name, "charts and camouflage", got["contrast"], expected["contrast"][language]))
+    check(got["note"] == [L["camoValidNote"]], (name, "what a valid round is", got["note"]))
+    check(got["bars"] == expected["bars"] and got["dots"] == expected["dots"], (name, "bars and dots", got["bars"], got["dots"], expected))
+    check(got["chartTexts"] == [L["camoResAxis"]] + [L[f"ctl.search-camo.pattern.{p}"] for p in ("match", "disrupt", "symmetric")]
+          + ["0", "2", "4", "6", "8", "10"], (name, "the names of the patterns and the scale", got["chartTexts"]))
+    check(not got["clear"] and not got["none"], (name, "Clear is on", got))
+
+
+def camo_contrast_check(page, language, touch, feature_records):
+    """A short camouflage run (the practice and one recorded try, then Stop) on the page of the search experiment: the cell of each
+    round is read from the scene. Its results put the median of the "present" rounds of the feature search beside the comparison."""
+    camo_open(page)
+    run = CamoRun(page, language, touch)
+    run.practice()
+    run.recorded(CAMO_DESIGNS[0], stop_after=1)
+    page.keyboard.press("Escape")
+    s = run.state()
+    check(s["message"] and M[language]["expAborted"] in s["message"], ("stopped", s["message"]))
+    page.keyboard.press("Enter")
+    camo_closed(page)
+    # Two sentences when the feature search gave a median of its "present" rounds (3 valid rounds or more), else the first one alone
+    expected = camo_expected([], True, feature=feature_records)
+    contrast = page.evaluate(CAMO_RESULTS)["contrast"]
+    check(contrast == expected["contrast"][language], ("the median of the feature search", contrast, expected["contrast"]))
+    return len(contrast)
+
+
+def camo_card_checks(page, language, width, layouts):
+    """The card: its texts, the terms of its title, the two controls (each pattern changes the small figure and its sentence; the mark
+    draws the dashed mark), and nothing below moves."""
+    L, entry = M[language], ENTRY["search-camo"]
+    check(page.locator("#search-camo-title").evaluate(VISIBLE_TEXT) == L["item.search-camo.title"], "the title")
+    check(page.locator("#search-camo .entry-oneline").inner_text().strip() == L["item.search-camo.oneLine"], "what it is")
+    check(page.locator("#search-camo .entry-howto").inner_text().strip() == L["item.search-camo.howTo"], "how to use it")
+    check(page.locator("#search-camo .uses-heading").inner_text().strip() == L["usesHeadingHide"], "the heading of the small figure")
+    check([n.strip() for n in page.locator("#search-camo .search-note").all_inner_texts()] == [L["camoDuration"], L["camoReplace"]], "the notes")
+    check(page.locator("#search-camo .gap-head").inner_text().strip() == L["camoGapHeading"], "how it differs from the studies")
+    check(page.locator("#search-camo .res-none").inner_text().strip() == L["camoResNone"] and page.locator('[data-key="camo:clear"]').is_disabled(),
+          "nothing measured yet")
+    hrefs = page.locator("#search-camo .entry-sources a").evaluate_all("els => els.map(a => a.getAttribute('href'))")
+    for doi in ("10.1098/rspb.2007.0153", "10.1098/rsbl.2013.0501", "10.1098/rspb.2005.3438", "10.1098/rstb.2016.0341"):
+        check("https://doi.org/" + doi in hrefs, ("the sources", doi, hrefs))
+    use = entry["uses"][0]
+    values = {c["id"]: c["default"] for c in entry["controls"]}
+    first = page.evaluate(CAMO_CARD)
+    check(first["terms"] == 2 and abs(first["width"] - first["height"]) <= 1, ("two terms in the title, a square figure", first))
+    check(sorted(first["pressed"]) == ["ctl:search-camo:mark:off", "ctl:search-camo:pattern:match"], ("the first values", first["pressed"]))
+
+    def follow(name):
+        now = page.evaluate(CAMO_CARD)
+        check(abs(now["figure"] - first["figure"]) <= 1 and abs(now["read"] - first["read"]) <= 1, (name, "nothing moves", first, now))
+        check(now["readText"] == L[f"camoRead.{values['pattern']}"], (name, "the sentence of the pattern", now["readText"]))
+        check(now["linked"] == expected_linked("search-camo", use, values, language), (name, "the controls that change it", now["linked"]))
+        check(now["desc"] == expected_desc("search-camo", "hide", values, language), (name, "the description", now["desc"]))
+        check(now["marks"] == (1 if values["mark"] == "on" else 0), (name, "the mark", now["marks"]))
+        check(now["ellipses"] == first["ellipses"], (name, "the background stays the same"))
+        return now
+    follow("first values")
+    seen = {}
+    for pattern in ("disrupt", "symmetric", "match"):
+        page.locator(f'[data-key="ctl:search-camo:pattern:{pattern}"]').click()
+        values["pattern"] = pattern
+        seen[pattern] = follow("pattern " + pattern)["paths"]
+    check(len(set(seen.values())) == 3, "each pattern draws its own object")
+    check(seen["match"] == first["paths"], "the first pattern draws the first object again")
+    page.locator('[data-key="ctl:search-camo:mark:on"]').click()
+    values["mark"] = "on"
+    follow("mark on")
+    assert_layout(page, width, "camo-card", layouts)
+    page.locator('[data-key="ctl:search-camo:mark:off"]').click()
+    values["mark"] = "off"
+    follow("mark off")
+    # The tab has two cards now: "Entries in this tab" moves to the camouflage card and back
+    page.locator('[data-key="nav:search-camo"]').click()
+    check(at_top(page, "#search-camo") and page.evaluate("() => document.activeElement.id") == "search-camo", "the list moves to the card")
+    page.locator('[data-key="back:search-camo"]').click()
+    check(page.evaluate(ACTIVE)["key"] == "nav:search-camo", "back at the list")
+
+
+def camo_case(browser, browser_name, url, width, height, language, theme, output, index):
+    """The camouflage card and its test with the clock held: the card and its controls, Esc before the start, the practice (a key
+    answer, a wrong spot and a time-out), the recorded tries whole (with a wrong spot, a time-out, a press too early and a key
+    answer) or stopped, the results against AtlasCore, and Clear."""
+    name = f"{browser_name}-{width}-{language}-{theme}-camo"
+    touch = browser_name == "chromium" and width < 720
+    context = new_context(browser, browser_name, width, height, language, theme)
+    page = context.new_page()
+    errors, violations = observe(page, url)
+    seed = 7000 + 10 * index
+    page.clock.install()
+    page.add_init_script(TIMESTAMP_SHIM)
+    page.add_init_script(EXP_PROBE)
+    page.add_init_script(SEED_STUB + f"({seed});")
+    layouts, shots = [], width in (390, 1280)
+
+    def shoot(label):
+        if shots:
+            shot(page, output / f"{name}-{label}.png")
+    try:
+        page.goto(set_language_query(url, language), wait_until="load")
+        check(page.evaluate("() => document.documentElement.dataset.appReady") == "true", "ready")
+        page.clock.pause_at(page.evaluate("() => Date.now()") / 1000 + 1)
+        L = M[language]
+        page.locator("#tab-search").click()
+        camo_card_checks(page, language, width, layouts)
+        page.evaluate("() => document.getElementById('search-camo').scrollIntoView({block: 'start'})")
+        shoot("card")
+        # Esc before the start (the first seed): the dialog closes and nothing is measured
+        camo_open(page)
+        message = page.evaluate(CAMO_STATE)["message"]
+        check(L["camoExpInstr"] in message and L["camoExpKeys"] in message and L["camoSampleMoth"] in message, ("before the start", message))
+        check(page.locator("#exp-title").inner_text().strip() == L["camoExpTitle"] and page.locator(".exp-message svg.sample").count() == 1, "title, sample")
+        assert_camo_layout(page, "ready", layouts, trial=False)
+        shoot("ready")
+        page.keyboard.press("Escape")
+        camo_closed(page)
+        check(page.locator('[data-key="camo:clear"]').is_disabled(), "still nothing measured")
+        # The run (the second seed)
+        whole = width in (390, 1280)
+        design = CAMO_DESIGNS[index % len(CAMO_DESIGNS)]
+        camo_open(page)
+        run = CamoRun(page, language, touch, camo_trials(seed + 1))
+        run.practice(seen=lambda s: (assert_camo_layout(page, "practice", layouts), shoot("practice")))
+        tries = run.recorded(design, mixed=index % 2 == 1, stop_after=None if whole else 4,
+                             seen=lambda s: (assert_camo_layout(page, "recorded", layouts), shoot("recorded")))
+        if whole:
+            check(tries == 16, ("15 recorded tries and the one too early that came back", tries))
+        elif index % 4 < 2:
+            page.keyboard.press("Escape")
+        else:
+            page.locator("#exp-abort").click()
+        expected = camo_expected(run.records, not whole)
+        s = run.state()
+        check(s["message"] and L["expDone" if whole else "expAborted"] in s["message"] and s["focus"] == "exp:expShowResults",
+              ("the end of the run", s["message"], s["focus"]))
+        check(not s["stopShown"] and not s["gridShown"], ("no Stop and no spots at the end", s))
+        check(s["results"] == expected["texts"][language], ("the sentences in the dialog", s["results"], expected["texts"][language]))
+        shoot("done" if whole else "stopped")
+        page.keyboard.press("Enter")
+        camo_closed(page)
+        placed = """() => { const top = document.querySelector('[data-key="camo:start"]').closest('.start-row').getBoundingClientRect().top;
+          return Math.abs(top) <= 12 || scrollY >= document.documentElement.scrollHeight - innerHeight - 1; }"""
+        try:
+            wait_until(page, placed, timeout=2)
+        except AssertionError:
+            raise AssertionError(("the start button at the top, the results below", page.evaluate("() => scrollY")))
+        assert_camo_results(page, width, language, expected, "results")
+        assert_layout(page, width, "camo-results", layouts)
+        page.evaluate("() => document.getElementById('search-camo-results').scrollIntoView({block: 'start'})")
+        shoot("results")
+        # Clear: nothing left, the focus on the heading of the results
+        page.locator('[data-key="camo:clear"]').click()
+        check(page.evaluate(ACTIVE)["id"] == "search-camo-results", "the focus on the results heading after Clear")
+        got = page.evaluate(CAMO_RESULTS)
+        check(got["none"] == [L["camoResNone"]] and not got["tables"] and got["clear"], ("cleared", got))
+        if language == "en":
+            text = page.evaluate("() => { const c = document.body.cloneNode(true); c.querySelectorAll('noscript').forEach(n => n.remove()); "
+                                 "return c.textContent; }")
+            check(not JAPANESE.search(text), ("Japanese on the English page", JAPANESE.findall(text)[:10]))
+        assert_clean(errors, violations)
+        return {"case": name, "status": "passed", "tries": tries, "keys": expected["keys"], "layouts": len(layouts)}
     except Exception as error:
         try:
             shot(page, output / (name + "-failed.png"))
@@ -2189,9 +2684,9 @@ def http_case(browser, browser_name, base_url, width, height, output, stage):
     try:
         page.goto(base_url, wait_until="load")
         wait_ready(page)
-        # The cards with controls, the search card (from the search experiment stage) and, at stage 5, popout-motion and
-        # illusion-lightness-contrast (not in STAGE_CARDS yet: they have controls but no full-coverage case)
-        count = len(STAGE_CARDS[stage]) + (1 if "search" in STAGE_GROUPS[stage] else 0) + (2 if stage == "5" else 0)
+        # The cards with controls, the search card (from the search experiment stage) and, at stage 5, popout-motion,
+        # illusion-lightness-contrast (not in STAGE_CARDS yet: they have controls but no full-coverage case) and the camouflage card
+        count = len(STAGE_CARDS[stage]) + (1 if "search" in STAGE_GROUPS[stage] else 0) + (3 if stage == "5" else 0)
         check(page.locator(".entry").count() == count, ("the cards", count))
         layouts = []
         assert_layout(page, width, "http", layouts)
@@ -2273,6 +2768,8 @@ def main():
                             record(find_case(browser, browser_name, args.url, width, height, language, theme, output))
                         if args.stage >= "3":
                             record(experiment_case(browser, browser_name, args.url, width, height, language, theme, output, index - 1))
+                        if args.stage >= "5":
+                            record(camo_case(browser, browser_name, args.url, width, height, language, theme, output, index - 1))
             if args.only_experiment:
                 browser.close()
                 continue

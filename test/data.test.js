@@ -9,9 +9,9 @@ const V = require('../atlas-view.js');
 const M = require('../messages.js');
 const fixture = require('./fixtures/illusion-data.js');
 
-const IDS = ['popout-feature', 'popout-asymmetry', 'popout-motion', 'search-time', 'gestalt-proximity-similarity', 'gestalt-region-connection',
-  'gestalt-contour', 'figure-ground-area', 'figure-ground-symmetry', 'misread-baseline', 'misread-area', 'misread-dual-axis', 'misread-aspect-range',
-  'illusion-lightness-contrast'];
+const IDS = ['popout-feature', 'popout-asymmetry', 'popout-motion', 'search-time', 'search-camo', 'gestalt-proximity-similarity',
+  'gestalt-region-connection', 'gestalt-contour', 'figure-ground-area', 'figure-ground-symmetry', 'misread-baseline', 'misread-area', 'misread-dual-axis',
+  'misread-aspect-range', 'illusion-lightness-contrast'];
 const GROUPS = ['popout', 'search', 'gestalt', 'figure-ground', 'misread', 'illusion'];
 const RELATED = ['day101', 'day085', 'day070', 'day075', 'day125'];
 const SIDES = ['show', 'hide', 'readable', 'read'];
@@ -19,7 +19,7 @@ const ordered = (list) => list.slice().sort((a, b) => a.order - b.order);
 const inBoth = (key) => typeof M.ja[key] === 'string' && typeof M.en[key] === 'string';
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
-test('B: the fourteen entry ids are fixed, ASCII and in order; the six groups are fixed', () => {
+test('B: the fifteen entry ids are fixed, ASCII and in order; the six groups are fixed', () => {
   const ids = GROUPS.flatMap((g) => ordered(D.entries.filter((e) => e.group === g)).map((e) => e.id));
   assert.deepEqual(ids, IDS);
   assert.deepEqual(D.entries.map((e) => e.id), IDS);
@@ -111,17 +111,44 @@ test('B: uses have a known side, registered parts, binds to existing controls, a
     }
     if (e.figure) assert.ok(inBoth(`fig.${e.id}.main.title`), e.id);
     for (const k of ['title', 'oneLine', 'howTo']) assert.ok(inBoth(`item.${e.id}.${k}`), `item.${e.id}.${k}`);
-    for (const k of [e.gapKey, e.checkKey].filter(Boolean)) assert.ok(inBoth(k), k);
+    for (const k of [e.gapKey, e.gapHeadingKey, e.checkKey].filter(Boolean)) assert.ok(inBoth(k), k);
   }
   // The show side of 3-1 and 3-2 carries showNote; the four misreading entries have only the easier-to-read form
   for (const id of ['figure-ground-area', 'figure-ground-symmetry']) {
     assert.equal(D.entries.find((e) => e.id === id).uses.find((u) => u.side === 'show').noteKey, 'showNote');
   }
   for (const e of D.entries.filter((x) => x.group === 'misread')) assert.deepEqual(e.uses.map((u) => u.side), ['readable'], e.id);
-  for (const e of D.entries.filter((x) => x.group !== 'misread' && x.id !== 'search-time')) {
+  for (const e of D.entries.filter((x) => x.group !== 'misread' && x.group !== 'search')) {
     assert.deepEqual(e.uses.map((u) => u.side), ['show', 'hide'], e.id);
   }
   assert.deepEqual(D.entries.find((e) => e.id === 'search-time').uses.map((u) => u.side), ['show'], 'no hiding figure for search time');
+  // The camouflage experiment is the other way round: the hiding figure only
+  assert.deepEqual(D.entries.find((e) => e.id === 'search-camo').uses.map((u) => u.side), ['hide'], 'no showing figure for the camouflage test');
+});
+
+test('B: the camouflage experiment: the second entry of the search tab, an experiment with the two controls of its small figure', () => {
+  const e = D.entries.find((x) => x.id === 'search-camo');
+  assert.deepEqual([e.group, e.order, e.experiment, e.figure], ['search', 20, true, null]);
+  assert.deepEqual(e.titleTerms.map((t) => t.term), ['termBackground', 'termDisruptive'], 'the existing terms, no new ones');
+  assert.deepEqual(e.controls.map((c) => [c.id, c.type, c.options, c.default]),
+    [['pattern', 'choice', ['match', 'disrupt', 'symmetric'], 'match'], ['mark', 'choice', ['off', 'on'], 'off']]);
+  assert.deepEqual(C.CAMO_PATTERNS, ['match', 'disrupt', 'symmetric'], 'the patterns of the control are those of the experiment');
+  assert.deepEqual(e.actions, ['startCamo']);
+  assert.deepEqual(e.read, { cases: 'camo' });
+  const [use] = e.uses;
+  assert.equal(use.part, 'camoSearchScene');
+  assert.equal(use.bind.pattern, 'pattern');
+  assert.deepEqual(use.bind.mark, { to: 'mark', map: { off: false, on: true } });
+  assert.equal(use.link, 'day085');
+  assert.deepEqual([e.gapKey, e.gapHeadingKey], ['camoGap', 'camoGapHeading']);
+  assert.equal(e.safety.motion, 'none');
+  assert.equal(e.safety.colorOnly, false);
+  assert.deepEqual(e.sources, ['fraser2007', 'webster2013', 'cuthill2006', 'merilaita2017']);
+  assert.deepEqual(e.related, ['day085']);
+  // The two sources of the screen experiments, with their DOIs
+  assert.equal(D.sources.fraser2007.doi, '10.1098/rspb.2007.0153');
+  assert.equal(D.sources.webster2013.doi, '10.1098/rsbl.2013.0501');
+  for (const k of ['fraser2007', 'webster2013']) assert.equal(D.sources[k].level, 'A', k);
 });
 
 test('B: groups, sources and related tools exist; every source has the level A, B or C', () => {

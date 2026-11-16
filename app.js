@@ -48,6 +48,8 @@
     // The search experiment: the feature pair, and the result of each kind of search (the summary of its last run, or null). The
     // results stay on this page only: never stored or sent, and a reload clears them. version counts the changes of the results
     experiment: { set: 'color', results: { feature: null, conjunction: null }, version: 0 },
+    // The camouflage test: the summary of its last run (or null), on this page only like the results above
+    camo: { results: null, version: 0 },
   };
 
   const dictionaries = { ja: View.dictionary(Messages, 'ja'), en: View.dictionary(Messages, 'en') };
@@ -527,17 +529,19 @@
       title, E('p', { class: 'entry-oneline' }, phrases(t(model.oneLineKey))),
       E('p', { class: 'entry-howto' }, phrases(t(model.howToReducedKey && reduceMotion.matches ? model.howToReducedKey : model.howToKey))),
       controls, stage);
-    if (model.gapKey) {
-      article.append(E('div', { class: 'gap-note' }, E('p', { class: 'gap-head' }, phrases(t('gapHeading'))), E('p', {}, phrases(t(model.gapKey)))));
-    }
+    if (model.gapKey) article.append(gapNote(model));
     article.append(sourcesBox(model));
     parts.article = article;
     cards.set(id, parts);
     return article;
   }
+  // Where the comparison breaks down (or, for the camouflage test, how it differs from the studies): its heading and its text
+  const gapNote = (model) => E('div', { class: 'gap-note' }, E('p', { class: 'gap-head' }, phrases(t(model.gapHeadingKey))),
+    E('p', {}, phrases(t(model.gapKey))));
   // Same controls, showing and hiding (or the easier-to-read form): the small figures, each with the line of the controls that
-  // change it (the same height whatever the values) and its sentences. before: the elements between the heading and the figures
-  function buildUses(entry, model, parts, used, before = []) {
+  // change it (the same height whatever the values) and its sentences. before: the elements between the heading and the figures;
+  // after: elements put under the sentence of the (single) small figure, before its note
+  function buildUses(entry, model, parts, used, before = [], after = []) {
     const id = entry.id;
     const uses = E('section', { class: 'entry-uses', 'aria-labelledby': id + '-uses' },
       E('h4', { id: id + '-uses', class: 'uses-heading' }, phrases(t(model.usesHeadingKey))), ...before);
@@ -558,6 +562,7 @@
       const texts = E('div', { class: 'use-texts' },
         stackOf([...linkedTexts.values()].map((s) => [s]), linkedLive, 'use-linked'));
       if (um.textKey) texts.append(E('p', { class: 'use-text' }, richText(t(um.textKey), TEXT_TERMS[um.textKey], used, id)));
+      texts.append(...after);
       if (um.noteKey) texts.append(E('p', { class: 'use-note' }, noteText(um)));
       // With one small figure, the heading above says what it is, so the figure has no label of its own (the label would repeat it)
       const label = model.uses.length > 1 ? E('figcaption', { class: 'use-label' }, phrases(t(um.labelKey))) : null;
@@ -661,9 +666,7 @@
       title, E('p', { class: 'entry-oneline' }, phrases(t(model.oneLineKey))),
       E('p', { class: 'entry-howto' }, richText(t(model.howToKey), TEXT_TERMS[model.howToKey], used, id)),
       E('p', { class: 'search-why' }, phrases(t('searchWhy'))), measure, results, read, uses);
-    if (model.gapKey) {
-      article.append(E('div', { class: 'gap-note' }, E('p', { class: 'gap-head' }, phrases(t('gapHeading'))), E('p', {}, phrases(t(model.gapKey)))));
-    }
+    if (model.gapKey) article.append(gapNote(model));
     article.append(sp.limits, sourcesBox(model));
     parts.article = article;
     cards.set(id, parts);
@@ -693,6 +696,8 @@
     state.experiment.results = { feature: null, conjunction: null };
     state.experiment.version += 1;
     updateCard('search-time');
+    // The camouflage card puts the median of feature search beside its results
+    updateCard('search-camo');
     cards.get('search-time').search.resHeading.focus({ preventScroll: true });
   }
   // The sentences of the results in the order of the spec, without the two of the limits
@@ -762,6 +767,85 @@
     E('p', { class: 'res-ref-note' }, phrases(t('resRefNote')))];
   }
 
+  // ===== The camouflage card of the Search time tab: measuring (the button that opens the test in the dialog of the search experiment,
+  // the length of a run), the results, the small figure with its two controls right above it (the pattern and the mark) and the
+  // sentence of the pattern under it, how the test differs from the studies, and the sources =====
+  function buildCamoCard(model) {
+    const entry = ENTRIES.get(model.id), id = entry.id, used = new Set();
+    const parts = { choices: new Map(), ranges: new Map(), uses: [], camo: { version: null } };
+    const cp = parts.camo;
+    const heading = (key, suffix, extra = {}) => E('h4', { id: `${id}-${suffix}`, class: 'search-heading', ...extra }, phrases(t(key)));
+    const title = E('h3', { id: id + '-title', class: 'entry-title' }, richText(t(model.titleKey), model.titleTerms.map((tt) => ({ term: tt.term,
+      ja: tt.ja, en: tt.en })), used, id));
+    const start = E('button', { type: 'button', class: 'start-button', 'data-key': 'camo:start' }, phrases(t('camoStart')));
+    start.addEventListener('click', openCamoExperiment);
+    const measure = E('section', { class: 'search-measure', 'aria-labelledby': id + '-measure' }, heading('searchMeasureHeading', 'measure'),
+      E('div', { class: 'start-row' }, start), E('p', { class: 'search-note' }, phrases(t('camoDuration'))),
+      E('p', { class: 'search-note' }, phrases(t('camoReplace'))));
+    cp.clear = E('button', { type: 'button', class: 'res-clear', 'data-key': 'camo:clear' }, phrases(t('resClear')));
+    cp.clear.addEventListener('click', clearCamoResults);
+    cp.resHeading = heading('resHeading', 'results', { tabindex: '-1' });
+    cp.resBody = E('div', { class: 'res-body' });
+    const results = E('section', { class: 'search-results camo-results', 'aria-labelledby': id + '-results' }, cp.resHeading,
+      E('div', { class: 'res-privacy' }, E('p', {}, phrases(t('resPrivacy'))), cp.clear), cp.resBody);
+    // The sentence of each pattern in the same cell (only the current one is shown): the height is that of the longest
+    parts.readSigs = readSignatures(entry);
+    parts.readLive = E('div', { class: 'read-live' });
+    const controls = E('div', { class: 'controls' }, displayControls(entry).map((control) => buildControl(entry, control, parts)));
+    const uses = buildUses(entry, model, parts, used, [controls], [stackOf([...parts.readSigs.values()], parts.readLive, 'read-stack use-read')]);
+    const article = E('article', { id, class: 'entry search-entry camo-entry', 'aria-labelledby': title.id, tabindex: '-1' },
+      title, E('p', { class: 'entry-oneline' }, phrases(t(model.oneLineKey))), E('p', { class: 'entry-howto' }, phrases(t(model.howToKey))),
+      measure, results, uses);
+    if (model.gapKey) article.append(gapNote(model));
+    article.append(sourcesBox(model));
+    parts.article = article;
+    cards.set(id, parts);
+    return article;
+  }
+  // The results are drawn again when the camouflage test or the search experiment (the median of feature search) has new results
+  function updateCamo(cp) {
+    cp.clear.disabled = !state.camo.results;
+    const version = state.camo.version + ':' + state.experiment.version;
+    if (cp.version !== version) {
+      cp.resBody.replaceChildren(...buildCamoResults(state.camo.results));
+      cp.version = version;
+    }
+  }
+  // Clearing the results: the focus goes to the heading of the results (the button is off once nothing is left)
+  function clearCamoResults() {
+    state.camo.results = null;
+    state.camo.version += 1;
+    updateCard('search-camo');
+    cards.get('search-camo').camo.resHeading.focus({ preventScroll: true });
+  }
+  const camoLines = (summary) => View.camoResultTexts(Messages, state.language, Core.camoResultCases(summary));
+  // The results: how to read the chart, the chart (a bar of the median of each pattern with a dot for each round), the table (two
+  // tables below 720px), what a valid round is, the sentences, what studies have found, and the comparison with charts
+  function buildCamoResults(summary) {
+    if (!summary) return [E('p', { class: 'res-none' }, phrases(t('camoResNone')))];
+    const svg = svgFor('res-chart-svg camo-chart', 'camo-chart');
+    paintSvg(svg, View.camoResultChart(summary, { t: (key) => t(key) }), t('camoResChartTitle'), t('camoResChartDesc'));
+    const lines = (list, className) => E('div', { class: className }, list.map((line) => E('p', {}, phrases(line))));
+    return [E('p', { class: 'res-use' }, phrases(t('camoResChartUse'))), E('div', { class: 'res-chart' }, svg),
+      ...camoTables(View.camoResultRows(summary)), E('p', { class: 'res-excluded-note' }, phrases(t('camoValidNote'))),
+      lines(camoLines(summary), 'res-texts'),
+      E('div', { class: 'camo-research' }, E('p', { class: 'gap-head' }, phrases(t('camoResearchHeading'))), E('p', {}, phrases(t('camoResearch')))),
+      lines(View.camoContrastTexts(Messages, state.language, state.experiment.results.feature), 'res-texts camo-contrast')];
+  }
+  function camoTables(rows) {
+    const value = (x) => (x === null ? t('resNoValue') : String(x));
+    const head = (key) => E('th', { scope: 'col' }, phrases(t(key)));
+    // The name of a pattern can wrap between its words (it is long), unlike the row names of the search experiment
+    const row = (r, columns) => E('tr', {}, E('th', { scope: 'row' }, phrases(t(r.labelKey))), columns.map(([, field]) => E('td', {}, value(r[field]))));
+    const table = (className, caption, columns) => E('table', { class: 'res-table camo-table ' + className },
+      caption ? E('caption', {}, phrases(t(caption))) : null,
+      E('thead', {}, E('tr', {}, head('camoColPattern'), columns.map(([key]) => head(key)))), E('tbody', {}, rows.map((r) => row(r, columns))));
+    const median = ['camoColMedian', 'median'], valid = ['camoColValid', 'valid'], notFound = ['camoColNotFound', 'notFound'];
+    const wrong = ['camoColWrong', 'wrong'];
+    return [table('res-wide', null, [median, valid, notFound, wrong]), table('res-narrow', 'camoTableMedian', [median, valid]),
+      table('res-narrow', 'camoTableMisses', [notFound, wrong])];
+  }
+
   // ===== The search experiment: a dialog over the whole screen. The order of a try (the fixation point, the bars, the result, the
   // pause) and the times are those of AtlasSearch; this part draws its state and passes on the answers. The display changes inside
   // a requestAnimationFrame callback, and an answer carries event.timeStamp (the same clock as performance.now()) =====
@@ -769,28 +853,86 @@
   const ANSWERS = { absent: $('exp-absent'), present: $('exp-present') };
   const expSvg = svgFor('exp-svg', 'exp-figure');
   const expMessage = E('div', { class: 'exp-message', hidden: true });
-  expStage.append(expSvg, expMessage);
-  // exp: the running experiment (null when the dialog is closed); shownPart: what the square or the message shows now; stored: the
-  // results of this run have been kept
-  const run = { exp: null, search: null, shownPart: null, feedback: null, stored: false };
+  // The spots of the camouflage test: a 6 × 6 grid of buttons over the square, without lines or colors (the grid is not drawn). One spot
+  // takes Tab (a roving tabindex); the arrow keys move between the spots, and Enter or Space presses the one with the focus
+  const CAMO_START_SPOT = 14;  // up and left of the fixation point, where each try starts on the keyboard
+  const camoGrid = E('div', { class: 'camo-grid', role: 'group', hidden: true });
+  const camoSpots = Array.from({ length: 36 }, (_, i) => {
+    const spot = E('button', { type: 'button', class: 'camo-spot', tabindex: '-1', 'data-key': 'camo:spot:' + i });
+    spot.addEventListener('pointerdown', (event) => {
+      if (!run.exp || run.kind !== 'camo' || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      run.exp.respond({ cell: i, timeStamp: event.timeStamp, input: event.pointerType || 'mouse' });
+    });
+    // Enter or Space on the spot with the focus (a click without a pointer) answers as a key
+    spot.addEventListener('click', (event) => {
+      if (run.exp && run.kind === 'camo' && event.detail === 0) run.exp.respond({ cell: i, timeStamp: event.timeStamp, input: 'key' });
+    });
+    spot.addEventListener('focus', () => setRovingSpot(i));
+    spot.addEventListener('keydown', (event) => moveSpot(event, i));
+    camoGrid.append(spot);
+    return spot;
+  });
+  function setRovingSpot(i) {
+    camoSpots.forEach((spot, k) => { spot.tabIndex = k === i ? 0 : -1; });
+  }
+  // The arrow keys move one spot (they stop at the edges of the grid)
+  const SPOT_MOVES = { ArrowRight: [0, 1], ArrowLeft: [0, -1], ArrowDown: [1, 0], ArrowUp: [-1, 0] };
+  function moveSpot(event, i) {
+    const move = SPOT_MOVES[event.key];
+    if (!move || event.altKey || event.ctrlKey || event.metaKey) return;
+    event.preventDefault();
+    const row = Math.min(5, Math.max(0, Math.floor(i / 6) + move[0])), col = Math.min(5, Math.max(0, i % 6 + move[1]));
+    setRovingSpot(row * 6 + col);
+    camoSpots[row * 6 + col].focus({ preventScroll: true });
+  }
+  expStage.append(expSvg, camoGrid, expMessage);
+  // exp: the running experiment (null when the dialog is closed); kind: 'search' or 'camo'; shownPart: what the square or the message
+  // shows now; stored: the results of this run have been kept; tries: the try of the camouflage test drawn last
+  const run = { exp: null, kind: null, search: null, shownPart: null, feedback: null, stored: false, tries: 0 };
+  // The two kinds of test share the dialog: the search experiment answers with the two buttons under the square, the camouflage test
+  // with the spots over it
+  function setExperimentKind(kind) {
+    run.kind = kind;
+    run.shownPart = null;
+    run.stored = false;
+    run.tries = 0;
+    for (const button of Object.values(ANSWERS)) button.hidden = kind === 'camo';
+    camoGrid.hidden = true;
+  }
+  // The line of the result of a try keeps the height of its longest sentence
+  function feedbackLine(sizes) {
+    run.feedback = E('p', { 'aria-live': 'polite' });
+    $('exp-feedback').replaceChildren(stackOf(sizes, run.feedback, 'exp-feedback-stack'));
+  }
   function openExperiment(search) {
     if (run.exp) return;
     hideTip();
+    setExperimentKind('search');
     run.search = search;
-    run.shownPart = null;
-    run.stored = false;
     run.exp = Search.createExperiment({ now: () => performance.now(), raf: (callback) => requestAnimationFrame(callback), seed32: newSeed, search,
       set: state.experiment.set, onChange: drawExperiment });
     setWords($('exp-title'), View.experimentTitle(Messages, state.language, search, state.experiment.set));
-    // The line of the result of a try keeps the height of its longest sentence
-    run.feedback = E('p', { 'aria-live': 'polite' });
-    const sizes = [...['fbMiss', 'fbFalse', 'fbEarly', 'fbTimeout'].map((key) => [t(key)]), [t('fbCorrect', { t: '3.99' })]];
-    $('exp-feedback').replaceChildren(stackOf(sizes, run.feedback, 'exp-feedback-stack'));
+    feedbackLine([...['fbMiss', 'fbFalse', 'fbEarly', 'fbTimeout'].map((key) => [t(key)]), [t('fbCorrect', { t: '3.99' })]]);
+    expDialog.showModal();
+    drawExperiment(run.exp.state());
+  }
+  function openCamoExperiment() {
+    if (run.exp) return;
+    hideTip();
+    setExperimentKind('camo');
+    run.exp = Search.createCamoExperiment({ now: () => performance.now(), raf: (callback) => requestAnimationFrame(callback), seed32: newSeed,
+      onChange: drawExperiment });
+    setWords($('exp-title'), t('camoExpTitle'));
+    camoGrid.setAttribute('aria-label', t('camoGridLabel'));
+    camoSpots.forEach((spot, i) => spot.setAttribute('aria-label', t('camoCell', { r: Math.floor(i / 6) + 1, c: i % 6 + 1 })));
+    setRovingSpot(CAMO_START_SPOT);
+    feedbackLine(['camoFbCorrect', 'camoFbWrong', 'camoFbTimeout', 'fbEarly'].map((key) => [t(key)]));
     expDialog.showModal();
     drawExperiment(run.exp.state());
   }
   function drawExperiment(s) {
     if (!run.exp) return;
+    if (run.kind === 'camo') { drawCamo(s); return; }
     const trial = TRIAL_PHASES.includes(s.phase);
     const progress = s.progress ? t(s.progress.block === 'practice' ? 'expPractice' : 'expMain', { i: s.progress.i }) : '';
     if ($('exp-progress').textContent !== progress) setWords($('exp-progress'), progress);
@@ -823,16 +965,18 @@
       state.experiment.results = { ...state.experiment.results, [run.search]: summary };
       state.experiment.version += 1;
       updateCard('search-time');
+      updateCard('search-camo');
     }
     showExperimentMessage(s);
   }
+  // A button of the message in place of the square (Start, Continue, Resume, See the results)
+  function go(key, action) {
+    const button = E('button', { type: 'button', class: 'exp-go', 'data-key': 'exp:' + key }, phrases(t(key)));
+    button.addEventListener('click', action);
+    return button;
+  }
   // In place of the square: before the start, after the practice, while paused, and at the end
   function showExperimentMessage(s) {
-    const go = (key, action) => {
-      const button = E('button', { type: 'button', class: 'exp-go', 'data-key': 'exp:' + key }, phrases(t(key)));
-      button.addEventListener('click', action);
-      return button;
-    };
     let button, children;
     if (s.phase === 'ready') {
       button = go('expStart', () => run.exp.start());
@@ -854,6 +998,63 @@
     expDialog.scrollTop = 0;
     button.focus({ preventScroll: true });
   }
+  // The camouflage test: the fixation point, the bark-like pattern (drawn by the same part as the small figure of the card) with the
+  // spots over it, and the moth shape marked after a wrong spot or a time-out. A new try puts the focus back on the starting spot
+  function drawCamo(s) {
+    const trial = TRIAL_PHASES.includes(s.phase);
+    const progress = s.progress ? t(s.progress.block === 'practice' ? 'camoExpPractice' : 'camoExpMain', { i: s.progress.i }) : '';
+    if ($('exp-progress').textContent !== progress) setWords($('exp-progress'), progress);
+    const scene = s.visible && s.trial ? View.renderPart('camoSearchScene', { seed: s.trial.seed, pattern: s.trial.pattern, cell: s.trial.cell,
+      mark: s.mark }, ctx()).shapes : [];
+    paintSvg(expSvg, { width: View.SIZES.square, height: View.SIZES.square, shapes: s.phase === 'fixation' ? View.fixationShapes() : scene },
+      t('camoExpFigure'), null);
+    const feedback = s.phase === 'feedback' && s.feedback ? View.messageText(Messages, state.language, s.feedback) : '';
+    if (run.feedback.textContent !== feedback) setWords(run.feedback, feedback);
+    $('exp-abort').hidden = s.phase === 'done' || s.phase === 'aborted';
+    camoGrid.hidden = !trial;
+    expMessage.hidden = trial;
+    if (trial && s.tries !== run.tries) {
+      run.tries = s.tries;
+      setRovingSpot(CAMO_START_SPOT);
+      if (document.activeElement !== $('exp-abort')) camoSpots[CAMO_START_SPOT].focus({ preventScroll: true });
+    }
+    const part = trial ? 'trial' : s.phase;
+    if (part === run.shownPart) return;
+    run.shownPart = part;
+    if (trial) return;
+    // At the end (or when stopped) the results of the run take the place of the earlier ones; stopped before any recorded try, nothing
+    // is kept and the dialog closes
+    if ((s.phase === 'done' || s.phase === 'aborted') && !run.stored) {
+      const summary = run.exp.summary();
+      run.stored = true;
+      if (!summary) {
+        expDialog.close();
+        return;
+      }
+      state.camo.results = summary;
+      state.camo.version += 1;
+      updateCard('search-camo');
+    }
+    let button, children;
+    if (s.phase === 'ready') {
+      button = go('expStart', () => run.exp.start());
+      children = [E('p', {}, phrases(t('camoExpInstr'))), sampleRow('camoSampleMoth', [pictureSvg(View.mothSample(), 'sample')]),
+        E('p', { class: 'exp-reader' }, phrases(t('camoExpKeys'))), button];
+    } else if (s.phase === 'practiceDone') {
+      button = go('expContinue', () => run.exp.proceed());
+      children = [E('p', {}, phrases(t('expPracticeDone'))), button];
+    } else if (s.phase === 'paused') {
+      button = go('expResume', () => run.exp.resume());
+      children = [E('p', {}, phrases(t('expHidden'))), button];
+    } else {
+      button = go('expShowResults', () => expDialog.close());
+      children = [E('p', { class: 'exp-status' }, phrases(t(s.phase === 'done' ? 'expDone' : 'expAborted'))), button,
+        E('div', { class: 'exp-results' }, camoLines(state.camo.results).map((line) => E('p', {}, phrases(line))))];
+    }
+    expMessage.replaceChildren(...children);
+    expDialog.scrollTop = 0;
+    button.focus({ preventScroll: true });
+  }
   // Stop (the button and Esc): before the start and at the end it closes the dialog; while measuring it stops and keeps what was
   // measured (AtlasSearch.abort)
   function stopExperiment() {
@@ -870,9 +1071,10 @@
   expDialog.addEventListener('close', () => {
     if (!run.exp) return;
     if (!['ready', 'done', 'aborted'].includes(run.exp.state().phase)) run.exp.abort();
-    const search = run.search, stored = run.stored && !!run.exp.summary();
+    const key = run.kind === 'camo' ? 'camo:start' : `exp:start:${run.search}`, stored = run.stored && !!run.exp.summary();
     run.exp = null;
-    const button = document.querySelector(`[data-key="exp:start:${search}"]`);
+    camoGrid.hidden = true;
+    const button = document.querySelector(`[data-key="${key}"]`);
     if (!button) return;
     button.focus({ preventScroll: stored });
     if (stored) button.closest('.start-row').scrollIntoView({ block: 'start' });
@@ -882,7 +1084,7 @@
   const KEY_ANSWERS = { KeyF: 'absent', KeyJ: 'present', ArrowLeft: 'absent', ArrowRight: 'present', f: 'absent', F: 'absent', j: 'present',
     J: 'present' };
   document.addEventListener('keydown', (event) => {
-    if (!run.exp || !expDialog.open || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (!run.exp || run.kind !== 'search' || !expDialog.open || event.ctrlKey || event.metaKey || event.altKey) return;
     const answer = KEY_ANSWERS[event.code] || KEY_ANSWERS[event.key];
     if (!answer || !TRIAL_PHASES.includes(run.exp.state().phase)) return;
     event.preventDefault();
@@ -890,12 +1092,12 @@
   });
   for (const [answer, button] of Object.entries(ANSWERS)) {
     button.addEventListener('pointerdown', (event) => {
-      if (!run.exp || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      if (!run.exp || run.kind !== 'search' || (event.pointerType === 'mouse' && event.button !== 0)) return;
       run.exp.respond({ answer, timeStamp: event.timeStamp, input: event.pointerType || 'mouse' });
     });
     // Enter or Space on a focused button answers as a key
     button.addEventListener('click', (event) => {
-      if (run.exp && event.detail === 0) run.exp.respond({ answer, timeStamp: event.timeStamp, input: 'key' });
+      if (run.exp && run.kind === 'search' && event.detail === 0) run.exp.respond({ answer, timeStamp: event.timeStamp, input: 'key' });
     });
   }
   // The page hidden (another browser tab, another app): the try stops and does not count; "Resume" continues
@@ -974,6 +1176,7 @@
       if (u.linkedLive.textContent !== linked) setWords(u.linkedLive, linked);
     }
     if (parts.search) updateSearch(parts.search);
+    if (parts.camo) updateCamo(parts.camo);
     if (parts.motion) paintMotionButtons(id);
   }
 
@@ -1080,7 +1283,7 @@
         }))) : null;
       if (nav) children.push(nav);
       for (const m of entries) {
-        const article = m.experiment ? buildSearchCard(m) : buildCard(m);
+        const article = !m.experiment ? buildCard(m) : m.actions.includes('startCamo') ? buildCamoCard(m) : buildSearchCard(m);
         if (nav) {
           const back = E('button', { type: 'button', class: 'back-to-list', 'data-key': 'back:' + m.id },
             E('span', { 'aria-hidden': 'true' }, '▲'), phrases(t('backToList').replace(/^▲\s*/, '')));
@@ -1288,11 +1491,13 @@
     }
     return true;
   }
-  // Tab stays inside an open dialog (the help and the search experiment)
+  // Tab stays inside an open dialog (the help and the search experiment). A button out of the Tab order (the unchosen tab of the help, the
+  // spots of the camouflage test but the one with the roving tabindex) is not counted
   for (const dialog of [$('help-dialog'), $('exp-dialog')]) {
     dialog.addEventListener('keydown', (event) => {
       if (event.key !== 'Tab') return;
-      const focusable = [...dialog.querySelectorAll('button, a[href], input, select, summary, [tabindex="0"]')].filter(visibleFocusTarget);
+      const focusable = [...dialog.querySelectorAll('button, a[href], input, select, summary, [tabindex="0"]')]
+        .filter((el) => el.tabIndex >= 0 && visibleFocusTarget(el));
       const first = focusable[0], last = focusable[focusable.length - 1];
       if (!first) return;
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }

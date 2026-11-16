@@ -765,6 +765,22 @@
     return { width: SW, height: SH, shapes };
   });
 
+  // 迷彩の探す実験の場面（カードの小さな図と、実験の枠の中の図は、この同じ部品で描く）：樹皮の地・背景の斑点・蛾の形（地の色）・物の斑点。
+  // mark で蛾の形の外側に破線の印。どの図形も正方形の中に収まる（背景の斑点ははみ出さない所に置き、物の斑点は三角形で切り抜いてある）
+  register('camoSearchScene', (s) => {
+    const lay = Core.camoSearchLayout({ seed: s.seed || 1, pattern: s.pattern || 'match', cell: s.cell ?? null });
+    const n = lay.size, shapes = [rect(0, 0, n, n, `fill-bark-${lay.base}`)];
+    for (const g of lay.ground) shapes.push(el('ellipse', { cx: g.cx, cy: g.cy, rx: g.rx, ry: g.ry }, `fill-bark-${g.color}`));
+    shapes.push(path(Core.polygonPath(lay.moth), `fill-bark-${lay.base}`));
+    for (const p of lay.patches) shapes.push(path(Core.polygonPath(p.points), `fill-bark-${p.color}`));
+    if (s.mark) shapes.push(path(Core.polygonPath(lay.mark), 'stroke-barkMark camo-mark'));
+    return { width: n, height: n, shapes };
+  });
+  // 実験の枠の「探す形」の見本（蛾の形と同じ縦横の比の三角形）
+  function mothSample() {
+    return { width: 40, height: 40, shapes: [path(Core.polygonPath([[6, 13], [34, 13], [20, 27]]), 'stim-solid')] };
+  }
+
   const partNames = () => Object.keys(PARTS);
   function renderPart(name, settings, ctx) {
     if (!PARTS[name]) throw new Error('unknown part ' + name);
@@ -856,8 +872,9 @@
   const SIDE_LABEL = { show: 'showLabel', hide: 'hideLabel', readable: 'readableLabel', read: 'readLabel' };
   function entryModel(e) {
     const readable = e.uses.length > 0 && e.uses.every((u) => u.side === 'readable');
-    // 見せる側の小さな図しかない項目（探す時間）は、見出しに隠す側を書かない
+    // 見せる側の小さな図しかない項目（図形の数と探す時間）は、見出しに隠す側を書かない。隠す側だけの項目（迷彩の物を探す時間）はその逆
     const showOnly = e.uses.length > 0 && e.uses.every((u) => u.side === 'show');
+    const hideOnly = e.uses.length > 0 && e.uses.every((u) => u.side === 'hide');
     const sf = e.safety;
     const safetyActions = [];
     // 動く項目：「動かす」（動きを減らす設定では、代わりに「次のコマ」）と「止める」
@@ -876,11 +893,12 @@
           ? controlOptions(c).map((v, i) => `ctl.${e.id}.${c.id}.${c.steps ? c.steps[i] : String(v)}`) : [],
       })),
       actions: e.actions || [],
-      usesHeadingKey: readable ? 'usesHeadingReadable' : showOnly ? 'usesHeadingShow' : 'usesHeading',
+      usesHeadingKey: readable ? 'usesHeadingReadable' : showOnly ? 'usesHeadingShow' : hideOnly ? 'usesHeadingHide' : 'usesHeading',
       uses: e.uses.map((u) => ({ side: u.side, labelKey: SIDE_LABEL[u.side], titleKey: `fig.${e.id}.${u.side}.title`, part: u.part,
         textKey: u.textKey || null, noteKey: u.noteKey || null, link: u.link || null })),
       mainTitleKey: e.figure ? `fig.${e.id}.main.title` : null,
-      gapKey: e.gapKey, numbers: e.numbers || null, checkKey: e.checkKey || null, sources: e.sources, related: e.related,
+      gapKey: e.gapKey, gapHeadingKey: e.gapHeadingKey || 'gapHeading', numbers: e.numbers || null, checkKey: e.checkKey || null,
+      sources: e.sources, related: e.related,
       safety: { noticeKey: sf.stripes ? sf.noticeKey : null, actions: safetyActions, maxSeconds: sf.maxSeconds,
         colorHintKey: sf.colorOnly ? sf.colorHintKey || null : null },
     };
@@ -943,6 +961,8 @@
         if (!values.diff) return [{ key: 'lightRead.same', values: {} }];
         return [{ key: values.compare === 'band' ? 'lightRead.band' : 'lightRead.apart', values: {} }];
       }
+      // 迷彩の探す実験：小さな図の下の文は模様ごとに1文（印の有無では変わらない）
+      case 'camo': return [{ key: `camoRead.${values.pattern}`, values: {} }];
       case 'baseline': {
         if (!values.bottom) return [{ key: 'baseRead.zero', values: {} }];
         const out = [{ key: 'baseRead.raised', values: { b: String(values.bottom), r: f2(Core.baselineRatio(ds.libraryLoans3, values.bottom)) } }];
@@ -1143,6 +1163,56 @@
     return names.length ? fill(D.resChartDesc, { rows: names.join(lang === 'ja' ? '、' : '; ') }) : null;
   }
 
+  // ===== 迷彩の探す実験の結果の表とグラフと文 =====
+  // 秒の小数1桁（表示の丸めは文を選ぶ比べと同じ Core.tenths）
+  const seconds1 = (ms) => numberText((Core.tenths(ms) / 10).toFixed(1));
+  // 表の値：模様ごとに、中央値（秒の小数1桁の文字。出せなければ null）・有効な回・見つからなかった回・違う場所を押した回。summary＝summarizeCamo
+  function camoResultRows(summary) {
+    return Core.CAMO_PATTERNS.map((pattern) => {
+      const row = summary ? summary.rows[pattern] : null;
+      return { pattern, labelKey: `ctl.search-camo.pattern.${pattern}`, measured: !!row, median: row && row.median !== null ? seconds1(row.median) : null,
+        valid: row ? row.valid : null, notFound: row ? row.timeout : null, wrong: row ? row.wrong : null };
+    });
+  }
+  // 結果のグラフ：模様ごとの横の棒（中央値）に、有効な回の時間の点を重ねる。横軸は0〜10秒で決まっていて、値によって枠も目盛りも変わらない。
+  // 棒の上に模様の名前を書く（棒はどれも同じ色。色だけで区別させない）。中央値のない模様は点だけ
+  const CAMO_CHART = Object.freeze({ width: 280, height: 176, x0: 14, x1: 262, top: 24, row: 44 });
+  function camoResultChart(summary, { t }) {
+    const { width, height, x0, x1, top, row } = CAMO_CHART, limit = Core.CAMO_TIMEOUT_MS;
+    const X = (ms) => x0 + Math.min(Math.max(ms, 0), limit) / limit * (x1 - x0), axisY = top + 3 * row - 6;
+    const shapes = [text(4, 14, t('camoResAxis'), 'fig-axisname ta-start')];
+    Core.CAMO_PATTERNS.forEach((pattern, i) => {
+      const y = top + i * row, r = summary ? summary.rows[pattern] : null;
+      shapes.push(text(x0, y + 10, t(`ctl.search-camo.pattern.${pattern}`), 'fig-legend ta-start'));
+      if (r && r.median !== null) shapes.push(rect(x0, y + 16, X(r.median) - x0, 16, 'fill-seriesTarget'));
+      if (r) r.times.forEach((ms, k) => shapes.push(circle(X(ms), y + 24 + ((k % 3) - 1) * 4, 3, 'res-dot')));
+    });
+    shapes.push(line(x0, axisY, x1, axisY, 'fig-axis'));
+    for (let sec = 0; sec <= limit / 1000; sec += 2) {
+      const x = X(sec * 1000);
+      shapes.push(line(x, axisY, x, axisY + 4, 'fig-axis'), text(x, axisY + 16, numberText(sec), 'fig-tick ta-middle'));
+    }
+    return { width, height, shapes };
+  }
+  // 結果の文（camoResultCases の順）。{pattern} は文の中の模様の名前（英語は小文字で始める）、{d} は秒の小数1桁
+  function camoResultTexts(M, lang, cases) {
+    const D = dictionary(M, lang);
+    return cases.map(({ key, values }) => {
+      const v = {};
+      if (values.pattern) v.pattern = D[`camoPatternInline.${values.pattern}`];
+      if (values.d !== undefined) v.d = numberText(values.d.toFixed(1));
+      return fill(D[key], v);
+    });
+  }
+  // 見せる側との対比：グラフでは短いほど、迷彩では長いほど目的に合う、という1文。同じ画面で特徴探索を測っていれば、その「ある」の回の
+  // 中央値を並べる。feature＝特徴探索の summarizeBlock の結果か null
+  function camoContrastTexts(M, lang, feature) {
+    const D = dictionary(M, lang), out = [D.camoContrast];
+    const m = feature && feature.rows && feature.rows.present ? feature.rows.present.median : null;
+    if (typeof m === 'number') out.push(fill(D.camoContrastFeature, { t: seconds1(m) }));
+    return out;
+  }
+
   // ===== 図の説明（SVG の <desc>。いまの設定を文で表す） =====
   // side＝main（上の図）・show・hide。戻り値＝{ key, values, refs }。refs は「辞書のキーを引いて差し込む値」。
   // 説明の文がまだない項目は null（画面は <title> だけを付ける）
@@ -1199,7 +1269,8 @@
     fill, dictionary, partNames, renderPart, renderMain, renderUse, compose, popoutLayout, asymLayout, findLayout, markShapes, fixationShapes,
     sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, shownValue, useSettings, linkedLine, linkedText, buildViewModel, readCases,
     numbersCase, readKeysAll, texts, resultTexts, resultSetTexts, experimentTitle, messageText, descCase, descText, RESULT_SERIES, resultRows,
-    resultTop, resultChart, resultChartDesc, resultKey, numberText, stepLabel, motionPose, MOTION,
+    resultTop, resultChart, resultChartDesc, resultKey, numberText, stepLabel, motionPose, MOTION, mothSample, camoResultRows, camoResultChart,
+    camoResultTexts, camoContrastTexts, CAMO_CHART,
     SIZES: Object.freeze({ square: SQ, cell: CELL, card: [W, H], small: [SW, SH], aspect: [AW, AH], aspectPlot: [AMAXW, AMAXH] }),
     ASPECT_EDGE,
     DIFF, VARIETY, ANGLES, SCALES, JIT_ANGLE, JIT_SCALE,

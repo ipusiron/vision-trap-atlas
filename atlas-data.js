@@ -125,6 +125,29 @@
       related: [],
     },
     {
+      // 迷彩の物を探す実験（探す実験と同じ枠で行う）。上の図はなく、隠す側の小さな図だけ：つまみの模様で、決まった種の1場面
+      // （「印」で蛾の形の場所に破線の印）。図の下の文は模様ごとに1文（見方の文の場合分けで選ぶ）。目立ちやすさの数は出さない
+      id: 'search-camo', group: 'search', order: 20, experiment: true,
+      titleTerms: [{ term: 'termBackground', ja: '背景合わせ', en: 'background matching' },
+        { term: 'termDisruptive', ja: '分断色', en: 'disruptive coloration' }],
+      figure: null,
+      controls: [
+        { id: 'pattern', type: 'choice', options: ['match', 'disrupt', 'symmetric'], default: 'match' },
+        { id: 'mark', type: 'choice', options: ['off', 'on'], default: 'off' },
+      ],
+      actions: ['startCamo'],
+      read: { cases: 'camo' },
+      uses: [
+        { side: 'hide', part: 'camoSearchScene', params: { seed: 2612 }, bind: { pattern: 'pattern', mark: { to: 'mark', map: { off: false, on: true } } },
+          textKey: null, noteKey: 'hideNote', link: 'day085' },
+      ],
+      // 研究と画面の違いの注（探す実験の searchGap と同じ箱。見出しはこの項目のもの）
+      gapKey: 'camoGap', gapHeadingKey: 'camoGapHeading',
+      safety: still(),
+      sources: ['fraser2007', 'webster2013', 'cuthill2006', 'merilaita2017'],
+      related: ['day085'],
+    },
+    {
       id: 'gestalt-proximity-similarity', group: 'gestalt', order: 10,
       titleTerms: [{ term: 'termProximity', ja: '近接', en: 'Proximity' }, { term: 'termSimilarity', ja: '類同', en: 'similarity' }],
       figure: { part: 'proximityGrid', seed: 2101, params: {} },
@@ -411,6 +434,10 @@
       + 'visualization. Computer Graphics Forum, 33(3), 231–240.', doi: '10.1111/cgf.12379', level: 'A' },
     merilaita2017: { cite: 'Merilaita, S., Scott-Samuel, N. E., & Cuthill, I. C. (2017). How camouflage works. Philosophical Transactions of the '
       + 'Royal Society B, 372(1724), 20160341.', doi: '10.1098/rstb.2016.0341', level: 'A' },
+    fraser2007: { cite: 'Fraser, S., Callahan, A., Klassen, D., & Sherratt, T. N. (2007). Empirical tests of the role of disruptive coloration in '
+      + 'reducing detectability. Proceedings of the Royal Society B, 274(1615), 1325–1331.', doi: '10.1098/rspb.2007.0153', level: 'A' },
+    webster2013: { cite: 'Webster, R. J., Hassall, C., Herdman, C. M., Godin, J.-G. J., & Sherratt, T. N. (2013). Disruptive camouflage impairs '
+      + 'object recognition. Biology Letters, 9(6), 20130501.', doi: '10.1098/rsbl.2013.0501', level: 'A' },
   };
 
   // 関連ツール（目の性質を扱うものだけ）。リンクは別タブ
@@ -479,7 +506,9 @@
   // 明るさの対比（どちらのテーマでも同じ値）：lightGray＝四角と帯の灰色（どの段でも同じ）。lightLeft・lightRight＝周りの明るさの差の5段の
   // 左（暗くなる）と右（明るくなる）の周り。0%は左右とも同じ #9e9e9e で、四角の灰色と分けて置くので、0%でも四角が見える。
   // heat＝ヒートマップの値0〜100の10刻みの段（岡部・伊藤の配色の青 #0072b2 を白で薄める。値0で白90%、値100で0%）。heatText＝マスに書く数。
-  // veil＝迷彩の右の背景を明るくする薄い白（不透明度は図が付ける）
+  // veil＝迷彩の右の背景を明るくする薄い白（不透明度は図が付ける）。
+  // 迷彩の探す実験（どちらのテーマでも同じ値）：bark＝樹皮の4色（茶と灰。0が最も濃く3が最も明るい。1が地の色。岡部・伊藤の配色から選ばない）。
+  // barkMark＝蛾の形に付ける破線の印（どの樹皮の色とも3:1以上）
   const palette = {
     light: {
       paper: '#fffdf7', ink: '#152b45',
@@ -507,6 +536,8 @@
       heat: ['#e6f1f7', '#cfe4f0', '#b8d8e9', '#a1cbe3', '#8abedc', '#73b1d5', '#5ca5ce', '#4598c7', '#2e8bc0', '#177fb9', '#0072b2'],
       heatText: '#152b45',
       veil: '#ffffff',
+      bark: ['#2e2822', '#4f4438', '#6e6a62', '#8f877b'],
+      barkMark: '#ffffff',
     },
     dark: {
       paper: '#172940', ink: '#eaf1f6',
@@ -534,6 +565,8 @@
       heat: ['#e6f1f7', '#cfe4f0', '#b8d8e9', '#a1cbe3', '#8abedc', '#73b1d5', '#5ca5ce', '#4598c7', '#2e8bc0', '#177fb9', '#0072b2'],
       heatText: '#152b45',
       veil: '#ffffff',
+      bark: ['#2e2822', '#4f4438', '#6e6a62', '#8f877b'],
+      barkMark: '#ffffff',
     },
   };
 

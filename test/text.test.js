@@ -138,8 +138,10 @@ test('E: a tab is written 「XXX」タブ, not 「XXX」のタブ (the dictionar
 });
 
 test('E: charts stand for showing and camouflage for hiding: the sentences beside the camouflage figures say 迷彩, not 隠す側', () => {
-  // The headings of the short table, the names of the two terms and the labels of the small figures keep 見せる側・隠す側
-  const kept = ['contrastLine', 'contrastHead.show', 'contrastHead.hide', 'termShowSide', 'termHideSide'];
+  // The headings of the short table, the names of the two terms and the labels of the small figures keep 見せる側・隠す側, and so does the
+  // sentence of the camouflage results that sets charts beside camouflage in the words of the short table (グラフ（見せる側）・迷彩（隠す側）)
+  const kept = ['contrastLine', 'contrastHead.show', 'contrastHead.hide', 'termShowSide', 'termHideSide', 'camoContrast'];
+  assert.match(M.ja.camoContrast, /^グラフ（見せる側）では、.*迷彩（隠す側）では/);
   for (const [key, text] of Object.entries(M.ja)) if (!kept.includes(key)) assert.doesNotMatch(text, /隠す側|見せる側/, key);
   assert.match(M.ja.intro2, /^見せることを目的とする代表例がグラフ、隠すことを目的とする代表例が迷彩です。/);
   assert.equal(M.ja.termHideSideMeaning, '隠すことを目的とする使い方。代表例は迷彩');
@@ -436,4 +438,68 @@ test('E: the texts of the results area: the column of each number of items, the 
   assert.equal(V.resultChartDesc(M, 'ja', { feature, conjunction }),
     '図形の数ごとの真ん中の値を結んだ線（特徴・ある、特徴・ない、結合・ある）。同じ値を下の表に載せています。');
   assert.equal(V.resultChartDesc(M, 'ja', { feature: null, conjunction: null }), null);
+});
+
+// ===== The camouflage experiment =====
+const camoRows = (match, disrupt, symmetric, extra = {}) => ({ rows: { match: { median: match }, disrupt: { median: disrupt },
+  symmetric: { median: symmetric } }, aborted: false, mixedInput: false, ...extra });
+const camoTexts = (lang, summary) => V.camoResultTexts(M, lang, C.camoResultCases(summary));
+
+test('E: the sentences of the camouflage results: the two patterns against the background-matching one, in seconds with one decimal', () => {
+  assert.deepEqual(camoTexts('ja', camoRows(2000, 2400, 1600)), ['「輪郭を途切れさせる模様」は、背景に合わせた模様より0.4秒長くかかりました。',
+    '「左右対称の模様」は、背景に合わせた模様より0.4秒早く見つかりました。']);
+  assert.deepEqual(camoTexts('en', camoRows(2000, 2400, 1600)), [
+    'The pattern that breaks up the outline took 0.4 s longer than the background-matching pattern.',
+    'The symmetric pattern was found 0.4 s sooner than the background-matching pattern.']);
+  assert.deepEqual(camoTexts('ja', camoRows(2000, 2300, 2100)), ['「輪郭を途切れさせる模様」と背景に合わせた模様では、はっきりした差はありませんでした。',
+    '「左右対称の模様」と背景に合わせた模様では、はっきりした差はありませんでした。']);
+  assert.equal(camoTexts('en', camoRows(2000, 2300, 2100))[1],
+    'You found no clear difference between the symmetric pattern and the background-matching pattern.');
+  assert.deepEqual(camoTexts('ja', camoRows(1500, 4200, null, { aborted: true, mixedInput: true })), [
+    '「輪郭を途切れさせる模様」は、背景に合わせた模様より2.7秒長くかかりました。',
+    '有効な回が3回に届かない模様があるので、その模様の中央値は出していません。', '途中で止めたので、測れた回までを出しています。',
+    M.ja.resMixed]);
+  assert.deepEqual(camoTexts('ja', null), ['まだ測っていません。上の「迷彩の実験を始める」から始めます。']);
+  // Every case is filled in, in both languages
+  for (const summary of [null, camoRows(2000, 2400, 1600), camoRows(2000, 2300, 2100), camoRows(null, null, null, { aborted: true, mixedInput: true })]) {
+    for (const lang of ['ja', 'en']) for (const s of camoTexts(lang, summary)) assert.doesNotMatch(s, LEFTOVER, s);
+  }
+});
+
+test('E: the camouflage results set charts beside camouflage, with the median of the feature search measured on the same page', () => {
+  assert.deepEqual(V.camoContrastTexts(M, 'ja', null), ['グラフ（見せる側）では、見つけるまでの時間が短いほど目的に合い、迷彩（隠す側）では長いほど目的に合います。']);
+  const r = (setSize, present, rt) => ({ setSize, present, outcome: 'correct', rt, input: 'key' });
+  const feature = C.summarizeBlock([3, 6, 12, 18].flatMap((n) => [r(n, true, 600 + n), r(n, true, 640 + n), r(n, false, 900)]));
+  // The median of every valid "present" round of the feature search (the numbers of items together)
+  assert.equal(feature.rows.present.median, (618 + 643) / 2);
+  assert.deepEqual(V.camoContrastTexts(M, 'ja', feature), [M.ja.camoContrast, '同じ画面で測った特徴探索の「ある」の回の中央値は0.6秒でした。']);
+  assert.equal(V.camoContrastTexts(M, 'en', feature)[1], 'In the feature search you ran here, your median for "present" rounds was 0.6 s.');
+  // Fewer than 3 valid "present" rounds: no median, no second sentence
+  const few = C.summarizeBlock([r(3, true, 600), r(6, true, 700), r(3, false, 800)]);
+  assert.equal(few.rows.present.median, null);
+  assert.deepEqual(V.camoContrastTexts(M, 'en', few), [M.en.camoContrast]);
+});
+
+test('E: the texts of the camouflage test: the frame, the keyboard, the result of a try and the progress', () => {
+  assert.equal(M.ja.camoExpInstr, '樹皮のような模様の中に、蛾の形（底辺を上にした三角形）が1つ隠れています。見つけたら、できるだけ早くその場所を押してください。'
+    + '10秒たつと次へ進みます。はじめに練習が3回あります。');
+  assert.equal(M.ja.camoExpKeys, 'キーボードでは、矢印キーで場所を選び、EnterかSpaceで押します。場所を移る時間のぶん長くなるので、模様どうしを比べる目安として見てください。');
+  assert.deepEqual(['camoFbCorrect', 'camoFbWrong', 'camoFbTimeout'].map((k) => M.ja[k]), ['正解です。', '違う場所でした。蛾の形に印を付けました。',
+    '時間切れです。蛾の形に印を付けました。']);
+  assert.equal(V.messageText(M, 'ja', { key: 'camoExpMain', values: { i: 15 } }), '本番15／15');
+  assert.equal(V.messageText(M, 'en', { key: 'camoExpPractice', values: { i: 2 } }), 'Practice 2 / 3');
+  assert.equal(V.fill(M.ja.camoCell, { r: 3, c: 2 }), '3行2列');
+  // The numbers of rounds said on the card match those of the calculation (3 practice, 15 recorded) and the time limit (10 s)
+  assert.equal(C.CAMO_PATTERNS.length * C.CAMO_PRACTICE_REPS, 3);
+  assert.equal(C.CAMO_PATTERNS.length * C.CAMO_MAIN_REPS, 15);
+  assert.equal(S.TIMING.camoTimeout, 10000);
+  assert.match(M.ja.camoDuration, /^1回は練習3回と本番15回です。どの回も10秒たつと/);
+  // The names of the patterns: the same on the buttons, in the table and in the sentences (English starts the inline names in lower case)
+  for (const p of C.CAMO_PATTERNS) {
+    assert.equal(M.ja[`camoPatternInline.${p}`], M.ja[`ctl.search-camo.pattern.${p}`]);
+    assert.equal(M.en[`camoPatternInline.${p}`], M.en[`ctl.search-camo.pattern.${p}`].toLowerCase());
+  }
+  // The research and the gap note do not compare the times of the studies with yours
+  assert.match(M.ja.camoResearch, /研究の時間の値は自分の値と並べていません。$/);
+  assert.match(M.ja.camoGap, /研究の時間の値とは並べていません。$/);
 });
