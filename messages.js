@@ -324,7 +324,7 @@
       'motionRead.medium': '1つの丸だけが左右に動きます。探そうとする前に目に入りやすくなります。',
       'motionRead.large': '1つの丸だけが左右に大きく動きます。探そうとする前に目に入りやすくなります。',
       'motionRead.allMove': 'ほかの丸も動いています。動くことがその丸だけの違いではなくなるので、目に入りにくくなります。',
-      'camoRead.match': '背景と同じ色と大きさの斑点で描いた模様です。物の面は背景になじみますが、三角形の縁では斑点がまっすぐ途切れます。',
+      'camoRead.match': '背景と同じ色と大きさの斑点で描いた模様です。地の色だけ背景より一段明るく、三角形の縁では斑点がまっすぐ途切れます。',
       'camoRead.disrupt': '背景に合わせた模様の斑点の一部を縁の上へ移し、樹皮で最も濃い色と最も明るい色に塗ったので、三角形の縁が途切れて見えます。',
       'camoRead.symmetric': '背景に合わせた模様の左半分を縦の中心線で右へ写したので、左右が同じ並びになります。',
       'proxRead.even.none':'点は縦にも横にも同じ間隔で、形も同じです。行にも列にもまとまりにくい並びです。',
@@ -703,6 +703,7 @@
       camoFbCorrect: '正解です。',
       camoFbWrong: '違う場所でした。蛾の形に印を付けました。',
       camoFbTimeout: '時間切れです。蛾の形に印を付けました。',
+      camoFbPattern: 'この回は「{pattern}」でした。',
       camoCell: '{r}行{c}列',
       camoGridLabel: '場所のます目（6×6）',
       camoExpFigure: '樹皮のような模様の図',
@@ -1295,8 +1296,8 @@
       'motionRead.medium': 'Only one circle moves from side to side. It tends to catch your eye before you start searching.',
       'motionRead.large': 'Only one circle moves from side to side, and by a lot. It tends to catch your eye before you start searching.',
       'motionRead.allMove': 'The other circles move too. Moving no longer sets that one circle apart, so it stands out less.',
-      'camoRead.match': 'Drawn with patches of the same colors and sizes as the background, so the surface blends in, though the patches stop in straight '
-        + 'lines at the edges of the triangle.',
+      'camoRead.match': 'Drawn with patches of the same colors and sizes as the background. Only its ground is one shade lighter, and the patches stop '
+        + 'in straight lines at the edges.',
       'camoRead.disrupt': 'Some patches of the background-matching pattern are moved onto the edge and painted in the darkest and lightest bark colors, '
         + 'so the edges of the triangle look broken.',
       'camoRead.symmetric': 'The left half of the background-matching pattern is copied to the right across the vertical center line, so both sides '
@@ -1770,6 +1771,7 @@
       camoFbCorrect: 'Correct.',
       camoFbWrong: 'That was not it. The moth shape is now marked.',
       camoFbTimeout: 'Time is up. The moth shape is now marked.',
+      camoFbPattern: 'This round: {pattern}.',
       camoCell: 'Row {r}, column {c}',
       camoGridLabel: 'Grid of spots (6 × 6)',
       camoExpFigure: 'Bark-like pattern',

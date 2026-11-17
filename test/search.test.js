@@ -523,9 +523,14 @@ function camoTry(clock, exp, { rt = 1200, how = 'right', input = 'mouse' } = {})
   const st = exp.state(), marked = how === 'wrong' || how === 'timeout';
   assert.equal(st.phase, 'feedback');
   assert.deepEqual([st.visible, st.mark], [marked, marked], 'the pattern stays with the mark after a wrong spot or a time-out');
-  clock.frame(t + (marked ? 999 : 499));
+  // A counted round names its pattern; a press too early does not, since the same round comes again
+  assert.equal(st.feedback.pattern, how === 'early' ? null : trial.pattern);
+  // The result line: 1.2 s after a right spot, the mark 1.5 s after a wrong spot or a time-out (long enough to read the pattern), 0.5 s
+  // after a press too early
+  const length = marked ? 1500 : how === 'early' ? 500 : 1200;
+  clock.frame(t + length - 1);
   assert.equal(exp.state().phase, 'feedback');
-  clock.frame(t += marked ? 1000 : 500);
+  clock.frame(t += length);
   assert.equal(exp.state().phase, 'gap');
   assert.deepEqual([exp.state().visible, exp.state().mark], [false, false]);
   clock.frame(t += 300);
@@ -564,7 +569,7 @@ test('D: classifyCamo at 199, 200, 9,999 and 10,000 ms, a wrong spot and the fix
   assert.equal(c(8, 900, 'fixation'), 'early');
 });
 
-test('D: a camouflage try: fixation 500, the pattern, a tap, the result 0.5 s (right) or the mark 1 s (wrong spot, time-out), gap 300', () => {
+test('D: a camouflage try: fixation 500, the pattern, a tap, the result 1.2 s (right) or the mark 1.5 s (wrong spot, time-out), gap 300', () => {
   const clock = fakeTime(), exp = camoExp(clock);
   assert.equal(exp.state().phase, 'ready');
   exp.start();
@@ -598,7 +603,7 @@ test('D: the camouflage test: 3 practice and 15 recorded rounds; an early tap go
   // An early tap during the fixation point: not counted, the round comes back at the end of the practice
   clock.frame(clock.now() + 16);
   exp.respond({ cell: 0, timeStamp: clock.now(), input: 'touch' });
-  assert.deepEqual(exp.state().feedback, { key: 'fbEarly', values: {} });
+  assert.deepEqual(exp.state().feedback, { key: 'fbEarly', values: {}, pattern: null });
   assert.equal(exp.state().visible, false);
   clock.frame(clock.now() + 500);
   clock.frame(clock.now() + 300);

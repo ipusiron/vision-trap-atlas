@@ -404,6 +404,10 @@ test('G: the feature table gives the numbers of the data and the calculation (bo
 
 test('G: the technical notes give the values of the calculation, the experiments and the misreading entries (both languages)', () => {
   const T = S.TIMING, ref = D.references;
+  // The largest square of the camouflage test on landscape screens, as the CSS gives it
+  const camoRule = /\.exp-camo \.exp-stage \{ width: min\(100dvh - 96px, 100vw - 288px, (\d+)px\)/.exec(fs.readFileSync(path.join(root, 'style.css'), 'utf8'));
+  assert.ok(camoRule, 'the CSS of the square of the camouflage test');
+  const CAMO_SQUARE = Number(camoRule[1]);
   // The spread of the difference of two slopes: SD 200 ms, the middle value of MAIN_REPS tries, the slope over the numbers of items
   const mean = C.SET_SIZES.reduce((a, b) => a + b, 0) / C.SET_SIZES.length;
   const sxx = C.SET_SIZES.reduce((s, n) => s + (n - mean) ** 2, 0);
@@ -434,7 +438,8 @@ test('G: the technical notes give the values of the calculation, the experiments
         `幅と高さの比は${C.CAMO.mothW / C.CAMO.mothH}：1`, `斑点${C.CAMO.ground.toLocaleString('en-US')}個`, `斑点${C.CAMO.patches}個`, `そのうち${C.CAMO.edges}個`,
         `練習${C.CAMO_PRACTICE_REPS}回（数えない）と本番${C.CAMO_MAIN_REPS}回`,
         `練習${C.CAMO_PATTERNS.length * C.CAMO_PRACTICE_REPS}回と本番${C.CAMO_PATTERNS.length * C.CAMO_MAIN_REPS}回`,
-        `注視点${sec(T.fixation)}秒 → 模様（${sec(T.camoTimeout)}秒まで）`, `${sec(T.feedback)}秒`, `${sec(T.camoMark)}秒見せる`, `間${sec(T.gap)}秒`,
+        `注視点${sec(T.fixation)}秒 → 模様（${sec(T.camoTimeout)}秒まで）`, `正解は${sec(T.camoFeedback)}秒、早すぎた回は${sec(T.feedback)}秒`,
+        `${sec(T.camoMark)}秒見せる`, `間${sec(T.gap)}秒`, 'その回の模様の名前を続ける', '背景の地の色より一段明るい色', `最大${CAMO_SQUARE}px`,
         `${C.EARLY_MS}ミリ秒未満`, `有効な回が${C.MIN_VALID}回以上`, `真ん中の値の${Math.round(C.CAMO_SIMILAR * 10)}割`, `0.2秒以上${sec(T.camoTimeout)}秒未満`,
         'Fraserら（2007）は1枚5秒', 'Websterら（2013）の探す時間は的ごとの平均で2〜10秒', '研究で決まった値ではない'],
       3: [`${loans.join('・')}百冊`, `${Math.max(...loans)}÷${Math.min(...loans)}≈${f2(Math.max(...loans) / Math.min(...loans))}倍`,
@@ -459,7 +464,9 @@ test('G: the technical notes give the values of the calculation, the experiments
         `${C.CAMO.ground.toLocaleString('en-US')} tall oval patches`, `${C.CAMO.patches} patches`, `moves ${C.CAMO.edges} of them`,
         `${C.CAMO_PRACTICE_REPS} practice round (not counted) and ${C.CAMO_MAIN_REPS} recorded rounds`,
         `${C.CAMO_PATTERNS.length * C.CAMO_PRACTICE_REPS} practice rounds and ${C.CAMO_PATTERNS.length * C.CAMO_MAIN_REPS} recorded rounds`,
-        `fixation point ${sec(T.fixation)} s → pattern (up to ${sec(T.camoTimeout)} s)`, `(${sec(T.feedback)} s after`, `shown for ${sec(T.camoMark)} s`,
+        `fixation point ${sec(T.fixation)} s → pattern (up to ${sec(T.camoTimeout)} s)`,
+        `(${sec(T.camoFeedback)} s after a correct press, ${sec(T.feedback)} s after a press too early`, `shown for ${sec(T.camoMark)} s`,
+        'name the pattern of the round', 'one shade lighter than the ground of the background', `up to ${CAMO_SQUARE}px`,
         `pause ${sec(T.gap)} s`, `under ${C.EARLY_MS} ms`, `${C.MIN_VALID} or more valid rounds`, `${Math.round(C.CAMO_SIMILAR * 100)}% of the middle value`,
         `at least 0.2 s and within ${sec(T.camoTimeout)} s`, '5 seconds per image in Fraser et al. (2007)',
         'average search times of 2 to 10 seconds per target in Webster et al. (2013)',

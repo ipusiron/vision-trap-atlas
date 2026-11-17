@@ -10,9 +10,10 @@
   'use strict';
 
   // 実験の1回の流れ（ミリ秒）。注視点・結果の文・間の長さは画面の決まり、早すぎと時間切れは集計と同じ値。
-  // 迷彩の実験：1回の制限 camoTimeout、違う場所と時間切れのあと蛾の形に印を付けて見せる長さ camoMark
+  // 迷彩の実験：1回の制限 camoTimeout、正解のあとの文の長さ camoFeedback、違う場所と時間切れのあと蛾の形に印を付けて見せる長さ camoMark
+  // （どちらも、その回の模様の名前まで読める長さ）
   const TIMING = Object.freeze({ fixation: 500, feedback: 500, gap: 300, timeout: Core.TIMEOUT_MS, early: Core.EARLY_MS, reveal: 10000,
-    camoTimeout: Core.CAMO_TIMEOUT_MS, camoMark: 1000 });
+    camoTimeout: Core.CAMO_TIMEOUT_MS, camoFeedback: 1200, camoMark: 1500 });
   const fmt = (x, digits) => (Math.round(x * 10 ** digits) / 10 ** digits).toFixed(digits);
   const stampOf = (event, now) => (event && typeof event.timeStamp === 'number' ? event.timeStamp : now());
 
@@ -228,7 +229,8 @@
 
   // ===== 迷彩の探す実験 =====
   // 進み方は探す実験と同じ（準備 → 練習 → 本番 → 結果、中断、ページが隠れたら止める）。1回の流れ：注視点0.5秒 → 樹皮の模様（10秒まで。
-  // 見つけたマスを押す）→ 押したあとの文（正解と早すぎは0.5秒。違う場所と時間切れは、蛾の形に印を付けて1秒見せる）→ 間0.3秒。
+  // 見つけたマスを押す）→ 押したあとの文（正解は1.2秒、早すぎは0.5秒。違う場所と時間切れは、蛾の形に印を付けて1.5秒見せる。数えた回は
+  // その回の模様の名前も出す）→ 間0.3秒。
   // 早すぎた回とページが隠れた回は数えず、同じ回をブロックの最後へ1回だけ回す。tries＝始めた回の数（画面が新しい回を見分けるため）
   const CAMO_FEEDBACK = { correct: 'camoFbCorrect', wrong: 'camoFbWrong', timeout: 'camoFbTimeout', early: 'fbEarly' };
   function createCamoExperiment({ now, raf, seed32, onChange = () => {}, timing = {}, reps = Core.CAMO_MAIN_REPS,
@@ -288,10 +290,11 @@
     }
     function finish(outcome, rt, cell, input, at) {
       record(outcome, rt, cell, input);
-      // 違う場所と時間切れは、模様を残したまま蛾の形に印を付ける。正解と早すぎは模様を消す
-      const marked = outcome === 'wrong' || outcome === 'timeout';
-      Object.assign(s, { phase: 'feedback', visible: marked, mark: marked, fbStart: at, fbLength: marked ? T.camoMark : T.feedback,
-        feedback: { key: CAMO_FEEDBACK[outcome], values: {} } });
+      // 違う場所と時間切れは、模様を残したまま蛾の形に印を付ける。正解と早すぎは模様を消す。早すぎた回は同じ回をやり直すので、模様を明かさない
+      const marked = outcome === 'wrong' || outcome === 'timeout', counted = marked || outcome === 'correct';
+      Object.assign(s, { phase: 'feedback', visible: marked, mark: marked, fbStart: at,
+        fbLength: marked ? T.camoMark : outcome === 'correct' ? T.camoFeedback : T.feedback,
+        feedback: { key: CAMO_FEEDBACK[outcome], values: {}, pattern: counted ? s.trial.pattern : null } });
       emit();
     }
     function next() {

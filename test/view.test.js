@@ -721,7 +721,8 @@ test('C: the camouflage scene: the bark ground, the background spots, the moth s
   const paths = plain.shapes.filter((s) => s.type === 'path');
   assert.equal(paths.length, 1 + C.CAMO.patches, 'the moth shape and its patches');
   assert.equal(pathPoints(paths[0].attrs.d).length, 3, 'the moth shape is the first path, a triangle');
-  assert.equal(paths[0].cls, 'fill-bark-1', 'in the color of the ground');
+  assert.equal(paths[0].cls, 'fill-bark-2', 'on a ground one step lighter than the background');
+  assert.equal(C.CAMO.mothBase, C.CAMO.base + 1);
   assert.equal(plain.shapes.filter((s) => s.cls.includes('camo-mark')).length, 0);
   // The mark: one dashed triangle around the moth shape, drawn last; the rest of the scene stays the same
   const mark = marked.shapes.at(-1);
@@ -744,6 +745,13 @@ test('C: the camouflage scene: the bark ground, the background spots, the moth s
   // The sample of the shape to find in the dialog: a triangle with its base at the top, twice as wide as it is high
   const sample = box(pathPoints(V.mothSample().shapes[0].attrs.d));
   assert.equal((sample[2] - sample[0]) / (sample[3] - sample[1]), 2);
+});
+
+test('C: the line after a camouflage try: a counted round names its pattern, a press too early does not', () => {
+  assert.equal(V.camoFeedbackText(M, 'ja', { key: 'camoFbCorrect', values: {}, pattern: 'disrupt' }), '正解です。この回は「輪郭を途切れさせる模様」でした。');
+  assert.equal(V.camoFeedbackText(M, 'en', { key: 'camoFbTimeout', values: {}, pattern: 'match' }),
+    'Time is up. The moth shape is now marked. This round: Background-matching pattern.');
+  assert.equal(V.camoFeedbackText(M, 'ja', { key: 'fbEarly', values: {}, pattern: null }), M.ja.fbEarly);
 });
 
 test('C: the bark colors of the camouflage experiment: the same in both themes, darkest to lightest, not Okabe–Ito, and the mark 3:1 on each', () => {
