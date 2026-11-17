@@ -281,6 +281,9 @@
     rx: Object.freeze([1.2, 2.6]),                // 斑点の横の半径
     ratio: Object.freeze([2.6, 4.4]),             // 斑点の縦の半径÷横の半径
     base: 1, spots: Object.freeze([0, 2, 3]),     // 地の色と斑点の色（palette.bark の添字。0が最も濃く、3が最も明るい）
+    // 蛾の形の地の色は、背景の地の色より一段明るい2にする。背景と同じ1にすると、手がかりが三角形の縁で斑点が切れる所だけになり、
+    // 人が試すと10秒ではほとんど見つからなかった。斑点の色・大きさ・数はどの模様でも背景と同じなので、3つの模様の比べ方は変わらない
+    mothBase: 2,
     darkest: 0, lightest: 3,
     sides: 12,                                    // 物の斑点を描く多角形の頂点の数
     edges: 4,                                     // 分断色で縁へ移す斑点の数
@@ -415,7 +418,7 @@
     }
     const place = ([x, y]) => [cx + x, cy + y];
     return {
-      size: CAMO_SIZE, cell: at, center: [cx, cy], pattern, base: CAMO.base, ground,
+      size: CAMO_SIZE, cell: at, center: [cx, cy], pattern, base: CAMO.base, mothBase: CAMO.mothBase, ground,
       moth: MOTH.map(place), mark: grownTriangle(MOTH, CAMO.markGap).map(place),
       patches: patches.map((p) => {
         const points = cut(p);

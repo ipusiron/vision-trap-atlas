@@ -627,8 +627,10 @@ test('E: the camouflage results call the median 真ん中の値 and "middle valu
   assert.ok(terms, 'the term of camoResChartUse');
   assert.deepEqual([terms[1], terms[2]], ['真ん中の値', 'middle value']);
   assert.ok(M.ja.camoResChartUse.includes(terms[1]) && M.en.camoResChartUse.includes(terms[2]));
-  // The pattern that matches the background in two sentences
-  assert.equal(M.ja['camoRead.match'], '背景と同じ色と大きさの斑点で描いた模様です。物の面は背景になじみますが、三角形の縁では斑点がまっすぐ途切れます。');
+  // The pattern that matches the background in two sentences: the patches of the background, on a ground one step lighter (with the same
+  // ground the moth shape could hardly be found in 10 seconds)
+  assert.equal(M.ja['camoRead.match'], '背景と同じ色と大きさの斑点で描いた模様です。地の色だけ背景より一段明るく、三角形の縁では斑点がまっすぐ途切れます。');
+  assert.deepEqual([M.ja.camoFbPattern, M.en.camoFbPattern], ['この回は「{pattern}」でした。', 'This round: {pattern}.']);
   assert.equal(M.en.camoDuration, 'The test has 3 practice rounds and 15 recorded rounds. Every round moves on after 10 seconds, so it takes about 4 minutes '
     + 'at most.');
 });

@@ -787,7 +787,7 @@
     const lay = Core.camoSearchLayout({ seed: s.seed || 1, pattern: s.pattern || 'match', cell: s.cell ?? null });
     const n = lay.size, shapes = [rect(0, 0, n, n, `fill-bark-${lay.base}`)];
     for (const g of lay.ground) shapes.push(el('ellipse', { cx: g.cx, cy: g.cy, rx: g.rx, ry: g.ry }, `fill-bark-${g.color}`));
-    shapes.push(path(Core.polygonPath(lay.moth), `fill-bark-${lay.base}`));
+    shapes.push(path(Core.polygonPath(lay.moth), `fill-bark-${lay.mothBase}`));
     for (const p of lay.patches) shapes.push(path(Core.polygonPath(p.points), `fill-bark-${p.color}`));
     if (s.mark) shapes.push(path(Core.polygonPath(lay.mark), 'stroke-barkMark camo-mark'));
     return { width: n, height: n, shapes };
@@ -1141,6 +1141,13 @@
     return fill(D.expTitle, { search: searchName(D, search, false), set: D[set === 'fill' ? 'setFillShort' : 'setColorShort'] });
   }
   const messageText = (M, lang, msg) => fill(dictionary(M, lang)[msg.key], msg.values || {});
+  // 迷彩の実験の押したあとの文：数えた回（正解・違う場所・時間切れ）は、その回の模様の名前を続ける。早すぎた回は同じ回をやり直すので、
+  // 模様を明かさない
+  function camoFeedbackText(M, lang, msg) {
+    const D = dictionary(M, lang), first = messageText(M, lang, msg);
+    if (!msg.pattern) return first;
+    return [first, fill(D.camoFbPattern, { pattern: D[`ctl.search-camo.pattern.${msg.pattern}`] })].join(lang === 'ja' ? '' : ' ');
+  }
 
   // ===== 探す実験の結果の表とグラフ =====
   // 4本の行（特徴・結合×ある・ない）。ある＝実線と塗った印、ない＝破線と白抜きの印。特徴＝丸、結合＝三角
@@ -1328,7 +1335,8 @@
     fill, dictionary, partNames, renderPart, renderMain, renderUse, compose, popoutLayout, asymLayout, findLayout, markShapes, fixationShapes,
     sampleShapes, cellCenter, controlValues, controlOptions, controlEnabled, shownValue, useSettings, linkedLine, linkedText, useTextKey, useTextKeys,
     buildViewModel, readCases, BASE_SMALL,
-    numbersCase, readKeysAll, texts, resultTexts, resultSetTexts, experimentTitle, messageText, descCase, descText, RESULT_SERIES, resultRows,
+    numbersCase, readKeysAll, texts, resultTexts, resultSetTexts, experimentTitle, messageText, camoFeedbackText, descCase, descText, RESULT_SERIES,
+    resultRows,
     resultTop, resultChart, resultChartDesc, resultKey, numberText, stepLabel, motionPose, MOTION, mothSample, camoResultRows, camoResultChart,
     camoResultTexts, camoContrastTexts, CAMO_CHART, renderCheckFigure, RESULT_CHART,
     SIZES: Object.freeze({ square: SQ, cell: CELL, card: [W, H], small: [SW, SH], aspect: [AW, AH], aspectPlot: [AMAXW, AMAXH] }),

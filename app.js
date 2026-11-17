@@ -1035,6 +1035,8 @@
     run.stored = false;
     run.tries = 0;
     for (const button of Object.values(ANSWERS)) button.hidden = kind === 'camo';
+    // The camouflage test takes a larger square on wide screens (the CSS of .exp-camo)
+    expDialog.classList.toggle('exp-camo', kind === 'camo');
     camoGrid.hidden = true;
   }
   // The line of the result of a try keeps the height of its longest sentence
@@ -1064,7 +1066,9 @@
     camoGrid.setAttribute('aria-label', t('camoGridLabel'));
     camoSpots.forEach((spot, i) => spot.setAttribute('aria-label', t('camoCell', { r: Math.floor(i / 6) + 1, c: i % 6 + 1 })));
     setRovingSpot(CAMO_START_SPOT);
-    feedbackLine(['camoFbCorrect', 'camoFbWrong', 'camoFbTimeout', 'fbEarly'].map((key) => [t(key)]));
+    // The line keeps the height of its longest sentence: each counted result with the name of each pattern, and a press too early
+    feedbackLine([...['camoFbCorrect', 'camoFbWrong', 'camoFbTimeout'].flatMap((key) => Core.CAMO_PATTERNS.map((pattern) => [
+      View.camoFeedbackText(Messages, state.language, { key, pattern })])), [t('fbEarly')]]);
     expDialog.showModal();
     drawExperiment(run.exp.state());
   }
@@ -1148,7 +1152,7 @@
       mark: s.mark }, ctx()).shapes : [];
     paintSvg(expSvg, { width: View.SIZES.square, height: View.SIZES.square, shapes: s.phase === 'fixation' ? View.fixationShapes() : scene },
       t('camoExpFigure'), null);
-    const feedback = s.phase === 'feedback' && s.feedback ? View.messageText(Messages, state.language, s.feedback) : '';
+    const feedback = s.phase === 'feedback' && s.feedback ? View.camoFeedbackText(Messages, state.language, s.feedback) : '';
     if (run.feedback.textContent !== feedback) setWords(run.feedback, feedback);
     $('exp-abort').hidden = s.phase === 'done' || s.phase === 'aborted';
     camoGrid.hidden = !trial;

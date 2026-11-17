@@ -2297,17 +2297,23 @@ class CamoRun:
     """Drives the camouflage test with the clock held and keeps the test's own record of the recorded tries. rounds: the rounds
     computed from the seed (None: the cell of each round is read from the scene, and the pattern is not known)."""
 
-    # The steps of the clock to the next scene (ms, a frame each): after a right spot or a press too early, the end of the result line
-    # (500); after a wrong spot or a time-out, the end of the mark (1,000); then the end of the pause (300) and the fixation point (500)
-    AFTER = {"short": (510, 310, 16, 510), "mark": (1010, 310, 16, 510)}
+    # The steps of the clock to the next scene (ms, a frame each): the end of the result line after a right spot (1,200) or a press too
+    # early (500), or the end of the mark after a wrong spot or a time-out (1,500); then the end of the pause (300) and the fixation (500)
+    AFTER = {"right": (1210, 310, 16, 510), "early": (510, 310, 16, 510), "mark": (1510, 310, 16, 510)}
 
     def __init__(self, page, language, touch, rounds=None):
-        self.page, self.L, self.touch = page, M[language], touch
+        self.page, self.L, self.touch, self.lang = page, M[language], touch, language
         self.rounds = {k: [dict(r) for r in rounds[k]] for k in ("practice", "main")} if rounds else None
         self.block, self.index, self.records, self.skip, self.shows = "practice", 0, [], (510,), 0
 
     def state(self):
         return self.page.evaluate(CAMO_STATE)
+
+    def lines(self, key, pattern):
+        """The line after a counted round: the result, then the name of the pattern of the round (any of the three when it is not known)."""
+        names = [pattern] if pattern else ["match", "disrupt", "symmetric"]
+        return [self.L[key] + ("" if self.lang == "ja" else " ") + fill(self.L["camoFbPattern"], pattern=self.L[f"ctl.search-camo.pattern.{p}"])
+                for p in names]
 
     def forward(self, *steps):
         for step in steps:
@@ -2358,7 +2364,7 @@ class CamoRun:
         if seen:
             seen(s)
         record = {"pattern": current["pattern"], "target": current["cell"], "requeued": bool(current.get("requeued"))}
-        after = "short"
+        after = "right" if kind == "right" else "early"
         if kind in ("right", "wrong"):
             # The display starts at the frame after the one that showed it; the tap comes rt later
             self.forward(16, rt)
@@ -2369,16 +2375,19 @@ class CamoRun:
             check(abs(real - rt) < 17, ("the time of the tap", rt, real))
             record["rt"], record["outcome"] = real, "correct" if kind == "right" else "wrong"
             if kind == "right":
-                check(a["feedback"] == self.L["camoFbCorrect"] and a["ellipses"] == 0, ("right: the scene goes away", a["feedback"]))
+                check(a["feedback"] in self.lines("camoFbCorrect", current["pattern"]) and a["ellipses"] == 0,
+                      ("right: the scene goes away, and the line names the pattern", a["feedback"]))
             else:
-                check(a["feedback"] == self.L["camoFbWrong"] and a["ellipses"] == 1800 and a["marked"] == 1, ("wrong: the mark", a["feedback"]))
+                check(a["feedback"] in self.lines("camoFbWrong", current["pattern"]) and a["ellipses"] == 1800 and a["marked"] == 1,
+                      ("wrong: the mark, and the line names the pattern", a["feedback"]))
                 after = "mark"
         elif kind == "timeout":
             self.forward(16, 9990)
             check(self.state()["feedback"] == "", "still searching at 9,990 ms")
             self.forward(20)
             a = self.state()
-            check(a["feedback"] == self.L["camoFbTimeout"] and a["marked"] == 1 and a["ellipses"] == 1800, ("time is up at 10 s: the mark", a))
+            check(a["feedback"] in self.lines("camoFbTimeout", current["pattern"]) and a["marked"] == 1 and a["ellipses"] == 1800,
+                  ("time is up at 10 s: the mark, and the line names the pattern", a))
             record.update(outcome="timeout", rt=10000, cell=None, input=None)
             after = "mark"
         elif kind == "early":
@@ -2466,7 +2475,9 @@ def assert_camo_layout(page, name, layouts, trial=True):
     buttons, no sideways scroll, no theme or language button and no explanation of a term in the dialog."""
     m = page.evaluate(CAMO_LAYOUT)
     portrait = m["innerH"] >= m["innerW"]
-    side = min(m["innerW"] - 32, m["innerH"] - 200, 360) if portrait else min(m["innerH"] - 48, m["innerW"] - 288, 360)
+    # On landscape screens the square of the camouflage test grows up to 560px (the search experiment keeps 360px), and leaves 96px of the
+    # height for the line under it (which names the pattern of the round and can take up to three lines)
+    side = min(m["innerW"] - 32, m["innerH"] - 200, 360) if portrait else min(m["innerH"] - 96, m["innerW"] - 288, 560)
     check(abs(m["stage"]["width"] - side) <= 1 and (abs(m["stage"]["height"] - side) <= 1 or not trial and m["stage"]["height"] > side),
           (name, "the square", side, m["stage"]))
     check(m["modal"] and m["scrollW"] <= m["clientW"] and m["page"] <= m["client"], (name, "no sideways scroll", m))

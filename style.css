@@ -755,6 +755,10 @@ svg.res-key { display: block; width: 32px; height: 14px; }
   }
   .exp-top { display: contents; }
   .exp-stage { width: min(100dvh - 48px, 100vw - 288px, 360px); min-height: min(100dvh - 48px, 100vw - 288px, 360px); }
+  /* The camouflage test: the moth shape is small, so on a computer screen the square grows to 560px (the bars of the search keep 360px).
+     The line under it names the pattern of the round and can take up to three lines, so the square leaves 96px of the height instead of 48px */
+  .exp-camo .exp-shell { grid-template-columns: minmax(0, 1fr) min(100dvh - 96px, 100vw - 288px, 560px) minmax(0, 1fr); }
+  .exp-camo .exp-stage { width: min(100dvh - 96px, 100vw - 288px, 560px); min-height: min(100dvh - 96px, 100vw - 288px, 560px); }
   .exp-head { grid-area: head; justify-self: end; text-align: right; }
   /* The title and progress, Stop and the answers stand close to the square on its two sides, so that they read as one group */
   .exp-abort { grid-area: abort; justify-self: start; align-self: start; }
