@@ -1,5 +1,5 @@
 /* Vision Trap Atlas - MIT (c) 2026 ipusiron. */
-// 「探して押す」（1-1・1-2）と探す実験の進行（UMD・DOM非依存）。
+// 「探して押す」（1-1・1-2）と探す実験・迷彩の探す実験の進行、押したときだけの動き（UMD・DOM非依存）。
 // 時計（now）・描画の予約（raf）・乱数の種（seed32）を外から受け取る。テストでは偽の時計と偽の raf を渡す。
 // 時刻はどれも performance.now() と同じ時計：表示の開始＝図を見えるようにしたフレームの次の raf の引数、押した時刻＝event.timeStamp。
 (function (root, factory) {
@@ -9,8 +9,10 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function (Core) {
   'use strict';
 
-  // 実験の1回の流れ（ミリ秒）。注視点・結果の文・間の長さは画面の決まり、早すぎと時間切れは集計と同じ値
-  const TIMING = Object.freeze({ fixation: 500, feedback: 500, gap: 300, timeout: Core.TIMEOUT_MS, early: Core.EARLY_MS, reveal: 10000 });
+  // 実験の1回の流れ（ミリ秒）。注視点・結果の文・間の長さは画面の決まり、早すぎと時間切れは集計と同じ値。
+  // 迷彩の実験：1回の制限 camoTimeout、違う場所と時間切れのあと蛾の形に印を付けて見せる長さ camoMark
+  const TIMING = Object.freeze({ fixation: 500, feedback: 500, gap: 300, timeout: Core.TIMEOUT_MS, early: Core.EARLY_MS, reveal: 10000,
+    camoTimeout: Core.CAMO_TIMEOUT_MS, camoMark: 1000 });
   const fmt = (x, digits) => (Math.round(x * 10 ** digits) / 10 ** digits).toFixed(digits);
   const stampOf = (event, now) => (event && typeof event.timeStamp === 'number' ? event.timeStamp : now());
 
@@ -99,11 +101,12 @@
   // ===== 探す実験 =====
   // 段：ready → fixation → stimulus → feedback → gap → （次の回）… → practiceDone → … → done。ほかに paused（ページが隠れた）・aborted
   const FEEDBACK = { correct: 'fbCorrect', miss: 'fbMiss', falseAlarm: 'fbFalse', early: 'fbEarly', timeout: 'fbTimeout' };
-  function createExperiment({ now, raf, seed32, search, set = 'color', onChange = () => {}, timing = {}, granularity, reps, practiceReps }) {
+  // 1回の実験＝練習8回と本番32回（段ごと・ある／ないごとに練習1回・本番4回。AtlasCoreの既定値）
+  function createExperiment({ now, raf, seed32, search, set = 'color', onChange = () => {}, timing = {}, granularity,
+    reps = Core.MAIN_REPS, practiceReps = Core.PRACTICE_REPS }) {
     const T = { ...TIMING, ...timing };
     const seed = seed32() >>> 0 || 1;
-    const trials = Core.makeSearchTrials({ search, set, rng: Core.xorshift32(seed), ...(reps ? { reps } : {}),
-      ...(practiceReps ? { practiceReps } : {}) });
+    const trials = Core.makeSearchTrials({ search, set, rng: Core.xorshift32(seed), reps, practiceReps });
     const s = {
       search, set, phase: 'ready', block: 'practice', list: trials.practice.slice(), index: 0, resolved: 0, total: trials.practice.length,
       progress: null, trial: null, visible: false, fixStart: null, shownAt: null, t0: null, fbStart: null, gapStart: null, feedback: null,
@@ -218,10 +221,175 @@
     // 本番の記録の集計（本番の記録が1つもなければ null）。練習の回は入れない
     function summary() {
       if (!s.records.length) return null;
-      return Core.summarizeBlock(s.records, { aborted: s.aborted, granularity: s.granularity });
+      return Core.summarizeBlock(s.records, { aborted: s.aborted, granularity: s.granularity, set: s.set });
     }
     return { start, proceed, respond, setHidden, resume, abort, summary, state, seed };
   }
 
-  return Object.freeze({ TIMING, createFind, createExperiment });
+  // ===== 迷彩の探す実験 =====
+  // 進み方は探す実験と同じ（準備 → 練習 → 本番 → 結果、中断、ページが隠れたら止める）。1回の流れ：注視点0.5秒 → 樹皮の模様（10秒まで。
+  // 見つけたマスを押す）→ 押したあとの文（正解と早すぎは0.5秒。違う場所と時間切れは、蛾の形に印を付けて1秒見せる）→ 間0.3秒。
+  // 早すぎた回とページが隠れた回は数えず、同じ回をブロックの最後へ1回だけ回す。tries＝始めた回の数（画面が新しい回を見分けるため）
+  const CAMO_FEEDBACK = { correct: 'camoFbCorrect', wrong: 'camoFbWrong', timeout: 'camoFbTimeout', early: 'fbEarly' };
+  function createCamoExperiment({ now, raf, seed32, onChange = () => {}, timing = {}, reps = Core.CAMO_MAIN_REPS,
+    practiceReps = Core.CAMO_PRACTICE_REPS }) {
+    const T = { ...TIMING, ...timing };
+    const seed = seed32() >>> 0 || 1;
+    const trials = Core.makeCamoTrials({ rng: Core.xorshift32(seed), reps, practiceReps });
+    const s = {
+      phase: 'ready', block: 'practice', list: trials.practice.slice(), index: 0, resolved: 0, total: trials.practice.length, tries: 0,
+      progress: null, trial: null, visible: false, mark: false, fixStart: null, shownAt: null, t0: null, fbStart: null, fbLength: 0,
+      gapStart: null, feedback: null, practiceRecords: [], records: [], aborted: false,
+    };
+    let token = 0;
+    const emit = () => onChange(state());
+    function state() {
+      return {
+        phase: s.phase, block: s.block, progress: s.progress ? { ...s.progress } : null, trial: s.trial, visible: s.visible, mark: s.mark,
+        feedback: s.feedback ? { ...s.feedback } : null, tries: s.tries, records: s.records.slice(), practiceRecords: s.practiceRecords.slice(),
+        aborted: s.aborted, mainTotal: trials.main.length,
+      };
+    }
+    const running = () => ['fixation', 'stimulus', 'feedback', 'gap'].includes(s.phase);
+    function loop() {
+      const my = token;
+      raf((ts) => {
+        if (my !== token) return;
+        step(ts);
+        if (my === token && running()) loop();
+      });
+    }
+    function beginTrial() {
+      s.trial = s.list[s.index];
+      s.tries += 1;
+      s.progress = { block: s.block, i: Math.min(s.resolved + 1, s.total), total: s.total };
+      Object.assign(s, { phase: 'fixation', visible: false, mark: false, fixStart: null, shownAt: null, t0: null, feedback: null });
+      emit();
+    }
+    function step(ts) {
+      if (s.phase === 'fixation') {
+        if (s.fixStart === null) s.fixStart = ts;
+        else if (ts - s.fixStart >= T.fixation) { s.phase = 'stimulus'; s.visible = true; s.shownAt = ts; emit(); }
+      } else if (s.phase === 'stimulus') {
+        // 模様を見えるようにしたフレームの次のフレームの時刻が、表示の開始
+        if (s.t0 === null) s.t0 = ts;
+        else if (ts - s.t0 >= T.camoTimeout) finish('timeout', ts - s.t0, null, null, ts);
+      } else if (s.phase === 'feedback') {
+        if (ts - s.fbStart >= s.fbLength) { Object.assign(s, { phase: 'gap', gapStart: ts, visible: false, mark: false, feedback: null }); emit(); }
+      } else if (s.phase === 'gap') {
+        if (ts - s.gapStart >= T.gap) next();
+      }
+    }
+    function record(outcome, rt, cell, input) {
+      const r = { pattern: s.trial.pattern, target: s.trial.cell, cell, outcome, rt, input, requeued: !!s.trial.requeued };
+      (s.block === 'practice' ? s.practiceRecords : s.records).push(r);
+      if ((outcome === 'early' || outcome === 'hidden') && !s.trial.requeued) s.list = Core.requeue(s.list, s.index);
+      else s.resolved += 1;
+    }
+    function finish(outcome, rt, cell, input, at) {
+      record(outcome, rt, cell, input);
+      // 違う場所と時間切れは、模様を残したまま蛾の形に印を付ける。正解と早すぎは模様を消す
+      const marked = outcome === 'wrong' || outcome === 'timeout';
+      Object.assign(s, { phase: 'feedback', visible: marked, mark: marked, fbStart: at, fbLength: marked ? T.camoMark : T.feedback,
+        feedback: { key: CAMO_FEEDBACK[outcome], values: {} } });
+      emit();
+    }
+    function next() {
+      s.index += 1;
+      if (s.index < s.list.length) { beginTrial(); return; }
+      token += 1;
+      Object.assign(s, { visible: false, mark: false, feedback: null, trial: null, phase: s.block === 'practice' ? 'practiceDone' : 'done' });
+      emit();
+    }
+    function start() {
+      if (s.phase !== 'ready') return;
+      token += 1; beginTrial(); loop();
+    }
+    function proceed() {
+      if (s.phase !== 'practiceDone') return;
+      Object.assign(s, { block: 'main', list: trials.main.slice(), index: 0, resolved: 0, total: trials.main.length });
+      token += 1; beginTrial(); loop();
+    }
+    // 押したマス：cell＝0〜35、input＝'key'・'mouse'・'touch'・'pen'。キーの押しっぱなし（repeat）は無視する
+    function respond({ cell, timeStamp, input, repeat = false }) {
+      if (repeat) return;
+      const at = typeof timeStamp === 'number' ? timeStamp : now();
+      if (s.phase === 'fixation') { finish('early', null, cell, input, at); return; }
+      if (s.phase !== 'stimulus') return;
+      // 模様を見えるようにしたフレームの直後で、まだ表示の開始の時刻がないときは早すぎとして扱う
+      if (s.t0 === null) { finish('early', at - s.shownAt, cell, input, at); return; }
+      const rt = at - s.t0;
+      finish(Core.classifyCamo({ phase: 'stimulus', cell, target: s.trial.cell, rt }), rt, cell, input, at);
+    }
+    function setHidden(hidden) {
+      if (!hidden || !running()) return;
+      token += 1;
+      if (s.phase === 'fixation' || s.phase === 'stimulus') record('hidden', null, null, null);
+      Object.assign(s, { phase: 'paused', visible: false, mark: false, feedback: { key: 'expHidden', values: {} } });
+      emit();
+    }
+    function resume() {
+      if (s.phase !== 'paused') return;
+      s.feedback = null;
+      token += 1;
+      next();
+      if (running()) loop();
+    }
+    function abort() {
+      if (['done', 'aborted'].includes(s.phase)) return;
+      token += 1;
+      Object.assign(s, { phase: 'aborted', aborted: true, visible: false, mark: false, feedback: { key: 'expAborted', values: {} } });
+      emit();
+    }
+    // 本番の記録の集計（本番の記録が1つもなければ null）。練習の回は入れない
+    function summary() {
+      if (!s.records.length) return null;
+      return Core.summarizeCamo(s.records, { aborted: s.aborted });
+    }
+    return { start, proceed, respond, setHidden, resume, abort, summary, state, seed };
+  }
+
+  // ===== 動き（押したときだけ動き、seconds 秒で止まる。動きを減らす設定ではコマ送り） =====
+  // 段：idle（止まっている）→ playing（t＝最初のフレームからの秒）→ idle。コマ送りは frames（frame＝1〜frames。押すごとに次のコマへ進み、
+  // 最後のコマの次は1コマ目）。自分からは動き出さない：play を呼んだときだけ raf で進み、seconds 秒たつか stop で止まる。
+  // reset（つまみを動かしたとき）は、動いていれば止め、コマ送りなら止まった絵に戻す
+  function createMotion({ raf, seconds, frames = 4, onChange = () => {} }) {
+    if (!(seconds > 0 && seconds <= 5)) throw new Error('motion needs 0 < seconds <= 5');
+    const s = { phase: 'idle', t: 0, frame: 0 };
+    let token = 0;
+    const emit = () => onChange({ ...s });
+    function play() {
+      if (s.phase === 'playing') return;
+      token += 1;
+      const my = token;
+      let t0 = null;
+      Object.assign(s, { phase: 'playing', t: 0, frame: 0 });
+      emit();
+      const step = (ts) => {
+        if (my !== token) return;
+        if (t0 === null) t0 = ts;
+        const t = (ts - t0) / 1000;
+        if (t >= seconds) { Object.assign(s, { phase: 'idle', t: 0 }); emit(); return; }
+        s.t = t;
+        emit();
+        raf(step);
+      };
+      raf(step);
+    }
+    function stop() {
+      if (s.phase === 'idle') return;
+      token += 1;
+      Object.assign(s, { phase: 'idle', t: 0, frame: 0 });
+      emit();
+    }
+    function nextFrame() {
+      token += 1;
+      Object.assign(s, { phase: 'frames', t: 0, frame: s.frame % frames + 1 });
+      emit();
+    }
+    const reset = stop;
+    return { play, stop, nextFrame, reset, state: () => ({ ...s }) };
+  }
+
+  return Object.freeze({ TIMING, createFind, createExperiment, createCamoExperiment, createMotion });
 }));

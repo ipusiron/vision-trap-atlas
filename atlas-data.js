@@ -13,17 +13,75 @@
   const still = (extra = {}) => ({ motion: 'none', maxSeconds: 0, stripes: false, flashes: false, colorOnly: false, ...extra });
   const COUNTS = [6, 12, 18];
 
+  // checks：タブの最後（endBoxes の後ろ、「次のタブへ」の上）に置く確かめの問い2つ。figures＝問いの図（部品と設定。2つなら label の A・B を
+  // 図の上に書く。camoResultChart は迷彩の実験の結果のグラフを medians〈ミリ秒〉で描く）、choices＝選択肢、answer＝正しい選択肢、noteKey＝図の上の1行。
+  // 文は messages.js の check.<id>.title（図の名前）・.desc（図の説明）・.question・.choice.<選択肢>・.explain。図の label と同じ選択肢は、その名前を出す
   const groups = [
-    { id: 'popout', order: 10, labelKey: 'tabPopout', termKey: 'tabPopoutTerm', termTip: 'termPreattentive' },
-    { id: 'search', order: 20, labelKey: 'tabSearch', termKey: 'tabSearchTerm', termTip: 'termVisualSearch' },
-    { id: 'gestalt', order: 30, labelKey: 'tabGestalt', termKey: 'tabGestaltTerm', termTip: 'termGrouping' },
-    { id: 'figure-ground', order: 40, labelKey: 'tabFigureGround', termKey: 'tabFigureGroundTerm', termTip: 'termFigureGround' },
-    // 誤読の「グラフ」は専門の言葉ではないので、解説を付けない
-    { id: 'misread', order: 50, labelKey: 'tabMisread', termKey: 'tabMisreadTerm', termTip: null, leadKeys: ['misreadLead', 'misreadFictional'] },
+    { id: 'popout', order: 10, labelKey: 'tabPopout', termKey: 'tabPopoutTerm', termTip: 'termPreattentive',
+      checks: [
+        // ほかの7本は6つの色（4本目の色は、7つある色の1つになる。どの色も図の背景と3:1以上）
+        { id: 'popout-color-bars', choices: ['a', 'b', 'c'], answer: 'a',
+          figures: [{ part: 'barChart', params: { mode: 'popout', popKind: 'color', popDiff: 'large', popVariety: 'mixed',
+            values: [46, 60, 52, 88, 57, 66, 50, 63],
+            others: ['popOthers-0', 'popColor-1', 'popColor-2', 'popOthers-2', 'popOthers-1', 'popLight-3', 'popColor-2'] } }] },
+        { id: 'popout-added-line', choices: ['a', 'b', 'c'], answer: 'a',
+          figures: [{ label: 'A', part: 'camoScene', params: { seed: 1593, objLevel: 1 } },
+            { label: 'B', part: 'camoScene', params: { seed: 1593, objLevel: 1, addedLine: true } }] },
+      ] },
+    { id: 'search', order: 20, labelKey: 'tabSearch', termKey: 'tabSearchTerm', termTip: 'termVisualSearch',
+      checks: [
+        { id: 'search-legend-line', choices: ['a', 'b', 'c'], answer: 'c',
+          figures: [{ part: 'lineChart', params: { mode: 'search', styles: [['seriesOthers-0', true], ['seriesTarget', false], ['seriesOthers-1', true],
+            ['seriesTarget', true], ['seriesOthers-2', true], ['seriesTarget', false]] } }] },
+        { id: 'search-camo-results', choices: ['a', 'b', 'c'], answer: 'b', noteKey: 'checkFictional',
+          figures: [{ part: 'camoResultChart', params: { medians: { match: 2400, disrupt: 3600, symmetric: 1700 } } }] },
+      ] },
+    { id: 'gestalt', order: 30, labelKey: 'tabGestalt', termKey: 'tabGestaltTerm', termTip: 'termGrouping',
+      checks: [
+        { id: 'gestalt-store-bars', choices: ['A', 'B', 'same'], answer: 'A',
+          figures: [{ label: 'A', part: 'groupedBars', params: { groupGap: -2, similarity: 'cols' } },
+            { label: 'B', part: 'groupedBars', params: { groupGap: 2, similarity: 'rows' } }] },
+        { id: 'gestalt-edge-spots', choices: ['a', 'b', 'c'], answer: 'a',
+          figures: [{ label: 'A', part: 'camoScene', params: { seed: 2593, objLevel: 2 } },
+            { label: 'B', part: 'camoScene', params: { seed: 2593, objLevel: 2, edgePatches: 0.4 } }] },
+      ] },
+    // 項目の後ろに、迷彩を見破る手がかりの箱を置く（2つ目の行は「目立つ」タブの動きの項目へ移る）
+    { id: 'figure-ground', order: 40, labelKey: 'tabFigureGround', termKey: 'tabFigureGroundTerm', termTip: 'termFigureGround',
+      endBoxes: [{ id: 'camo-clues', headingKey: 'camoCluesHeading', leadKey: 'camoCluesLead', items: [
+        { textKey: 'camoClue1', entry: 'figure-ground-symmetry' }, { textKey: 'camoClue2', entry: 'popout-motion' }] }],
+      checks: [
+        { id: 'figure-ground-markers', choices: ['A', 'B', 'same'], answer: 'B',
+          figures: [{ label: 'A', part: 'scatter', params: { mode: 'markers', marker: 'none' } },
+            { label: 'B', part: 'scatter', params: { mode: 'markers', marker: 'convex' } }] },
+        { id: 'figure-ground-mirror', choices: ['A', 'B', 'none'], answer: 'B',
+          figures: [{ label: 'A', part: 'camoScene', params: { seed: 3593, objLevel: 1, big: true, halves: true, symmetric: false } },
+            { label: 'B', part: 'camoScene', params: { seed: 3593, objLevel: 1, big: true, halves: true, symmetric: true } }] },
+      ] },
+    // 誤読の「グラフ」は専門の言葉ではないので、解説を付けない。項目の後ろに、グラフを読むときの確かめ方の箱を置く
+    { id: 'misread', order: 50, labelKey: 'tabMisread', termKey: 'tabMisreadTerm', termTip: null, leadKeys: ['misreadLead', 'misreadFictional'],
+      endBoxes: [{ id: 'chart-checks', headingKey: 'chartChecksHeading', leadKey: 'chartChecksLead', items: [
+        { textKey: 'chartCheck1', entry: 'misread-baseline' }, { textKey: 'chartCheck2', entry: 'misread-area' },
+        { textKey: 'chartCheck3', entry: 'misread-dual-axis' }, { textKey: 'chartCheck4', entry: 'misread-aspect-range' }] }],
+      checks: [
+        { id: 'misread-value-ratio', choices: ['a', 'b', 'c'], answer: 'c',
+          figures: [{ part: 'baselineChart', params: { bottom: 45, chart: 'bar', mark: 'none', values: [50, 55, 60], titleKey: 'checkBookstoreTitle' } }] },
+        { id: 'misread-line-order', choices: ['a', 'b', 'c'], answer: 'c', figures: [{ part: 'dualAxisChart', params: { rightTop: 250 } }] },
+      ] },
+    { id: 'illusion', order: 60, labelKey: 'tabIllusion', termKey: 'tabIllusionTerm', termTip: 'termIllusion',
+      checks: [
+        { id: 'illusion-heat-numbers', choices: ['a', 'b', 'c'], answer: 'b', figures: [{ part: 'heatmap', params: { spread: 1, pair: [46, 56] } }] },
+        { id: 'illusion-split-edge', choices: ['a', 'b', 'c'], answer: 'b', figures: [{ part: 'camoScene', params: { seed: 6593, splitDiff: 1 } }] },
+      ] },
   ];
 
+  // endBoxes：タブの項目の後ろ（「次のタブへ」の上）に置く箱。見出し・1文・箇条（各行の末尾に、その項目へ移るボタン）。
+  // ボタンの名前は item.<項目の id>.short を toEntry に差し込む。別のタブの項目も指せる（その場合は履歴に積んで移る）
+  // predict：「動かす前に予想する」の選択肢と正しい選択肢。文は messages.js の predict.<id>.question・.choice.<選択肢>・.explain。
+  // 「なぜそうなるか」の文は item.<id>.why（値で変わらない）
   // uses の bind：{ つまみの id: 小さな図の設定の名前 } か { つまみの id: { to: 設定の名前, map: { つまみの値: 設定の値 } } }。
-  // bindWhen：{ つまみの id: [値…] }。いまの値がどれにも当たらないとき、その図はつながらない（既定の絵のまま）
+  // bindWhen：{ つまみの id: [値…] }。いまの値がどれにも当たらないとき、その図はつながらない（既定の絵のまま）。linkedNoneKey：つながらない
+  // ときの図の下の行（既定は linkedNone）。textKeyWhen：[{ when: { つまみの id: [値…] }, key }]。いまの値に当たる場合があれば、図の下の文を
+  // textKey の代わりにその key の文にする
   const entries = [
     {
       id: 'popout-feature', group: 'popout', order: 10,
@@ -31,7 +89,8 @@
       figure: { part: 'popoutGrid', seed: 1101, params: {} },
       controls: [
         { id: 'kind', type: 'choice', options: ['color', 'direction', 'size', 'shape', 'lightness'], default: 'color' },
-        { id: 'shape', type: 'choice', options: ['circleSquare', 'tl'], default: 'circleSquare', enabledWhen: { kind: ['shape'] } },
+        { id: 'shape', type: 'choice', options: ['circleSquare', 'tl'], default: 'circleSquare', enabledWhen: { kind: ['shape'] },
+          disabledNoteKey: 'shapeOnly' },
         { id: 'diff', type: 'range', values: ['same', 'small', 'medium', 'large'], named: true, default: 'large',
           disabledWhen: { kind: ['shape'] }, disabledNoteKey: 'shapeNotUsed' },
         { id: 'variety', type: 'range', values: ['uniform', 'some', 'mixed'], named: true, default: 'uniform',
@@ -40,16 +99,18 @@
       ],
       actions: ['reshuffle', 'find'],
       read: { cases: 'popout' },
+      // 方向と形の違いは小さな図に描かない（つながらないときの行で、その理由を書く）
       uses: [
         { side: 'show', part: 'barChart', params: { mode: 'popout', seed: 1191 }, bind: { kind: 'popKind', diff: 'popDiff', variety: 'popVariety' },
-          bindWhen: { kind: ['color', 'lightness', 'size'] }, textKey: 'popShow' },
+          bindWhen: { kind: ['color', 'lightness', 'size'] }, linkedNoneKey: 'popLinkedNone', textKey: 'popShow' },
         { side: 'hide', part: 'camoScene', params: { seed: 1192 }, bind: { kind: 'popKind', diff: 'popDiff', variety: 'popVariety' },
-          bindWhen: { kind: ['color', 'lightness', 'size'] }, textKey: 'popHide', noteKey: 'hideNote', link: 'day085' },
+          bindWhen: { kind: ['color', 'lightness', 'size'] }, linkedNoneKey: 'popLinkedNone', textKey: 'popHide', noteKey: 'hideNote', link: 'day085' },
       ],
       gapKey: null,
       safety: still({ colorOnly: true, colorOnlyWhen: { kind: ['color'] }, colorAlt: { control: 'kind', values: ['direction', 'size'] },
         colorHintKey: 'colorHint' }),
-      sources: ['healeyEnns2012', 'wolfeHorowitz2004', 'wolfe2021', 'cuthill2005'],
+      sources: ['healeyEnns2012', 'wolfeHorowitz2004', 'wolfeHorowitz2017', 'wolfe2021', 'cuthill2005'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: ['day101', 'day085'],
     },
     {
@@ -71,6 +132,32 @@
       gapKey: 'asymGap',
       safety: still(),
       sources: ['treismanSouther1985', 'healeyEnns2012'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
+      related: ['day085'],
+    },
+    {
+      // 押したときだけ動く（3秒で止まる）。3つの図を同じ時計で動かす。動きを減らす設定では「次のコマ」で4コマを順に見せる。
+      // 止まっている間の絵は、つまみを動かしても変わらない（動きの大きさは、動かしたときに見える）
+      id: 'popout-motion', group: 'popout', order: 30,
+      titleTerms: [{ term: 'termMotion', ja: '運動', en: 'motion' }],
+      figure: { part: 'motionGrid', seed: 1303, params: {} },
+      controls: [
+        { id: 'amount', type: 'range', values: ['none', 'small', 'medium', 'large'], named: true, default: 'medium' },
+        { id: 'others', type: 'choice', options: ['still', 'random'], default: 'still' },
+      ],
+      actions: [],
+      read: { cases: 'motion' },
+      uses: [
+        { side: 'show', part: 'lineChart', params: { mode: 'motion', seed: 1391 }, bind: { amount: 'motionAmount', others: 'motionOthers' },
+          textKey: 'motionShow' },
+        // 物と似た模様の物が4つあり、「ばらばらに動く」ではそれらも動く（背景の斑点は動かさない）
+        { side: 'hide', part: 'camoScene', params: { seed: 1392 }, bind: { amount: 'motionAmount', others: 'motionOthers' }, textKey: 'motionHide',
+          noteKey: 'hideNote', link: 'day085' },
+      ],
+      gapKey: null,
+      safety: still({ motion: 'onPlay', maxSeconds: 3 }),
+      sources: ['wolfeHorowitz2004', 'wolfeHorowitz2017', 'hall2013'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: ['day085'],
     },
     {
@@ -83,13 +170,41 @@
       ],
       actions: ['startFeature', 'startConj'],
       read: null,
+      // 図の下の文は探し方ごと（特徴探索の形には青の破線がないので、別の文）
       uses: [
-        { side: 'show', part: 'lineChart', params: { mode: 'search' }, bind: { view: 'search' }, textKey: 'searchShow' },
+        { side: 'show', part: 'lineChart', params: { mode: 'search' }, bind: { view: 'search' }, textKey: 'searchShow',
+          textKeyWhen: [{ when: { view: ['feature'] }, key: 'searchShowFeature' }] },
       ],
       gapKey: 'searchGap',
       safety: still({ colorOnly: true, colorAlt: { experimentSet: 'fill' }, colorHintKey: 'setHint' }),
-      sources: ['treismanGelade1980', 'wolfe1994', 'wolfe1998', 'wolfe2021', 'wolfePalmerHorowitz2010', 'ratcliff1993', 'anwylIrvine2021'],
+      sources: ['treismanGelade1980', 'wolfe1994', 'wolfe1998', 'wolfe2021', 'wolfeHorowitz2017', 'wolfePalmerHorowitz2010', 'ratcliff1993',
+        'anwylIrvine2021'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: [],
+    },
+    {
+      // 迷彩の物を探す実験（探す実験と同じ枠で行う）。上の図はなく、隠す側の小さな図だけ：つまみの模様で、決まった種の1場面
+      // （「印」で蛾の形の場所に破線の印）。図の下の文は模様ごとに1文（見方の文の場合分けで選ぶ）。目立ちやすさの数は出さない
+      id: 'search-camo', group: 'search', order: 20, experiment: true,
+      titleTerms: [{ term: 'termBackground', ja: '背景合わせ', en: 'background matching' },
+        { term: 'termDisruptive', ja: '分断色', en: 'disruptive coloration' }],
+      figure: null,
+      controls: [
+        { id: 'pattern', type: 'choice', options: ['match', 'disrupt', 'symmetric'], default: 'match' },
+        { id: 'mark', type: 'choice', options: ['off', 'on'], default: 'off' },
+      ],
+      actions: ['startCamo'],
+      read: { cases: 'camo' },
+      uses: [
+        { side: 'hide', part: 'camoSearchScene', params: { seed: 2612 }, bind: { pattern: 'pattern', mark: { to: 'mark', map: { off: false, on: true } } },
+          textKey: null, noteKey: 'hideNote', link: 'day085' },
+      ],
+      // 研究と画面の違いの注（探す実験の searchGap と同じ箱。見出しはこの項目のもの）
+      gapKey: 'camoGap', gapHeadingKey: 'camoGapHeading',
+      safety: still(),
+      sources: ['fraser2007', 'webster2013', 'cuthill2006', 'merilaita2017', 'stevensMerilaita2009'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
+      related: ['day085'],
     },
     {
       id: 'gestalt-proximity-similarity', group: 'gestalt', order: 10,
@@ -103,12 +218,14 @@
       read: { cases: 'proximity' },
       uses: [
         { side: 'show', part: 'groupedBars', params: {}, bind: { prox: 'groupGap', sim: 'similarity' }, textKey: 'proxShow' },
-        { side: 'hide', part: 'camoScene', params: { seed: 2192, objLevel: 1 },
+        // 大きな物と大きな斑点で、背景と同じ色の組か別の組かを、小さな図の大きさでも見分けられるようにする
+        { side: 'hide', part: 'camoScene', params: { seed: 2192, objLevel: 1, big: true },
           bind: { sim: { to: 'matchSpots', map: { none: false, rows: true, cols: true } } }, textKey: 'proxHide', noteKey: 'hideNote', link: 'day085' },
       ],
       gapKey: 'proxGap',
       safety: still(),
       sources: ['wertheimer1923', 'wagemans2012'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'a' },
       related: ['day085'],
     },
     {
@@ -131,6 +248,7 @@
       gapKey: 'regionGap',
       safety: still(),
       sources: ['palmer1992', 'palmerRock1994', 'wagemans2012', 'stevensMerilaita2009'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'a' },
       related: [],
     },
     {
@@ -143,14 +261,17 @@
       ],
       actions: [],
       read: { cases: 'contour' },
+      // グラフの小さな図の文は、輪郭の途切れが0%のとき（欠けた月をまたいで線を結ぶ形）と、0%より上のとき（線を切る形）で分ける
       uses: [
-        { side: 'show', part: 'lineChart', params: { mode: 'contour' }, bind: { gap: 'gap', crossing: 'crossing' }, textKey: 'contourShow' },
+        { side: 'show', part: 'lineChart', params: { mode: 'contour' }, bind: { gap: 'gap', crossing: 'crossing' }, textKey: 'contourShowGap',
+          textKeyWhen: [{ when: { gap: [0] }, key: 'contourShow0' }] },
         { side: 'hide', part: 'camoScene', params: { seed: 2392, objLevel: 2 }, bind: { gap: 'edgePatches' }, textKey: 'contourHide',
           noteKey: 'hideNote', link: 'day085' },
       ],
       gapKey: null,
       safety: still(),
-      sources: ['wertheimer1923', 'cuthill2005', 'stevensMerilaita2009'],
+      sources: ['wertheimer1923', 'wagemans2012', 'cuthill2005', 'stevensMerilaita2009', 'stevensCuthill2006', 'merilaita2017'],
+      predict: { choices: ['a', 'b'], answer: 'a' },
       related: ['day085', 'day075'],
     },
     {
@@ -158,19 +279,20 @@
       titleTerms: [{ term: 'termFigureGround', ja: '図と地', en: 'figure and ground' }],
       figure: { part: 'sectors', seed: 3101, params: {} },
       controls: [
+        // share＝色の濃い扇形の割合。20〜80%を通るので、濃い側が狭いときも薄い側が狭いときも同じつまみで見られる
         { id: 'share', type: 'range', values: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], default: 0.5, unit: 'percent' },
-        { id: 'swap', type: 'toggle', default: false },
       ],
       actions: [],
       read: { cases: 'area' },
       uses: [
-        { side: 'show', part: 'barChart', params: { mode: 'share' }, bind: { share: 'share', swap: 'swap' }, textKey: 'areaShow', noteKey: 'showNote' },
+        { side: 'show', part: 'barChart', params: { mode: 'share' }, bind: { share: 'share' }, textKey: 'areaShow', noteKey: 'showNote' },
         { side: 'hide', part: 'camoScene', params: { seed: 3192, objLevel: 2 }, bind: { share: 'objectShare' }, textKey: 'areaHide',
           noteKey: 'hideNote', link: 'day085' },
       ],
       gapKey: 'areaGap',
       safety: still(),
-      sources: ['wagemans2012', 'rubin1915'],
+      sources: ['wagemans2012', 'fowlkes2007', 'rubin1915'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'a' },
       related: ['day070'],
     },
     {
@@ -180,19 +302,23 @@
       controls: [
         { id: 'cue', type: 'choice', options: ['none', 'symmetric', 'convex'], default: 'none' },
         { id: 'regions', type: 'choice', options: [2, 8], default: 8 },
-        { id: 'swap', type: 'toggle', default: false },
+        // 手がかりが「なし」の間は、入れ替える手がかりがないので押せない（押せない理由を横か下に書く）
+        // 押せない間は、図が使っている値（オフ）を押された形で見せる。押せるようになったら前の選択に戻る
+        { id: 'swap', type: 'toggle', default: false, disabledWhen: { cue: ['none'] }, disabledNoteKey: 'cueNeeded', offValue: false },
       ],
       actions: [],
       read: { cases: 'symmetry' },
       uses: [
         { side: 'show', part: 'scatter', params: { mode: 'markers' }, bind: { cue: 'marker' }, textKey: 'symShow', noteKey: 'showNote' },
-        { side: 'hide', part: 'camoScene', params: { seed: 3292, objLevel: 1 },
+        // 大きな物の左右に4つずつの斑点。「左右対称」のときだけ、右が左の鏡写しになる
+        { side: 'hide', part: 'camoScene', params: { seed: 3292, objLevel: 1, big: true, halves: true },
           bind: { cue: { to: 'symmetric', map: { none: false, symmetric: true, convex: false } } }, textKey: 'symHide', noteKey: 'hideNote',
           link: 'day085' },
       ],
       gapKey: 'symGap',
       safety: still(),
-      sources: ['wagemans2012', 'cuthill2006'],
+      sources: ['wagemans2012', 'fowlkes2007', 'cuthill2006'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'a' },
       related: ['day085'],
     },
     {
@@ -200,9 +326,13 @@
       titleTerms: [{ term: 'termTruncation', ja: '縦軸の途中の省略', en: 'truncated axis' }],
       figure: { part: 'baselineChart', seed: 4101, params: {} },
       controls: [
-        { id: 'bottom', type: 'range', values: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50], default: 0 },
+        // 既定は誤読しやすい設定（下端40＝高さの比1.50倍）。開いた直後に、上の図と読みやすい形の違いが見える
+        { id: 'bottom', type: 'range', values: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50], default: 40 },
         { id: 'chart', type: 'choice', options: ['bar', 'line'], default: 'bar' },
-        { id: 'mark', type: 'choice', options: ['none', 'shown'], default: 'none', disabledWhen: { bottom: [0] } },
+        // 縦軸が0から始まるときは切れていないので、印を押せない（押せない理由を横か下に書く）。押せない間は、図が使っている値（なし）を
+        // 押された形で見せ、押せるようになったら前の選択に戻る
+        { id: 'mark', type: 'choice', options: ['none', 'shown'], default: 'none', disabledWhen: { bottom: [0] }, disabledNoteKey: 'bottomNeeded',
+          offValue: 'none' },
       ],
       actions: [],
       read: { cases: 'baseline' },
@@ -214,6 +344,7 @@
       gapKey: null,
       safety: still(),
       sources: ['correll2020', 'clevelandMcGill1984', 'lo2022'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'c' },
       related: [],
     },
     {
@@ -229,11 +360,12 @@
       numbers: 'area',
       checkKey: 'areaCheck',
       uses: [
-        { side: 'readable', part: 'barChart', params: { mode: 'pair' }, bind: { ratio: 'ratio' }, textKey: null },
+        { side: 'readable', part: 'barChart', params: { mode: 'pair' }, bind: { ratio: 'ratio' }, textKey: 'areaReadable' },
       ],
       gapKey: null,
       safety: still(),
       sources: ['clevelandMcGill1984', 'heerBostock2010', 'pandey2015'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: [],
     },
     {
@@ -248,11 +380,12 @@
       numbers: 'dual',
       checkKey: 'dualCheck',
       uses: [
-        { side: 'readable', part: 'lineChart', params: { mode: 'split' }, bind: {}, textKey: null },
+        { side: 'readable', part: 'lineChart', params: { mode: 'split' }, bind: {}, textKey: 'dualReadable' },
       ],
       gapKey: null,
       safety: still(),
       sources: ['lo2022', 'datawrapperDualAxis'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: [],
     },
     {
@@ -261,19 +394,45 @@
       figure: { part: 'aspectChart', seed: 4404, params: {} },
       controls: [
         { id: 'aspect', type: 'range', values: [0.5, 1, 2, 4], default: 1 },
-        { id: 'range', type: 'choice', options: ['all', 'last6'], default: 'all' },
+        // 既定は誤読しやすい設定（最後の6か月）。読みやすい形（24か月・比1）と、開いた直後から違って見える
+        { id: 'range', type: 'choice', options: ['all', 'last6'], default: 'last6' },
       ],
       actions: [],
       read: { cases: 'aspect' },
       numbers: 'aspect',
       checkKey: 'aspectCheck',
       uses: [
-        { side: 'readable', part: 'lineChart', params: { mode: 'aspect' }, bind: {}, textKey: null },
+        { side: 'readable', part: 'lineChart', params: { mode: 'aspect' }, bind: {}, textKey: 'aspectReadable' },
       ],
       gapKey: null,
       safety: still(),
       sources: ['cleveland1988', 'cleveland1993', 'heerAgrawala2006', 'talbot2012', 'lo2022'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
       related: [],
+    },
+    {
+      // 四角の灰色はどの段でも変えない。変わるのは周りだけ（0%では左右の周りが同じ）
+      id: 'illusion-lightness-contrast', group: 'illusion', order: 10,
+      titleTerms: [{ term: 'termLightnessContrast', ja: '明るさの対比', en: 'lightness contrast' }],
+      figure: { part: 'lightnessSquares', seed: 6101, params: {} },
+      controls: [
+        { id: 'diff', type: 'range', values: [0, 0.25, 0.5, 0.75, 1], default: 0.75, unit: 'percent' },
+        { id: 'compare', type: 'choice', options: ['apart', 'band'], default: 'apart' },
+      ],
+      actions: [],
+      read: { cases: 'lightness' },
+      uses: [
+        { side: 'show', part: 'heatmap', params: {}, bind: { diff: 'spread' }, textKey: 'lightShow' },
+        // 物の明るさは左の背景に合わせたまま、右の背景だけが明るくなる
+        { side: 'hide', part: 'camoScene', params: { seed: 6192 }, bind: { diff: 'splitDiff' }, textKey: 'lightHide', noteKey: 'hideNote',
+          link: 'day085' },
+      ],
+      gapKey: null,
+      safety: still(),
+      sources: ['adelson2000', 'mittelstadt2014', 'merilaita2017'],
+      predict: { choices: ['a', 'b', 'c'], answer: 'b' },
+      // Day125：重ねた白は50%の灰で、コントラストが半分になる（周りの明るさで見え方が変わる話とつながる）
+      related: ['day101', 'day085', 'day125'],
     },
   ];
 
@@ -293,6 +452,10 @@
       + 'search. Vision Research, 50(14), 1304–1311.', doi: '10.1016/j.visres.2009.11.002', level: 'B' },
     wolfeHorowitz2004: { cite: 'Wolfe, J. M., & Horowitz, T. S. (2004). What attributes guide the deployment of visual attention and how do they do '
       + 'it? Nature Reviews Neuroscience, 5(6), 495–501.', doi: '10.1038/nrn1411', level: 'A' },
+    wolfeHorowitz2017: { cite: 'Wolfe, J. M., & Horowitz, T. S. (2017). Five factors that guide attention in visual search. Nature Human Behaviour, '
+      + '1(3), 0058.', doi: '10.1038/s41562-017-0058', level: 'A' },
+    hall2013: { cite: 'Hall, J. R., Cuthill, I. C., Baddeley, R., Shohet, A. J., & Scott-Samuel, N. E. (2013). Camouflage, detection and '
+      + 'identification of moving targets. Proceedings of the Royal Society B, 280(1758), 20130064.', doi: '10.1098/rspb.2013.0064', level: 'A' },
     healeyEnns2012: { cite: 'Healey, C. G., & Enns, J. T. (2012). Attention and visual memory in visualization and computer graphics. IEEE '
       + 'Transactions on Visualization and Computer Graphics, 18(7), 1170–1188.', doi: '10.1109/TVCG.2011.127', level: 'A' },
     ratcliff1993: { cite: 'Ratcliff, R. (1993). Methods for dealing with reaction time outliers. Psychological Bulletin, 114(3), 510–532.',
@@ -337,6 +500,20 @@
       + 'Graphics, 12(5), 701–708.', doi: '10.1109/TVCG.2006.163', level: 'A' },
     talbot2012: { cite: 'Talbot, J., Gerth, J., & Hanrahan, P. (2012). An empirical model of slope ratio comparisons. IEEE Transactions on '
       + 'Visualization and Computer Graphics, 18(12), 2613–2620.', doi: '10.1109/TVCG.2012.196', level: 'B' },
+    adelson2000: { cite: 'Adelson, E. H. (2000). Lightness perception and lightness illusions. In M. Gazzaniga (Ed.), The New Cognitive '
+      + 'Neurosciences (2nd ed., pp. 339–351). MIT Press.', doi: null, level: 'A' },
+    mittelstadt2014: { cite: 'Mittelstädt, S., Stoffel, A., & Keim, D. A. (2014). Methods for compensating contrast effects in information '
+      + 'visualization. Computer Graphics Forum, 33(3), 231–240.', doi: '10.1111/cgf.12379', level: 'A' },
+    merilaita2017: { cite: 'Merilaita, S., Scott-Samuel, N. E., & Cuthill, I. C. (2017). How camouflage works. Philosophical Transactions of the '
+      + 'Royal Society B, 372(1724), 20160341.', doi: '10.1098/rstb.2016.0341', level: 'A' },
+    fraser2007: { cite: 'Fraser, S., Callahan, A., Klassen, D., & Sherratt, T. N. (2007). Empirical tests of the role of disruptive coloration in '
+      + 'reducing detectability. Proceedings of the Royal Society B, 274(1615), 1325–1331.', doi: '10.1098/rspb.2007.0153', level: 'A' },
+    webster2013: { cite: 'Webster, R. J., Hassall, C., Herdman, C. M., Godin, J.-G. J., & Sherratt, T. N. (2013). Disruptive camouflage impairs '
+      + 'object recognition. Biology Letters, 9(6), 20130501.', doi: '10.1098/rsbl.2013.0501', level: 'A' },
+    stevensCuthill2006: { cite: 'Stevens, M., & Cuthill, I. C. (2006). Disruptive coloration, crypsis and edge detection in early visual processing. '
+      + 'Proceedings of the Royal Society B, 273(1598), 2141–2147.', doi: '10.1098/rspb.2006.3556', level: 'A' },
+    fowlkes2007: { cite: 'Fowlkes, C. C., Martin, D. R., & Malik, J. (2007). Local figure–ground cues are valid for natural images. Journal of Vision, '
+      + '7(8), 2.', doi: '10.1167/7.8.2', level: 'B' },
   };
 
   // 関連ツール（目の性質を扱うものだけ）。リンクは別タブ
@@ -370,6 +547,8 @@
         q: [82, 77, 71, 64, 57, 50, 43, 37, 30, 24, 19, 15],
         meet: 5,         // 6月（p と q が同じ 50）
         missing: [8, 9], // 9・10月
+        // 輪郭の途切れを上げると、10%ごとにこの順で欠けた月を足す（3・8・11・4・2月。交わる6月とその前後、両端の1月・12月は残す）
+        missingMore: [2, 7, 10, 3, 1],
       },
     },
     // 小さな図の値（すべて架空。縦軸0〜100）
@@ -379,9 +558,14 @@
     groupBars: [[60, 72, 50, 84], [66, 58, 78, 70], [52, 80, 64, 74]], // 2-1 の見せる側（3つの組×4本）
     scatter8: [[10, 30], [22, 42], [34, 38], [46, 56], [58, 52], [70, 70], [82, 66], [94, 84]], // 2-2 の散布図（順に並んだ8点）
     scatter12: [[12, 20], [20, 46], [28, 30], [36, 64], [44, 40], [52, 76], [60, 52], [68, 28], [76, 62], [84, 44], [88, 80], [94, 58]], // 3-2
+    // 明るさの対比の見せる側（5×5。'A'・'B'＝同じ値のマス、'L'＝Aを囲むマス、'H'＝Bを囲むマス、数＝決まった値）。
+    // A・Bは heatSame、Lは heatSame−heatStep×差、Hは heatSame＋heatStep×差（差＝周りの明るさの差 0〜1）。決まった値に heatSame はない
+    heat5: [['L', 'L', 'L', 40, 60], ['L', 'A', 'L', 60, 70], ['L', 'L', 'L', 'H', 'H'], [40, 30, 'H', 'B', 'H'], [30, 40, 'H', 'H', 'H']],
+    heatSame: 50,
+    heatStep: 40,
   };
 
-  // 研究の値（参考の表。1項目あたりのミリ秒）
+  // 研究の値（参考の表。図形1つあたりのミリ秒）
   const references = {
     treisman1980: { featurePresent: 3.1, featureAbsent: 25.1, conjPresent: 28.7, conjAbsent: 67.1 },
     wolfe1998: { featurePresent: 3, featureAbsent: 6, conjPresent: 10, conjAbsent: 27, approx: true },
@@ -390,7 +574,18 @@
   // 図の色（明暗のテーマごと）。図の部品は色を書かず、クラス fill-<名前>[-<添字>]・stroke-<名前>[-<添字>] を付ける。
   // style.css はこの値を CSS の変数に写す（テストで値が一致することを確かめる）。
   // popColor：1-1 の色の4段（ほかの図形の色から探すものの色へ 0・30・60・100% 混ぜる）。popLight：明るさの4段。
+  // camoMarks：3-2 の物の斑点の3色（物の地の色 camoObj-1 と3:1以上離す）。
   // camoSpots：迷彩の絵の背景の斑点の3色（岡部・伊藤の配色から選ばない）。camoObj：物と背景の色の差の4段（camoBase から camoFar へ 0・30・60・100%）
+  // regionA・regionB：3-2 の1つおきの帯。文が「濃い色の帯」「薄い色の帯」と呼ぶので、どちらのテーマでも regionA のほうを暗くする（暗いテーマ
+  // の regionA は中間の明るさにして、図の背景（paper）と3:1以上離す）。areaDark・areaLight：3-1 の色の濃い扇形と薄い扇形（見せる側の棒と背景も同じ2色）。
+  // 文が「色の濃い扇形」と呼ぶので、どちらのテーマでも areaDark のほうを暗くする。暗いテーマの areaDark は中間の明るさにして、
+  // 図の背景（paper）と2:1以上離す（背景と同じような色だと、扇形が穴のように見える）。
+  // 明るさの対比（どちらのテーマでも同じ値）：lightGray＝四角と帯の灰色（どの段でも同じ）。lightLeft・lightRight＝周りの明るさの差の5段の
+  // 左（暗くなる）と右（明るくなる）の周り。0%は左右とも同じ #9e9e9e で、四角の灰色と分けて置くので、0%でも四角が見える。
+  // heat＝ヒートマップの値0〜100の10刻みの段（岡部・伊藤の配色の青 #0072b2 を白で薄める。値0で白90%、値100で0%）。heatText＝マスに書く数。
+  // veil＝迷彩の右の背景を明るくする薄い白（不透明度は図が付ける）。
+  // 迷彩の探す実験（どちらのテーマでも同じ値）：bark＝樹皮の4色（茶と灰。0が最も濃く3が最も明るい。1が地の色。岡部・伊藤の配色から選ばない）。
+  // barkMark＝蛾の形に付ける破線の印（どの樹皮の色とも3:1以上）
   const palette = {
     light: {
       paper: '#fffdf7', ink: '#152b45',
@@ -403,6 +598,7 @@
       seriesOthers: ['#d55e00', '#009e73', '#cc79a7'],
       groups: ['#0072b2', '#d55e00', '#009e73', '#cc79a7'],
       regionA: '#34495e', regionB: '#e3dccb',
+      areaDark: '#34495e', areaLight: '#e3dccb',
       band: '#e9e2d0',
       camoBase: '#c9c1a5', camoFar: '#a8432a',
       camoSpots: ['#8a9a5b', '#a39069', '#6b705c'],
@@ -410,6 +606,15 @@
       camoObjLight: ['#c9c1a5', '#afa890', '#958f7a', '#7b7665'],
       camoSpotsLight: ['#8a9a5b', '#9ca974', '#adb88c'],
       camoObjSpots: ['#7b6a96', '#4f7a8f', '#9a6d55'],
+      camoMarks: ['#33452f', '#4d3b5e', '#4a3424'],
+      lightGray: '#8c8c8c',
+      lightLeft: ['#9e9e9e', '#7b7b7b', '#575757', '#343434', '#101010'],
+      lightRight: ['#9e9e9e', '#b3b3b3', '#c7c7c7', '#dcdcdc', '#f0f0f0'],
+      heat: ['#e6f1f7', '#cfe4f0', '#b8d8e9', '#a1cbe3', '#8abedc', '#73b1d5', '#5ca5ce', '#4598c7', '#2e8bc0', '#177fb9', '#0072b2'],
+      heatText: '#152b45',
+      veil: '#ffffff',
+      bark: ['#2e2822', '#4f4438', '#6e6a62', '#8f877b'],
+      barkMark: '#ffffff',
     },
     dark: {
       paper: '#172940', ink: '#eaf1f6',
@@ -421,7 +626,8 @@
       seriesTarget: '#56b4e9',
       seriesOthers: ['#e69f00', '#009e73', '#cc79a7'],
       groups: ['#56b4e9', '#e69f00', '#009e73', '#cc79a7'],
-      regionA: '#c9d6e2', regionB: '#2c405a',
+      regionA: '#5c7792', regionB: '#c9d6e2',
+      areaDark: '#4f6782', areaLight: '#c9d6e2',
       band: '#24384f',
       camoBase: '#4a5240', camoFar: '#d08a5c',
       camoSpots: ['#6e7d4f', '#7a6c52', '#3a4535'],
@@ -429,6 +635,15 @@
       camoObjLight: ['#4a5240', '#777d70', '#a8aca3', '#d9dbd7'],
       camoSpotsLight: ['#6e7d4f', '#5e6a43', '#4d5837'],
       camoObjSpots: ['#9a88b5', '#6f9ab0', '#b88b70'],
+      camoMarks: ['#cfe0b4', '#d9e4f0', '#f2e2c4'],
+      lightGray: '#8c8c8c',
+      lightLeft: ['#9e9e9e', '#7b7b7b', '#575757', '#343434', '#101010'],
+      lightRight: ['#9e9e9e', '#b3b3b3', '#c7c7c7', '#dcdcdc', '#f0f0f0'],
+      heat: ['#e6f1f7', '#cfe4f0', '#b8d8e9', '#a1cbe3', '#8abedc', '#73b1d5', '#5ca5ce', '#4598c7', '#2e8bc0', '#177fb9', '#0072b2'],
+      heatText: '#152b45',
+      veil: '#ffffff',
+      bark: ['#2e2822', '#4f4438', '#6e6a62', '#8f877b'],
+      barkMark: '#ffffff',
     },
   };
 

@@ -1,0 +1,833 @@
+/* Vision Trap Atlas - MIT (c) 2026 ipusiron. */
+/* The colors of the page (--bg … --on-accent) and of the figures (--c-<name>[-<index>], the values of AtlasData.palette).
+   The dark theme is set for the screen only, so that the browser's printing uses the light colors. */
+:root {
+  --bg: #f6f4ed;
+  --paper: #fffdf7;
+  --ink: #152b45;
+  --muted: #44576b;
+  --line: #aabccb;
+  --accent: #1d6b5a;
+  --focus: #1d6b5a;
+  --shadow: #d9d6cc;
+  --on-accent: #fffdf7;
+  --c-stimCool: #0072b2;
+  --c-stimHot: #d55e00;
+  --c-popColor-0: #0072b2; --c-popColor-1: #406c7d; --c-popColor-2: #806647; --c-popColor-3: #d55e00;
+  --c-popOthers-0: #0072b2; --c-popOthers-1: #009e73; --c-popOthers-2: #cc79a7;
+  --c-popLight-0: #0072b2; --c-popLight-1: #00639b; --c-popLight-2: #005484; --c-popLight-3: #00466d;
+  --c-popLightOthers-0: #0072b2; --c-popLightOthers-1: #2184bc; --c-popLightOthers-2: #4095c5;
+  --c-seriesTarget: #0072b2;
+  --c-seriesOthers-0: #d55e00; --c-seriesOthers-1: #009e73; --c-seriesOthers-2: #cc79a7;
+  --c-groups-0: #0072b2; --c-groups-1: #d55e00; --c-groups-2: #009e73; --c-groups-3: #cc79a7;
+  --c-regionA: #34495e;
+  --c-regionB: #e3dccb;
+  --c-areaDark: #34495e;
+  --c-areaLight: #e3dccb;
+  --c-band: #e9e2d0;
+  --c-camoBase: #c9c1a5;
+  --c-camoFar: #a8432a;
+  --c-camoSpots-0: #8a9a5b; --c-camoSpots-1: #a39069; --c-camoSpots-2: #6b705c;
+  --c-camoObj-0: #c9c1a5; --c-camoObj-1: #bf9b80; --c-camoObj-2: #b5755b; --c-camoObj-3: #a8432a;
+  --c-camoObjLight-0: #c9c1a5; --c-camoObjLight-1: #afa890; --c-camoObjLight-2: #958f7a; --c-camoObjLight-3: #7b7665;
+  --c-camoSpotsLight-0: #8a9a5b; --c-camoSpotsLight-1: #9ca974; --c-camoSpotsLight-2: #adb88c;
+  --c-camoObjSpots-0: #7b6a96; --c-camoObjSpots-1: #4f7a8f; --c-camoObjSpots-2: #9a6d55;
+  --c-camoMarks-0: #33452f; --c-camoMarks-1: #4d3b5e; --c-camoMarks-2: #4a3424;
+  --c-lightGray: #8c8c8c;
+  --c-lightLeft-0: #9e9e9e; --c-lightLeft-1: #7b7b7b; --c-lightLeft-2: #575757; --c-lightLeft-3: #343434; --c-lightLeft-4: #101010;
+  --c-lightRight-0: #9e9e9e; --c-lightRight-1: #b3b3b3; --c-lightRight-2: #c7c7c7; --c-lightRight-3: #dcdcdc; --c-lightRight-4: #f0f0f0;
+  --c-heat-0: #e6f1f7; --c-heat-1: #cfe4f0; --c-heat-2: #b8d8e9; --c-heat-3: #a1cbe3; --c-heat-4: #8abedc;
+  --c-heat-5: #73b1d5; --c-heat-6: #5ca5ce; --c-heat-7: #4598c7; --c-heat-8: #2e8bc0; --c-heat-9: #177fb9; --c-heat-10: #0072b2;
+  --c-heatText: #152b45;
+  --c-veil: #ffffff;
+  --c-bark-0: #2e2822; --c-bark-1: #4f4438; --c-bark-2: #6e6a62; --c-bark-3: #8f877b;
+  --c-barkMark: #ffffff;
+}
+@media screen {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d1b2d;
+    --paper: #172940;
+    --ink: #eaf1f6;
+    --muted: #c5d4df;
+    --line: #668098;
+    --accent: #7fd4bd;
+    --focus: #7fd4bd;
+    --shadow: #091523;
+    --on-accent: #172940;
+    --c-stimCool: #56b4e9;
+    --c-stimHot: #e69f00;
+    --c-popColor-0: #56b4e9; --c-popColor-1: #81aea3; --c-popColor-2: #aca75d; --c-popColor-3: #e69f00;
+    --c-popOthers-0: #56b4e9; --c-popOthers-1: #009e73; --c-popOthers-2: #cc79a7;
+    --c-popLight-0: #56b4e9; --c-popLight-1: #80c7ef; --c-popLight-2: #aedbf4; --c-popLight-3: #dceffa;
+    --c-popLightOthers-0: #56b4e9; --c-popLightOthers-1: #4da0cf; --c-popLightOthers-2: #448eb8;
+    --c-seriesTarget: #56b4e9;
+    --c-seriesOthers-0: #e69f00; --c-seriesOthers-1: #009e73; --c-seriesOthers-2: #cc79a7;
+    --c-groups-0: #56b4e9; --c-groups-1: #e69f00; --c-groups-2: #009e73; --c-groups-3: #cc79a7;
+    --c-regionA: #5c7792;
+    --c-regionB: #c9d6e2;
+    --c-areaDark: #4f6782;
+    --c-areaLight: #c9d6e2;
+    --c-band: #24384f;
+    --c-camoBase: #4a5240;
+    --c-camoFar: #d08a5c;
+    --c-camoSpots-0: #6e7d4f; --c-camoSpots-1: #7a6c52; --c-camoSpots-2: #3a4535;
+    --c-camoObj-0: #4a5240; --c-camoObj-1: #726348; --c-camoObj-2: #9a7451; --c-camoObj-3: #d08a5c;
+    --c-camoObjLight-0: #4a5240; --c-camoObjLight-1: #777d70; --c-camoObjLight-2: #a8aca3; --c-camoObjLight-3: #d9dbd7;
+    --c-camoSpotsLight-0: #6e7d4f; --c-camoSpotsLight-1: #5e6a43; --c-camoSpotsLight-2: #4d5837;
+    --c-camoObjSpots-0: #9a88b5; --c-camoObjSpots-1: #6f9ab0; --c-camoObjSpots-2: #b88b70;
+    --c-camoMarks-0: #cfe0b4; --c-camoMarks-1: #d9e4f0; --c-camoMarks-2: #f2e2c4;
+    --c-lightGray: #8c8c8c;
+    --c-lightLeft-0: #9e9e9e; --c-lightLeft-1: #7b7b7b; --c-lightLeft-2: #575757; --c-lightLeft-3: #343434; --c-lightLeft-4: #101010;
+    --c-lightRight-0: #9e9e9e; --c-lightRight-1: #b3b3b3; --c-lightRight-2: #c7c7c7; --c-lightRight-3: #dcdcdc; --c-lightRight-4: #f0f0f0;
+    --c-heat-0: #e6f1f7; --c-heat-1: #cfe4f0; --c-heat-2: #b8d8e9; --c-heat-3: #a1cbe3; --c-heat-4: #8abedc;
+    --c-heat-5: #73b1d5; --c-heat-6: #5ca5ce; --c-heat-7: #4598c7; --c-heat-8: #2e8bc0; --c-heat-9: #177fb9; --c-heat-10: #0072b2;
+    --c-heatText: #152b45;
+    --c-veil: #ffffff;
+    --c-bark-0: #2e2822; --c-bark-1: #4f4438; --c-bark-2: #6e6a62; --c-bark-3: #8f877b;
+    --c-barkMark: #ffffff;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+/* The ground is plain: regular lines near the figures would mix into what the figures show (no grid, no stripes) */
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--ink);
+  background: var(--bg);
+  font: 1rem/1.55 system-ui, sans-serif;
+  /* A Japanese word stays whole: app.js puts a <wbr> between words (phrases()), and a line breaks only there, at a space
+     or after punctuation */
+  word-break: keep-all;
+}
+button, input, select { font: inherit; }
+:where(button) {
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  padding: .4rem .7rem;
+  border: 1px solid var(--muted);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+@media (hover: hover) { button:hover:not(:disabled) { border-color: var(--accent); } }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+/* A slider with the keyboard focus: the frame goes around its name, the slider and the names of its steps, so that its line never
+   runs over the names (a frame around the slider alone crosses the names right under it). Browsers without :has keep the frame of
+   the slider */
+@supports selector(:has(*)) {
+  .control.range:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  .control.range input:focus-visible { outline: none; }
+}
+/* An element that is not pressed but takes the focus from the page (a card opened from the address or the list of entries, a
+   heading, the square of the experiment) shows no focus line. Buttons, links and the other controls keep theirs */
+[tabindex="-1"]:not(button, a, input, select, textarea, summary):focus { outline: none; }
+a { color: var(--accent); overflow-wrap: anywhere; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Header: the title and the three buttons with words (theme, language, help); centered below 720px */
+.page-header, main, footer { width: min(100% - 2rem, 1000px); margin-inline: auto; }
+.page-header { padding: .6rem 0 .1rem; }
+.masthead { display: flex; flex-direction: column; align-items: center; gap: .6rem; }
+h1 { margin: 0; font-size: clamp(1.4rem, 3vw, 1.85rem); line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
+h1 span, h2, h3 { color: var(--accent); }
+.header-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: .35rem; }
+.tool-button {
+  display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .8rem; border-radius: 999px; font-weight: 700; white-space: nowrap;
+}
+.tool-icon { font-size: 1.05em; }
+.startup-control-group { min-width: 0; min-inline-size: 0; margin: 0; padding: 0; border: 0; }
+.startup-note { margin: .5rem 0; padding: .5rem .75rem; border-left: 4px solid var(--accent); background: var(--paper); }
+.startup-note p { margin: 0; }
+.startup-note a { display: inline-flex; min-height: 44px; align-items: center; }
+
+/* Introduction: the purpose (one paragraph) and what this atlas lets you do (four items) are shown from the start; the order of the
+   tabs and the two uses (charts and camouflage) are behind "Read more". On wide screens a line stops at about 46 characters */
+.intro { margin: .25rem 0; font-size: .9375rem; line-height: 1.5; overflow-wrap: anywhere; }
+.intro-short { max-width: 46rem; margin: .4rem 0 0; }
+.intro-features { max-width: 46rem; margin: .6rem 0 .15rem; }
+.intro-features-heading { margin: 0 0 .15rem; font-size: 1rem; line-height: 1.4; }
+.intro-features-list { margin: 0; padding-left: 1.25rem; font-size: .9375rem; line-height: 1.5; overflow-wrap: anywhere; }
+/* Where to start: three numbered steps, each a button to its entry with one line under it; one column below 720px, three from 720px
+   (the numbers stand in the gap left of each step) */
+.intro-route { margin: .7rem 0 .2rem; }
+.intro-route-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: .6rem 2rem; margin: .3rem 0 0; padding-left: 1.6rem; }
+.intro-route-list > li { min-width: 0; }
+.route-button { display: block; width: 100%; min-height: 44px; font-weight: 700; text-align: left; }
+.route-note { margin: .25rem 0 0; font-size: .9375rem; line-height: 1.5; }
+/* A box at the end of a tab (after its entries, before the button to the next tab) */
+.end-box { margin: 1.2rem 0 .4rem; padding: .7rem .9rem .8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.end-box-heading { margin: 0 0 .3rem; color: var(--accent); font-size: 1.05rem; line-height: 1.4; }
+.end-box-lead { margin: 0 0 .4rem; font-size: .9375rem; line-height: 1.5; }
+.end-box-list { margin: 0; padding-left: 1.2rem; }
+.end-box-list > li + li { margin-top: .6rem; }
+.end-box-text { margin: 0; font-size: .9375rem; line-height: 1.55; }
+.end-box-button { margin-top: .3rem; min-height: 44px; }
+/* The questions at the end of a tab: a figure (one, or two named A and B above them: side by side from 720px, one above the other
+   below), the question, the choices and the answer. Choosing never changes the size of the figures. The number of a question goes with
+   its sentence (under the figure), not with the figure */
+.check-list { margin: .2rem 0 0; padding: 0; list-style: none; counter-reset: check; }
+.check-item { counter-increment: check; }
+.check-item + .check-item { margin-top: 1.1rem; }
+.check-question::before { content: counter(check) ". "; font-weight: 700; }
+.check-note { margin: .2rem 0 .15rem; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
+.check-figures { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem .9rem; max-width: 22rem; margin: .25rem 0 .35rem; }
+.check-panel { min-width: 0; }
+.check-label { margin: 0 0 .15rem; font-size: .9375rem; font-weight: 700; line-height: 1.4; }
+svg.check-svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: var(--paper); }
+.check-question { margin: .35rem 0 .3rem; font-size: .9375rem; line-height: 1.55; }
+.check-choices, .predict-choices { max-width: 46rem; }
+.check-feedback p { margin: .35rem 0 0; font-size: .9375rem; line-height: 1.5; }
+.check-verdict { font-weight: 700; }
+/* Once answered: ○ on the right choice and × on a wrong choice pressed, in room kept at the start of every choice (so that the marks never
+   change how the choices wrap). A wrong choice pressed is not filled: the paper with a dashed line, so that its look differs from the right
+   one's by more than its color */
+.choice.check-choices button { position: relative; padding-left: 1.6rem; }
+.check-mark { position: absolute; left: .45rem; top: 50%; translate: 0 -50%; font-weight: 700; }
+.check-choices button[aria-pressed="true"][data-verdict="wrong"] {
+  color: var(--ink); background: var(--paper); border-color: var(--ink); border-style: dashed;
+}
+.intro-features-list li + li { margin-top: .15rem; }
+.intro-more { margin: 0 0 .3rem; padding: 0; border: 0; border-radius: 0; background: none; }
+.intro-more[open] { padding-bottom: 0; }
+.intro-more > summary {
+  display: list-item; min-height: 44px; margin: 0; padding: .55rem .2rem; border-radius: 0; background: none; color: var(--accent);
+}
+.intro-more[open] > summary { margin-bottom: .2rem; border-bottom: 0; }
+
+/* The title of the short table (a title, not a sentence: bold, in the letters of the table) and the table (what the eye does, the
+   showing side, the hiding side). The block is where a tooltip of its headings lines up on the right */
+.contrast { position: relative; margin: .4rem 0 .2rem; }
+.contrast-line { margin: 0 0 .25rem; font-weight: 700; font-size: .875rem; line-height: 1.45; }
+.contrast-table { table-layout: fixed; background: var(--paper); font-size: .875rem; line-height: 1.45; }
+.contrast-table .col-trait { width: 22%; }
+.contrast-table th[scope="row"] { color: var(--accent); }
+/* The "?" of a heading goes with the last piece of the heading (app.js); nothing follows it in the cell */
+.contrast-table thead .term-help { margin-right: 0; }
+/* The narrowest screens: smaller letters and cell sides (as the tables of the results), so that 「（見せる側）」 and its "?" share
+   a line and a word of the first column (Grouping) stays whole */
+@media (max-width: 379px) {
+  .contrast-line { font-size: .8125rem; }
+  .contrast-table { font-size: .75rem; }
+  .contrast-table .col-trait { width: 23%; }
+  .contrast-table th, .contrast-table td { padding-inline: .3rem; }
+}
+
+/* A piece that app.js keeps on one line (の法則 of ゲシュタルト｜の法則, a short quote such as 「探して押す」) */
+.joined { white-space: nowrap; }
+
+/* Tables (no horizontal page scroll; a Japanese word stays whole) */
+table { width: 100%; border-collapse: collapse; word-break: keep-all; }
+th, td { padding: .35rem .4rem; border: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: break-word; }
+th { background: var(--bg); }
+
+/* Tabs: two lines each (the word, then the term in small letters). Below 720px a grid of six columns: three tabs on each of the two
+   rows (two columns each). Never a sideways scrolling row */
+.tabs {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .15rem; margin-top: .7rem; padding: .15rem .2rem;
+  background: var(--paper); border: 1px solid var(--line); box-shadow: 3px 3px 0 var(--shadow); scroll-margin-top: .5rem;
+}
+/* A tab name breaks only at a <wbr> between its words (ゲシュタルト｜の法則) or at a space (keep-all, without auto-phrase, which
+   would break ゲシュタルトの｜法則 before the page is ready) */
+.tabs button {
+  grid-column: span 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .05rem;
+  min-width: 0; padding: .3rem .15rem; border: 0; border-radius: 0; line-height: 1.3; text-align: center;
+  word-break: keep-all; overflow-wrap: anywhere;
+}
+.tab-name { font-size: .9375rem; }
+.tab-term { color: var(--muted); font-size: .75rem; font-weight: 400; }
+.tabs button[aria-selected="true"] { color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); font-weight: 700; }
+.tabs button[aria-selected="true"] .tab-term { color: var(--accent); }
+
+/* Panels: the tooltips of a panel line up with its inner right edge (position: relative) */
+.panel {
+  position: relative; min-width: 0; margin: -1px 0 1rem; padding: .65rem; overflow-wrap: anywhere;
+  background: var(--paper); border: 1px solid var(--line); box-shadow: 3px 3px 0 var(--shadow);
+}
+.panel > :first-child { margin-top: 0; }
+.panel-heading { margin: .1rem 0 .4rem; font-size: 1.3rem; line-height: 1.35; }
+.panel-lead { margin: .3rem 0; font-size: .9375rem; line-height: 1.5; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.1rem; }
+footer { padding: 1rem 0 3rem; text-align: center; }
+footer a { display: inline-flex; align-items: center; min-height: 44px; }
+
+/* "Entries in this tab": the buttons to the entries, with the line that says what they do above them */
+.section-nav { margin: .5rem 0 .75rem; padding: .4rem .6rem .5rem; border: 1px solid var(--line); background: var(--bg); scroll-margin-top: .5rem; }
+.section-nav-label { margin: 0; font-size: .875rem; font-weight: 700; }
+.section-nav-hint { margin: 0 0 .3rem; color: var(--muted); font-size: .8125rem; }
+.section-nav-buttons { display: grid; grid-template-columns: minmax(0, 1fr); gap: .35rem; }
+.section-nav-buttons button { min-width: 0; padding: .3rem .6rem; font-size: .875rem; line-height: 1.4; text-align: left; }
+.next-tab { display: block; margin: 1.2rem auto .2rem; font-weight: 700; }
+
+/* An entry card: the title, what it is, how to use it, the controls, then the figure, how to read it, the line of "Find and
+   tap", the small figures (showing and hiding), where the comparison breaks down, and the sources */
+.entry { margin: 1rem 0 0; padding: .9rem 0 .4rem; border-top: 2px solid var(--line); scroll-margin-top: .5rem; }
+.section-nav + .entry { margin-top: 0; }
+.entry-title { margin: 0 0 .3rem; font-size: 1.15rem; line-height: 1.4; }
+.entry-oneline { margin: 0 0 .2rem; }
+.entry-howto { margin: 0 0 .5rem; color: var(--muted); font-size: .9375rem; line-height: 1.5; }
+/* "Predict before you try" (closed at first, under how to use the entry): its summary is a 44px line; opened, it pushes the controls and
+   the figures down without changing their size */
+details.predict { margin: 0 0 .45rem; }
+details.predict[open] { padding-bottom: .5rem; }
+details.predict[open] > summary { margin-bottom: .45rem; }
+.predict-question { margin: 0 0 .35rem; font-size: .9375rem; line-height: 1.5; }
+.predict-chosen p, .predict-answer p { margin: .35rem 0 0; font-size: .9375rem; line-height: 1.5; }
+.predict-reveal { margin-top: .4rem; font-weight: 700; }
+.predict-answer-line { font-weight: 700; }
+/* Why it happens: under the sentences of the entry (or under the sentence of the small figure of the two tests), its heading in the
+   look of the heading of the small figures */
+.entry-why { margin: .55rem 0 0; }
+.why-heading { margin: 0 0 .15rem; font-size: 1rem; line-height: 1.4; }
+.why-text { margin: 0; font-size: .9375rem; line-height: 1.5; }
+
+/* Controls: switches (a group of aria-pressed buttons) with their name on the left when they fit, sliders with their name and
+   the step shown above them. A note keeps its line even while it is not shown, so nothing below moves */
+.controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem .75rem; margin: .4rem 0 .5rem; }
+.control { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; min-width: 0; grid-column: 1 / -1; }
+.control.range { display: block; grid-column: auto; }
+.control-name { font-size: .8125rem; font-weight: 700; line-height: 1.4; }
+.range-head { display: flex; justify-content: space-between; gap: .5rem; font-size: .8125rem; line-height: 1.4; }
+.range-head .control-name { min-width: 0; }
+.range-value { flex: none; font-weight: 700; color: var(--accent); }
+.choice { display: flex; flex-wrap: wrap; gap: .3rem; flex: 1 1 auto; min-width: 0; }
+.choice button { flex: 1 1 auto; min-width: 44px; padding: .3rem .5rem; font-size: .875rem; line-height: 1.3; }
+/* A pressed button is bold. Each button keeps the width of its bold label (a copy with no height, not shown and not read), so that
+   pressing one never changes how the buttons wrap and nothing below moves */
+.choice button::after {
+  content: attr(data-label); content: attr(data-label) / "";
+  display: block; height: 0; overflow: hidden; visibility: hidden; font-weight: 700;
+}
+.choice button[aria-pressed="true"], .actions .find-button[aria-pressed="true"] {
+  color: var(--on-accent); background: var(--accent); border-color: var(--accent); font-weight: 700;
+}
+.range input { display: block; width: 100%; height: 44px; margin: 0; font-size: 16px; accent-color: var(--accent); cursor: pointer; }
+.range input:disabled { cursor: not-allowed; opacity: .55; }
+/* The names of the steps under a slider (the current one in bold); "Not used for shape" takes their place while it is off */
+.tick-stack { margin-top: -.25rem; color: var(--muted); font-size: .75rem; line-height: 1.4; }
+.ticks { display: flex; justify-content: space-between; gap: .3rem; }
+.ticks .now { color: var(--accent); font-weight: 700; }
+.tick-note { margin: 0; }
+.control-note { grid-column: 1 / -1; margin: -.2rem 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
+.control-note.off { visibility: hidden; }
+/* Why a switch cannot be pressed now (the shape pairs: only for the shape; 3-2: no cue to swap; 4-1: no break while the axis starts at
+   0): beside the switch when the row has room, else on the line under it. Its place is kept while it is not shown */
+.switch-note { flex: 0 1 auto; margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.4; }
+.switch-note.off { visibility: hidden; }
+.actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem; }
+.actions button { padding-inline: .9rem; }
+
+/* The figure and the small figures: the main figure keeps its frame (a square for 1-1 and 1-2, 4:3 for the others) whatever the
+   settings; the board of "Find and tap" covers it at the same size */
+.entry-stage { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "main" "read" "uses" "why"; gap: .5rem 1rem; }
+.entry-main { grid-area: main; min-width: 0; }
+.entry-read { grid-area: read; min-width: 0; }
+.entry-uses { grid-area: uses; min-width: 0; }
+.entry-stage > .entry-why { grid-area: why; min-width: 0; margin-top: .2rem; }
+.figure-frame { position: relative; margin: 0; background: var(--paper); border: 1px solid var(--line); }
+.figure-frame > svg { display: block; width: 100%; height: auto; }
+.figure-frame.finding > svg { cursor: pointer; }
+.find-cover {
+  position: absolute; inset: 0; width: 100%; height: 100%; border: 2px dashed var(--muted); border-radius: 0;
+  background: var(--paper); color: var(--ink); font-size: 1.05rem; font-weight: 700;
+}
+
+/* How to read: every sentence of the entry sits in the same cell, only the current one is shown; the height is that of the
+   longest one. The line of "Find and tap" keeps the height of its longest sentence the same way */
+.stack { display: grid; }
+.stack > * { grid-area: 1 / 1; min-width: 0; }
+.stack > .off { visibility: hidden; }
+.read-stack { margin: .1rem 0 0; font-size: .9375rem; line-height: 1.5; }
+.read-stack p { margin: 0; }
+.find-line { margin: .35rem 0 0; font-size: .9375rem; line-height: 1.5; }
+.find-line p { margin: 0; }
+.find-live { font-weight: 700; }
+.find-reveal { justify-self: start; align-self: start; font-weight: 700; }
+/* The misreading cards: the line of numbers right under the figure (stacked like the sentences, so that it keeps its height), and
+   the line of what to check when reading after the sentences */
+.numbers-stack { margin: .1rem 0 .3rem; font-size: .9375rem; font-weight: 700; line-height: 1.5; }
+.numbers-stack p { margin: 0; }
+.entry-check { margin: .45rem 0 0; padding: .1rem 0 .1rem .6rem; border-left: 4px solid var(--accent); font-size: .875rem; line-height: 1.5; }
+
+/* Same controls, showing and hiding: two small figures side by side below 720px */
+.uses-heading { margin: .2rem 0 .3rem; font-size: 1rem; line-height: 1.4; }
+.uses-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.use { min-width: 0; margin: 0; }
+.use-label { margin: 0 0 .15rem; font-size: .8125rem; font-weight: 700; line-height: 1.4; }
+.use-figure > svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: var(--paper); }
+.use-texts { min-width: 0; }
+.use-linked { margin: .25rem 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+.use-text { margin: .25rem 0 0; font-size: .875rem; line-height: 1.5; }
+.stack.use-text p { margin: 0; }
+.use-note { margin: .25rem 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+/* A link inside a sentence: the line keeps its height, the place to press is 44px high */
+.inline-link { display: inline-block; padding-block: .85rem; margin-block: -.85rem; }
+.gap-note { margin: .8rem 0 0; padding: .45rem .7rem; border-left: 4px solid var(--muted); background: var(--bg); font-size: .875rem; }
+.gap-note p { margin: 0; }
+.gap-head { font-weight: 700; }
+.entry-sources { margin: .7rem 0 0; }
+.entry-sources h4 { display: inline; margin: 0; font-size: .9375rem; }
+.sources-label { margin: .4rem 0 .1rem; font-size: .8125rem; font-weight: 700; }
+.source-list { margin: 0 0 .4rem; padding-left: 1.2rem; font-size: .8125rem; line-height: 1.45; overflow-wrap: anywhere; }
+.source-list li + li { margin-top: .3rem; }
+.source-list a { display: inline-flex; align-items: center; min-height: 44px; }
+.back-to-list { display: block; margin: .6rem 0 0 auto; padding: .3rem .7rem; font-size: .875rem; }
+
+/* Terms: a dashed underline on the word, which is a button; its short explanation shows right under it. "?" beside a word
+   where an underline would be hard to read (a table heading). Only one explanation is shown at a time */
+.term-wrap { position: relative; }
+/* The word with the brackets around it, one box: no line break between them (a long word still wraps inside the box) */
+.term-glue { display: inline-block; max-width: 100%; text-indent: 0; }
+.term {
+  display: inline; min-width: 0; min-height: 0; padding: 0; margin: 0; border: 0; border-radius: 0;
+  background: none; color: inherit; font: inherit; line-height: inherit; text-align: inherit; cursor: help;
+  text-decoration: underline dashed; text-decoration-color: color-mix(in srgb, currentColor 60%, transparent);
+  text-decoration-thickness: 1px; text-underline-offset: .2em;
+}
+.term-help {
+  display: inline-flex; align-items: center; justify-content: center; width: 24px; min-width: 24px; height: 24px; min-height: 24px;
+  margin: 0 .5rem 0 .25rem; padding: 0; border-radius: 50%; font-size: .8125rem; font-weight: 700; line-height: 1; vertical-align: middle;
+}
+.term-tip {
+  position: absolute; z-index: 5; left: 0; top: 100%; display: block; width: max-content; max-width: min(18rem, 100vw - 2rem);
+  margin-top: .2rem; padding: .45rem .6rem; border: 1px solid var(--muted); border-radius: 8px;
+  background: var(--bg); color: var(--ink); font-size: .875rem; font-weight: 400; line-height: 1.5; text-align: left;
+  white-space: normal; word-break: keep-all; overflow-wrap: anywhere;
+}
+/* Too wide for the screen: the explanation's right edge lines up with the inner right edge of the panel (the word's box stops
+   being the reference, so the panel is; the explanation still starts under the line of the word) */
+.term-wrap.tip-right { position: static; }
+.term-wrap.tip-right > .term-tip { left: auto; right: 0; top: auto; }
+/* Too low for the screen: above the word */
+.term-wrap.tip-above > .term-tip { top: auto; bottom: 100%; margin: 0 0 .2rem; }
+.term-wrap.tip-right.tip-above > .term-tip { bottom: auto; translate: 0 calc(-100% - 1.9em); }
+
+/* Details and the help dialog */
+details {
+  min-width: 0;
+  margin: .75rem 0;
+  padding: 0 .6rem;
+  border: 1px solid var(--muted);
+  border-radius: 8px;
+  background: var(--paper);
+}
+details > summary {
+  min-height: 44px;
+  margin: 0 -.6rem;
+  padding: .6rem;
+  border-radius: 7px;
+  background: var(--bg);
+  cursor: pointer;
+  font-weight: 700;
+}
+details[open] { padding-bottom: .6rem; }
+details[open] > summary { margin-bottom: .6rem; border-bottom: 1px solid var(--muted); border-radius: 7px 7px 0 0; }
+dialog {
+  width: min(100% - 1rem, 46rem);
+  max-width: none;
+  max-height: 90dvh;
+  padding: 0;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+}
+dialog[open] { display: flex; flex-direction: column; }
+dialog::backdrop { background: #101a2ab0; }
+.help-header {
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; padding: .75rem 1rem; border-bottom: 1px solid var(--line);
+}
+.help-header h2 { margin: 0; }
+.help-header button { flex: none; }
+/* The help keeps one size on both tabs: the size suits the glossary (the longer text), not the short help. The title, Close and the
+   tabs stay in place and only the text of the tab scrolls; the space of the scroll bar is kept, so the text keeps its width */
+#help-dialog { height: min(90dvh, 56rem); }
+/* The two tabs of the help (help and glossary), drawn like the tab bar: the chosen one is bold with a line under it */
+.help-tabs { flex: none; display: flex; gap: .25rem; padding: 0 1rem; border-bottom: 1px solid var(--line); }
+.help-tab { flex: 1 1 0; min-width: 0; border: 0; border-radius: 0; background: none; color: var(--ink); font-size: 1rem; }
+.help-tab[aria-selected="true"] { color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); font-weight: 700; }
+.help-body { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 1rem 1rem; overflow-wrap: anywhere; }
+.help-body:focus-visible { outline-offset: -3px; }
+.help-body { scrollbar-gutter: stable; }
+/* The headings of the help and of the groups of the glossary stand apart from the text: larger, bold, with space above and a
+   line under them */
+.help-body h3 {
+  scroll-margin-top: .75rem; margin: 1.6rem 0 .5rem; padding-bottom: .25rem; border-bottom: 1px solid var(--line);
+  color: var(--accent); font-size: 1.125rem; font-weight: 700; line-height: 1.4;
+}
+.help-body > h3:first-child, .help-body > .gloss-lead + .gloss-group > h3 { margin-top: 1rem; }
+.help-body p { margin: .4rem 0; line-height: 1.6; }
+.help-list { margin: .4rem 0; padding-left: 1.3rem; line-height: 1.6; }
+.help-list li + li { margin-top: .3rem; }
+.gloss-lead { color: var(--muted); font-size: .9375rem; }
+/* A term of the glossary: the word of this atlas (bold), the technical term with its label (small), and the meaning (with a line
+   on its left) */
+.glossary { margin: .3rem 0 0; }
+.glossary dt { margin-top: .9rem; font-weight: 700; color: var(--accent); }
+.glossary > dt:first-child { margin-top: .4rem; }
+.glossary dd { margin: .25rem 0 0; padding-left: .6rem; border-left: 3px solid var(--line); line-height: 1.55; }
+.term-expert { display: block; margin-top: .1rem; color: var(--muted); font-size: .8125rem; font-weight: 400; }
+.term-expert-label {
+  display: inline-block; margin-right: .4rem; padding: 0 .3rem; border: 1px solid var(--muted); border-radius: 4px; font-size: .75rem;
+}
+
+/* Figures: the colors come from the palette classes below; these are the lines, dots, marks and letters */
+svg text { font-family: system-ui, sans-serif; }
+.ta-start { text-anchor: start; }
+.ta-middle { text-anchor: middle; }
+.ta-end { text-anchor: end; }
+.fig-title { fill: var(--ink); font-size: 13px; font-weight: 700; }
+.fig-axisname, .fig-tick, .fig-legend { fill: var(--ink); font-size: 11px; }
+.fig-axis { stroke: var(--muted); stroke-width: 1; }
+.fig-rule { stroke: var(--line); stroke-width: 1; }
+.fig-frame-small { stroke: var(--line); stroke-width: 1; }
+.fig-series { fill: none; stroke-width: 2.5; stroke-linejoin: round; }
+.fig-cross { stroke-width: 3; }
+.fig-stroke { stroke: var(--ink); stroke-width: 3; }
+.fig-outline { fill: none; stroke: var(--ink); stroke-width: 2; }
+.fig-dot, .fig-mark { fill: var(--ink); }
+.fig-textbar { fill: var(--muted); }
+.fig-frame { fill: none; stroke: var(--ink); stroke-width: 2; }
+.fig-link { stroke: var(--ink); stroke-width: 3; }
+.fig-barline { stroke-width: 1.2; }
+.fig-pattern { stroke-width: 1; }
+.fig-spine { stroke: var(--paper); stroke-width: 2; }
+.fig-break { fill: none; stroke: var(--ink); stroke-width: 2; }
+.line-dashed { stroke-dasharray: 6 4; }
+.camo-outline { stroke: var(--ink); stroke-width: 1.5; }
+.camo-line { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+.fixation { stroke: var(--ink); stroke-width: 2.5; }
+.stim-solid { fill: var(--ink); }
+.stim-outline { fill: var(--paper); stroke: var(--ink); stroke-width: 2; }
+/* The marks of "Find and tap": the shape pressed has a thick circle, the shape to find a double rounded square (shapes, not colors) */
+.mark-pressed { fill: none; stroke: var(--ink); stroke-width: 4; }
+.mark-target { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+/* Next frame (reduced motion): where a moving shape was in the frame before, a dashed outline of the same size over the figure (a
+   shape, not a color) */
+.fig-trail { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: 4 3; }
+/* The number written in a cell of the heatmap (its color is fill-heatText, dark on the light cells in both themes) */
+.fig-cellnum { font-size: 11px; font-weight: 700; }
+.fill-stimCool { fill: var(--c-stimCool); } .stroke-stimCool { stroke: var(--c-stimCool); }
+.fill-stimHot { fill: var(--c-stimHot); } .stroke-stimHot { stroke: var(--c-stimHot); }
+.fill-popColor-0 { fill: var(--c-popColor-0); } .stroke-popColor-0 { stroke: var(--c-popColor-0); }
+.fill-popColor-1 { fill: var(--c-popColor-1); } .stroke-popColor-1 { stroke: var(--c-popColor-1); }
+.fill-popColor-2 { fill: var(--c-popColor-2); } .stroke-popColor-2 { stroke: var(--c-popColor-2); }
+.fill-popColor-3 { fill: var(--c-popColor-3); } .stroke-popColor-3 { stroke: var(--c-popColor-3); }
+.fill-popOthers-0 { fill: var(--c-popOthers-0); } .stroke-popOthers-0 { stroke: var(--c-popOthers-0); }
+.fill-popOthers-1 { fill: var(--c-popOthers-1); } .stroke-popOthers-1 { stroke: var(--c-popOthers-1); }
+.fill-popOthers-2 { fill: var(--c-popOthers-2); } .stroke-popOthers-2 { stroke: var(--c-popOthers-2); }
+.fill-popLight-0 { fill: var(--c-popLight-0); } .stroke-popLight-0 { stroke: var(--c-popLight-0); }
+.fill-popLight-1 { fill: var(--c-popLight-1); } .stroke-popLight-1 { stroke: var(--c-popLight-1); }
+.fill-popLight-2 { fill: var(--c-popLight-2); } .stroke-popLight-2 { stroke: var(--c-popLight-2); }
+.fill-popLight-3 { fill: var(--c-popLight-3); } .stroke-popLight-3 { stroke: var(--c-popLight-3); }
+.fill-popLightOthers-0 { fill: var(--c-popLightOthers-0); } .stroke-popLightOthers-0 { stroke: var(--c-popLightOthers-0); }
+.fill-popLightOthers-1 { fill: var(--c-popLightOthers-1); } .stroke-popLightOthers-1 { stroke: var(--c-popLightOthers-1); }
+.fill-popLightOthers-2 { fill: var(--c-popLightOthers-2); } .stroke-popLightOthers-2 { stroke: var(--c-popLightOthers-2); }
+.fill-seriesTarget { fill: var(--c-seriesTarget); } .stroke-seriesTarget { stroke: var(--c-seriesTarget); }
+.fill-seriesOthers-0 { fill: var(--c-seriesOthers-0); } .stroke-seriesOthers-0 { stroke: var(--c-seriesOthers-0); }
+.fill-seriesOthers-1 { fill: var(--c-seriesOthers-1); } .stroke-seriesOthers-1 { stroke: var(--c-seriesOthers-1); }
+.fill-seriesOthers-2 { fill: var(--c-seriesOthers-2); } .stroke-seriesOthers-2 { stroke: var(--c-seriesOthers-2); }
+.fill-groups-0 { fill: var(--c-groups-0); } .stroke-groups-0 { stroke: var(--c-groups-0); }
+.fill-groups-1 { fill: var(--c-groups-1); } .stroke-groups-1 { stroke: var(--c-groups-1); }
+.fill-groups-2 { fill: var(--c-groups-2); } .stroke-groups-2 { stroke: var(--c-groups-2); }
+.fill-groups-3 { fill: var(--c-groups-3); } .stroke-groups-3 { stroke: var(--c-groups-3); }
+.fill-regionA { fill: var(--c-regionA); } .stroke-regionA { stroke: var(--c-regionA); }
+.fill-regionB { fill: var(--c-regionB); } .stroke-regionB { stroke: var(--c-regionB); }
+.fill-areaDark { fill: var(--c-areaDark); } .stroke-areaDark { stroke: var(--c-areaDark); }
+.fill-areaLight { fill: var(--c-areaLight); } .stroke-areaLight { stroke: var(--c-areaLight); }
+.fill-band { fill: var(--c-band); } .stroke-band { stroke: var(--c-band); }
+.fill-camoBase { fill: var(--c-camoBase); } .stroke-camoBase { stroke: var(--c-camoBase); }
+.fill-camoFar { fill: var(--c-camoFar); } .stroke-camoFar { stroke: var(--c-camoFar); }
+.fill-camoSpots-0 { fill: var(--c-camoSpots-0); } .stroke-camoSpots-0 { stroke: var(--c-camoSpots-0); }
+.fill-camoSpots-1 { fill: var(--c-camoSpots-1); } .stroke-camoSpots-1 { stroke: var(--c-camoSpots-1); }
+.fill-camoSpots-2 { fill: var(--c-camoSpots-2); } .stroke-camoSpots-2 { stroke: var(--c-camoSpots-2); }
+.fill-camoObj-0 { fill: var(--c-camoObj-0); } .stroke-camoObj-0 { stroke: var(--c-camoObj-0); }
+.fill-camoObj-1 { fill: var(--c-camoObj-1); } .stroke-camoObj-1 { stroke: var(--c-camoObj-1); }
+.fill-camoObj-2 { fill: var(--c-camoObj-2); } .stroke-camoObj-2 { stroke: var(--c-camoObj-2); }
+.fill-camoObj-3 { fill: var(--c-camoObj-3); } .stroke-camoObj-3 { stroke: var(--c-camoObj-3); }
+.fill-camoObjLight-0 { fill: var(--c-camoObjLight-0); } .stroke-camoObjLight-0 { stroke: var(--c-camoObjLight-0); }
+.fill-camoObjLight-1 { fill: var(--c-camoObjLight-1); } .stroke-camoObjLight-1 { stroke: var(--c-camoObjLight-1); }
+.fill-camoObjLight-2 { fill: var(--c-camoObjLight-2); } .stroke-camoObjLight-2 { stroke: var(--c-camoObjLight-2); }
+.fill-camoObjLight-3 { fill: var(--c-camoObjLight-3); } .stroke-camoObjLight-3 { stroke: var(--c-camoObjLight-3); }
+.fill-camoSpotsLight-0 { fill: var(--c-camoSpotsLight-0); } .stroke-camoSpotsLight-0 { stroke: var(--c-camoSpotsLight-0); }
+.fill-camoSpotsLight-1 { fill: var(--c-camoSpotsLight-1); } .stroke-camoSpotsLight-1 { stroke: var(--c-camoSpotsLight-1); }
+.fill-camoSpotsLight-2 { fill: var(--c-camoSpotsLight-2); } .stroke-camoSpotsLight-2 { stroke: var(--c-camoSpotsLight-2); }
+.fill-camoObjSpots-0 { fill: var(--c-camoObjSpots-0); } .stroke-camoObjSpots-0 { stroke: var(--c-camoObjSpots-0); }
+.fill-camoObjSpots-1 { fill: var(--c-camoObjSpots-1); } .stroke-camoObjSpots-1 { stroke: var(--c-camoObjSpots-1); }
+.fill-camoObjSpots-2 { fill: var(--c-camoObjSpots-2); } .stroke-camoObjSpots-2 { stroke: var(--c-camoObjSpots-2); }
+.fill-camoMarks-0 { fill: var(--c-camoMarks-0); } .stroke-camoMarks-0 { stroke: var(--c-camoMarks-0); }
+.fill-camoMarks-1 { fill: var(--c-camoMarks-1); } .stroke-camoMarks-1 { stroke: var(--c-camoMarks-1); }
+.fill-camoMarks-2 { fill: var(--c-camoMarks-2); } .stroke-camoMarks-2 { stroke: var(--c-camoMarks-2); }
+.fill-lightGray { fill: var(--c-lightGray); } .stroke-lightGray { stroke: var(--c-lightGray); }
+.fill-lightLeft-0 { fill: var(--c-lightLeft-0); } .stroke-lightLeft-0 { stroke: var(--c-lightLeft-0); }
+.fill-lightLeft-1 { fill: var(--c-lightLeft-1); } .stroke-lightLeft-1 { stroke: var(--c-lightLeft-1); }
+.fill-lightLeft-2 { fill: var(--c-lightLeft-2); } .stroke-lightLeft-2 { stroke: var(--c-lightLeft-2); }
+.fill-lightLeft-3 { fill: var(--c-lightLeft-3); } .stroke-lightLeft-3 { stroke: var(--c-lightLeft-3); }
+.fill-lightLeft-4 { fill: var(--c-lightLeft-4); } .stroke-lightLeft-4 { stroke: var(--c-lightLeft-4); }
+.fill-lightRight-0 { fill: var(--c-lightRight-0); } .stroke-lightRight-0 { stroke: var(--c-lightRight-0); }
+.fill-lightRight-1 { fill: var(--c-lightRight-1); } .stroke-lightRight-1 { stroke: var(--c-lightRight-1); }
+.fill-lightRight-2 { fill: var(--c-lightRight-2); } .stroke-lightRight-2 { stroke: var(--c-lightRight-2); }
+.fill-lightRight-3 { fill: var(--c-lightRight-3); } .stroke-lightRight-3 { stroke: var(--c-lightRight-3); }
+.fill-lightRight-4 { fill: var(--c-lightRight-4); } .stroke-lightRight-4 { stroke: var(--c-lightRight-4); }
+.fill-heat-0 { fill: var(--c-heat-0); } .stroke-heat-0 { stroke: var(--c-heat-0); }
+.fill-heat-1 { fill: var(--c-heat-1); } .stroke-heat-1 { stroke: var(--c-heat-1); }
+.fill-heat-2 { fill: var(--c-heat-2); } .stroke-heat-2 { stroke: var(--c-heat-2); }
+.fill-heat-3 { fill: var(--c-heat-3); } .stroke-heat-3 { stroke: var(--c-heat-3); }
+.fill-heat-4 { fill: var(--c-heat-4); } .stroke-heat-4 { stroke: var(--c-heat-4); }
+.fill-heat-5 { fill: var(--c-heat-5); } .stroke-heat-5 { stroke: var(--c-heat-5); }
+.fill-heat-6 { fill: var(--c-heat-6); } .stroke-heat-6 { stroke: var(--c-heat-6); }
+.fill-heat-7 { fill: var(--c-heat-7); } .stroke-heat-7 { stroke: var(--c-heat-7); }
+.fill-heat-8 { fill: var(--c-heat-8); } .stroke-heat-8 { stroke: var(--c-heat-8); }
+.fill-heat-9 { fill: var(--c-heat-9); } .stroke-heat-9 { stroke: var(--c-heat-9); }
+.fill-heat-10 { fill: var(--c-heat-10); } .stroke-heat-10 { stroke: var(--c-heat-10); }
+.fill-heatText { fill: var(--c-heatText); } .stroke-heatText { stroke: var(--c-heatText); }
+.fill-veil { fill: var(--c-veil); } .stroke-veil { stroke: var(--c-veil); }
+.fill-bark-0 { fill: var(--c-bark-0); } .stroke-bark-0 { stroke: var(--c-bark-0); }
+.fill-bark-1 { fill: var(--c-bark-1); } .stroke-bark-1 { stroke: var(--c-bark-1); }
+.fill-bark-2 { fill: var(--c-bark-2); } .stroke-bark-2 { stroke: var(--c-bark-2); }
+.fill-bark-3 { fill: var(--c-bark-3); } .stroke-bark-3 { stroke: var(--c-bark-3); }
+.fill-barkMark { fill: var(--c-barkMark); } .stroke-barkMark { stroke: var(--c-barkMark); }
+.fig-nofill, svg .fig-nofill { fill: none; }
+/* The mark on the moth shape of the camouflage test: a dashed line just outside its edges (its color is stroke-barkMark) */
+.camo-mark { fill: none; stroke-width: 3; stroke-dasharray: 7 4; stroke-linejoin: round; }
+/* A dot of the camouflage results (the time of one round): the paper inside and the ink around it, on the bar and beside it */
+.res-dot { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
+/* A month without data in the small chart of the contour entry: a light band behind the lines (the color of the lines of the page, see-through) */
+.fig-missing { fill: var(--line); fill-opacity: .45; }
+/* An open mark of the result chart (the bar was not there): the paper inside, the line of the series around it */
+.res-open { fill: var(--paper); stroke-width: 2; }
+.res-leader { stroke-width: 1.5; }
+
+/* Two sliders side by side: a thin rule in the middle of the gap between them, so that the names of their steps read as two
+   rows (同じ 小 中 大 | そろっている 少し ばらばら) and not as one */
+.control.range + .control.range { position: relative; }
+.control.range + .control.range::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: calc(-.375rem - .5px); border-left: 1px solid var(--line);
+}
+/* A step name is never broken inside a word; below 380px the two sliders take a row each, so that the names fit (Same Small Medium
+   Large needs about 151px) */
+.ticks > span { overflow-wrap: normal; }
+@media (max-width: 379px) {
+  .control.range { grid-column: 1 / -1; }
+  .control.range + .control.range::before { display: none; }
+}
+
+/* The search time tab: the parts of the card under their headings, the samples of the bars (pictures, not color names), the two
+   start buttons each with the other bars of its search, and the notes on the length of a run */
+.search-why { margin: .3rem 0 .2rem; font-size: .9375rem; line-height: 1.5; }
+.search-heading { margin: 1rem 0 .35rem; font-size: 1rem; line-height: 1.4; scroll-margin-top: .5rem; }
+.search-measure .control { margin: .2rem 0; }
+.search-measure .choice { max-width: 32rem; }
+.search-measure .control-note { margin: .2rem 0 0; }
+.sample-row { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .4rem; margin: .35rem 0; font-size: .875rem; line-height: 1.4; }
+.samples { display: inline-flex; gap: .3rem; }
+svg.sample { display: block; width: 30px; height: 30px; border: 1px solid var(--line); background: var(--paper); }
+.search-starts { display: grid; gap: .45rem; margin: .5rem 0; }
+.start-row { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .75rem; scroll-margin-top: .5rem; }
+.start-row .sample-row { margin: 0; }
+.start-button { font-weight: 700; }
+.search-note { margin: .15rem 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+.search-read p, .search-limits p { margin: .2rem 0 .4rem; font-size: .9375rem; line-height: 1.55; }
+.uses-list.single { grid-template-columns: minmax(0, 1fr); max-width: 26rem; }
+
+/* The results: the note on the record with the button to clear it, the feature pairs measured, the chart, the legend in words
+   (narrow screens), the tables (one from 720px, two below) with what the excluded tries are, the sentences and the values of research */
+.res-privacy { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .35rem .75rem; margin: .2rem 0 .4rem; }
+.res-privacy p { flex: 1 1 14rem; margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+.res-body > p, .res-texts p, .res-sets p { margin: .3rem 0; font-size: .9375rem; line-height: 1.5; }
+.res-sets { margin: .3rem 0 .5rem; }
+.res-body > .res-axis-note { color: var(--muted); font-size: .8125rem; }
+.res-legend { display: flex; flex-wrap: wrap; gap: .15rem .9rem; margin: .3rem 0; padding: 0; list-style: none; font-size: .8125rem; line-height: 1.4; }
+.res-legend li { display: inline-flex; align-items: center; gap: .3rem; }
+svg.res-key { display: block; width: 32px; height: 14px; }
+.res-chart > svg { display: block; width: 100%; max-width: 36rem; height: auto; border: 1px solid var(--line); background: var(--paper); }
+.res-table { max-width: 44rem; margin: .6rem 0; font-size: .8125rem; line-height: 1.4; }
+.res-table caption { padding: 0 0 .25rem; font-weight: 700; text-align: left; }
+.res-table th, .res-table td { padding: .3rem .35rem; }
+.res-table td { text-align: right; font-variant-numeric: tabular-nums; }
+/* The name of a row (特徴・ある, written without <wbr>) stays on one line in Japanese */
+:lang(ja) .res-table tbody th { white-space: nowrap; }
+.res-table thead th { vertical-align: bottom; }
+.res-ref { max-width: 36rem; margin-bottom: .2rem; }
+.res-body > .res-ref-note { margin: 0 0 .5rem; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+.res-body > .res-excluded-note { margin: -.35rem 0 .5rem; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+.res-texts { margin: .5rem 0; }
+@media (max-width: 719px) {
+  .res-body .res-wide { display: none; }
+  /* Narrow screens: smaller cells, so that the two tables and the research values fit 320px without a sideways scroll */
+  .res-table { font-size: .75rem; }
+  .res-table th, .res-table td { padding: .25rem .3rem; }
+}
+@media (min-width: 720px) { .res-body .res-narrow, .res-body .res-legend { display: none; } }
+/* The camouflage card: the chart of its results smaller than that of the search experiment (its letters stay near the size of the
+   page's), the names of the patterns in the tables wrapping between words, the box of what studies have found, and the sentence of
+   the pattern under the small figure */
+.res-chart > svg.camo-chart { max-width: 24rem; }
+:lang(ja) .camo-table tbody th { white-space: normal; }
+.camo-research {
+  margin: .6rem 0 .5rem; padding: .45rem .7rem; border-left: 4px solid var(--muted); background: var(--bg); font-size: .875rem; line-height: 1.5;
+}
+.camo-research p { margin: 0; }
+.use-read { margin: .25rem 0 0; font-size: .875rem; line-height: 1.5; }
+
+/* The search experiment: a dialog over the whole screen on a plain ground. The side of the square of the display: on a portrait screen
+   the width less 32px, the height less 200px or 360px, whichever is smallest, with the two answer buttons under it; on a landscape
+   screen the height less 48px, the width less 288px or 360px, with the answer buttons on its two sides. Stop is at the top right
+   of the square, away from the answers; the line of the result of a try keeps its height */
+.exp-dialog { width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; border-radius: 0; }
+.exp-dialog[open] { display: block; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.exp-shell {
+  display: grid; grid-template-columns: repeat(2, calc(min(100vw - 32px, 100dvh - 200px, 360px) / 2));
+  grid-template-areas: "top top" "stage stage" "feedback feedback" "absent present";
+  justify-content: center; align-content: center; gap: 8px 0; min-height: 100%; padding: 8px 0 12px;
+}
+.exp-top { grid-area: top; display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; min-width: 0; }
+.exp-head { min-width: 0; }
+.exp-title { margin: 0; font-size: 1.05rem; line-height: 1.35; }
+.exp-progress { min-height: 1.4em; margin: .1rem 0 0; color: var(--muted); font-size: .875rem; line-height: 1.4; }
+.exp-abort { flex: none; font-weight: 700; }
+.exp-stage {
+  grid-area: stage; display: grid; width: min(100vw - 32px, 100dvh - 200px, 360px); min-height: min(100vw - 32px, 100dvh - 200px, 360px);
+  border: 1px solid var(--line); background: var(--paper);
+  touch-action: manipulation;
+}
+.exp-stage > * { grid-area: 1 / 1; min-width: 0; }
+.exp-stage > svg { display: block; width: 100%; height: auto; align-self: start; }
+.exp-message { padding: .75rem; background: var(--paper); font-size: .9375rem; line-height: 1.5; }
+.exp-message p { margin: 0 0 .6rem; }
+.sample-line { display: flex; flex-wrap: wrap; gap: 0 1.2rem; }
+.exp-message .sample-row { margin: 0 0 .5rem; }
+.exp-reader { color: var(--muted); font-size: .8125rem; }
+.exp-status { font-weight: 700; }
+.exp-go { margin: 0 0 .7rem; font-weight: 700; }
+.exp-results p { font-size: .875rem; }
+.exp-feedback { grid-area: feedback; font-size: .9375rem; font-weight: 700; line-height: 1.5; text-align: center; }
+.exp-feedback p { margin: 0; }
+/* An answer button: its word large, and its keys in small letters under it only on a screen with a keyboard and a mouse (a phone has no F
+   or J key); the sentence of the keys before the start likewise */
+.exp-answer { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .05rem; min-height: 64px; font-weight: 700;
+  touch-action: manipulation; }
+.answer-word { font-size: 1.25rem; line-height: 1.2; }
+.answer-keys, .keys-only { display: none; }
+.answer-keys { font-size: .75rem; font-weight: 400; line-height: 1.2; }
+@media (hover: hover) and (pointer: fine) {
+  .answer-keys, .keys-only { display: block; }
+}
+/* The camouflage test: the spots over the square are buttons without lines or colors (the 6 × 6 grid is not drawn). The keyboard focus is
+   a light frame with a dark band inside the spot, so that it shows both on the paper and on the bark */
+.camo-grid {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); width: 100%; aspect-ratio: 1;
+  align-self: start;
+}
+.camo-spot { min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; touch-action: manipulation; }
+.camo-spot:focus-visible { outline: 2px solid var(--c-barkMark); outline-offset: -4px; box-shadow: inset 0 0 0 5px var(--c-bark-0); }
+/* The narrowest screens: the message before the start in smaller letters and without the sentence of the keys (with a mouse the keys
+   stay under the answer buttons), so that it fits the square and the answer buttons stay on the screen */
+@media (max-width: 359px) {
+  .exp-message { padding: .6rem; font-size: .875rem; line-height: 1.45; }
+  .exp-message p { margin-bottom: .45rem; }
+  .exp-message .keys-only { display: none; }
+}
+.exp-absent { grid-area: absent; margin-right: 4px; }
+.exp-present { grid-area: present; margin-left: 4px; }
+@media (orientation: landscape) {
+  .exp-shell {
+    grid-template-columns: minmax(0, 1fr) min(100dvh - 48px, 100vw - 288px, 360px) minmax(0, 1fr); grid-template-rows: auto auto auto;
+    grid-template-areas: "head stage abort" "absent stage present" ". feedback ."; gap: 0 16px; padding: 12px 16px;
+  }
+  .exp-top { display: contents; }
+  .exp-stage { width: min(100dvh - 48px, 100vw - 288px, 360px); min-height: min(100dvh - 48px, 100vw - 288px, 360px); }
+  .exp-head { grid-area: head; justify-self: end; text-align: right; }
+  /* The title and progress, Stop and the answers stand close to the square on its two sides, so that they read as one group */
+  .exp-abort { grid-area: abort; justify-self: start; align-self: start; }
+  .exp-answer { align-self: center; width: min(100%, 13rem); margin: 0; }
+  .exp-absent { justify-self: end; }
+  .exp-present { justify-self: start; }
+}
+
+/* Narrow screens: a little smaller sentences under the figure, so that the controls, the figure and the small figures fit the
+   height of a phone together */
+@media (max-width: 719px) {
+  /* A card with a single slider: the slider takes the whole row, so that the names of its steps stay on one line */
+  .control.range.sole { grid-column: 1 / -1; }
+  .read-stack, .find-line, .numbers-stack { font-size: .875rem; }
+  /* The one small figure of a misreading card: as wide as one of two small figures, with its sentences beside it (as from 1000px),
+     so that the controls, the figure and the small figure fit the height of a phone together */
+  .uses-list.single.readable { max-width: none; }
+  .uses-list.readable .use {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "figure texts"; gap: 0 .6rem;
+  }
+  .uses-list.readable .use-figure { grid-area: figure; }
+  .uses-list.readable .use-texts { grid-area: texts; }
+  .uses-list.readable .use-linked { margin-top: 0; }
+  .entry-stage { row-gap: .4rem; }
+  .uses-heading { margin-top: .1rem; }
+}
+@media (min-width: 720px) {
+  .masthead { flex-direction: row; justify-content: space-between; }
+  .masthead h1 { text-align: left; }
+  .tabs { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .tabs button { grid-column: auto; }
+  .tab-name { font-size: 1rem; }
+  .contrast-table .col-trait { width: 16%; }
+  .section-nav-buttons { display: flex; flex-wrap: wrap; }
+  .intro-route-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .check-figures.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 40rem; }
+  /* The figure on the left (about 60%) with its sentences and why under it, and the two small figures one above the other on the right
+     (about 40%). When the small figures are taller, the room left goes under why (the last row), not between the figure and the sentences */
+  .entry-stage {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-rows: auto auto 1fr;
+    grid-template-areas: "main uses" "read uses" "why uses"; align-items: start;
+  }
+  .entry-read { align-self: start; }
+  .uses-list { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+  .controls { grid-template-columns: repeat(2, minmax(0, 18rem)); }
+  /* The other cards: the figure is held by the height of the screen as well (its frame at most (100vh − 25rem) × 4 ÷ 3 wide), so that
+     right after moving to the entry its bottom edge is on a 1280×800 screen too */
+  .entry:not(.square) .figure-frame { max-width: calc((100vh - 25rem) * 4 / 3); }
+  /* The square figures of the Pop out tab: the side, clamp(17rem, 100vh - 31.5rem, 27.5rem), is held by the height of the screen too
+     (the closed "Predict before you try" above the controls included), so that right after moving to the entry its bottom edge is on a
+     1280×800 screen; never under 17rem, where a cell of the 6×6 grid is still 44px or more. Its column is as wide as the square (or the
+     60% of the other cards when that is narrower), and the small figures keep their size to it (0.6 of the side here, 13/27.5 of it from
+     1000px) */
+  .entry.square .entry-stage {
+    grid-template-columns: minmax(0, min(clamp(17rem, 100vh - 31.5rem, 27.5rem), (100% - 1rem) * .6)) minmax(0, 1fr);
+  }
+  .entry.square .figure-frame { max-width: clamp(17rem, 100vh - 31.5rem, 27.5rem); }
+  .entry.square .use-figure { max-width: clamp(17rem * .6, (100vh - 31.5rem) * .6, 27.5rem * .6); }
+}
+/* Wide screens: each small figure has its sentences beside it */
+@media (min-width: 1000px) {
+  .use { display: grid; grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); grid-template-areas: "label label" "figure texts"; gap: 0 .8rem; }
+  .entry.square .use { grid-template-columns: minmax(0, clamp(17rem * 13 / 27.5, (100vh - 31.5rem) * 13 / 27.5, 13rem)) minmax(0, 1fr); }
+  .use-label { grid-area: label; }
+  .use-figure { grid-area: figure; }
+  .use-texts { grid-area: texts; }
+  .use-texts > :first-child { margin-top: 0; }
+  /* The two cards of the Search time tab have no main figure and one small figure: the figure a little larger, and its sentences in a
+     column of about 25 to 40 characters a line (a lone small figure elsewhere keeps 26rem, which would leave about 13 here) */
+  .search-entry .uses-list.single { max-width: none; }
+  .search-entry .use { grid-template-columns: minmax(0, 16rem) minmax(0, 34rem); }
+}
+
+@media print {
+  button, dialog, .find-cover { display: none !important; }
+}
